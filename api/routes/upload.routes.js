@@ -1,0 +1,38 @@
+// routes/upload.routes.js
+const express = require("express");
+const jwt = require("jsonwebtoken");
+const { uploadFiles, generateTemporaryUploadLink } = require("../controllers/uploadController");
+const { protect } = require("../middlewares/auth");
+const { uploadFiles: uploadMiddleware } = require("../middlewares/uploadFiles");
+const { verifyUploadToken } = require("../middlewares/uploadToken");
+
+const router = express.Router({ mergeParams: true });
+
+// Generation route (Protected - only admins/PMs can generate links)
+router.get("/generate-link/:projectId", protect, generateTemporaryUploadLink);
+
+// Temporary upload route (Public but token-validated)
+router.route("/temp")
+    .get((req, res) => {
+        const { token } = req.query;
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        if (token) {
+            // Decode token to get projectId for the new URL structure
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                const lang = req.params.lang || 'fr';
+                return res.redirect(`${frontendUrl}/${lang}/upload/${decoded.projectId}/temp/${token}`);
+            } catch (err) {
+                return res.redirect(`${frontendUrl}/fr/upload/temp`);
+            }
+        }
+        res.redirect(`${frontendUrl}/fr/upload/temp`);
+    })
+    .post(verifyUploadToken, uploadMiddleware, uploadFiles);
+
+// Standard upload route (Protected)
+router.use(protect);
+router.route("/")
+    .post(uploadMiddleware, uploadFiles);
+
+module.exports = router;
