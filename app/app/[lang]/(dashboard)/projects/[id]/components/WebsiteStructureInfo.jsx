@@ -1,4 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Icon } from '@iconify/react';
+import FieldDescriptionPopout from './FieldDescriptionPopout';
+import { questionTranslations } from './questionTranslations';
 
 const WebsiteStructureInfo = ({
   formData,
@@ -7,6 +10,7 @@ const WebsiteStructureInfo = ({
   requiredFields,
   disabled
 }) => {
+  const [openField, setOpenField] = useState(null);
   // Website language options
   const websiteLanguages = [
     { value: "arabic", label: "Arabic" },
@@ -118,9 +122,28 @@ const WebsiteStructureInfo = ({
       <div className="p-6 space-y-4">
         {/* Website Pages */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Required Website Pages
-          </label>
+          <div className="flex items-center gap-2 relative">
+            <label className="block text-sm font-medium text-gray-700">
+              Required Website Pages
+            </label>
+            {questionTranslations.websitePages && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenField(openField === 'websitePages' ? null : 'websitePages')}
+                  className={`p-0.5 rounded-full transition-colors ${openField === 'websitePages' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+                >
+                  <Icon icon="lucide:help-circle" className="w-4 h-4" />
+                </button>
+                {openField === 'websitePages' && (
+                  <FieldDescriptionPopout
+                    translations={questionTranslations.websitePages}
+                    onClose={() => setOpenField(null)}
+                  />
+                )}
+              </div>
+            )}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {websitePagesOptions.map((page, idx) => (
               <div key={idx} className="flex items-center">
@@ -184,9 +207,28 @@ const WebsiteStructureInfo = ({
 
         {/* Website Languages */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Website Languages Needed
-          </label>
+          <div className="flex items-center gap-2 relative">
+            <label className="block text-sm font-medium text-gray-700">
+              Website Languages Needed
+            </label>
+            {questionTranslations.websiteLanguages && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenField(openField === 'websiteLanguages' ? null : 'websiteLanguages')}
+                  className={`p-0.5 rounded-full transition-colors ${openField === 'websiteLanguages' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+                >
+                  <Icon icon="lucide:help-circle" className="w-4 h-4" />
+                </button>
+                {openField === 'websiteLanguages' && (
+                  <FieldDescriptionPopout
+                    translations={questionTranslations.websiteLanguages}
+                    onClose={() => setOpenField(null)}
+                  />
+                )}
+              </div>
+            )}
+          </div>
           <div className="space-y-2">
             {websiteLanguages.map((language, idx) => (
               <div key={idx} className="flex items-center">

@@ -1143,9 +1143,90 @@ const createOrUpdateQuestions = catchAsync(async (req, res, next) => {
 
 
 
+const saveContentDraft = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const { contentDraftText } = req.body;
 
+  const project = await Project.findById(id);
+  if (!project) {
+    return next(new AppError('Project not found', 404));
+  }
 
+  project.contentDraftText = contentDraftText || "";
+  project.updatedBy = req.user.id;
+  await project.save();
 
+  res.status(200).json({
+    status: 'success',
+    message: 'Draft saved successfully',
+    data: { project }
+  });
+});
+
+const submitContent = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  let { contentJson, contentText } = req.body;
+
+  const project = await Project.findById(id);
+  if (!project) {
+    return next(new AppError('Project not found', 404));
+  }
+
+  // Use draft if contentText is not provided
+  if (!contentText && project.contentDraftText) {
+    contentText = project.contentDraftText;
+  }
+
+  if (!contentJson) {
+    return next(new AppError('JSON content is required', 400));
+  }
+
+  if (!contentText || contentText.trim() === '') {
+    return next(new AppError('Text content is required', 400));
+  }
+
+  // Validate JSON if it's a string
+  try {
+    if (typeof contentJson === 'string') {
+      JSON.parse(contentJson);
+    }
+  } catch (e) {
+    return next(new AppError('Invalid JSON content', 400));
+  }
+
+  // Format text content
+  const formattedText = contentText
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]+/g, ' ')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line !== '')
+    .join('\n\n');
+
+  project.contentJson = contentJson;
+  project.contentText = formattedText;
+  project.isContentReady = true;
+  project.contentSubmittedAt = new Date();
+  project.contentDraftText = ""; // Clear draft upon success
+
+  // Workflow transition
+  if (!project.completedDepartments.includes('content')) {
+    project.completedDepartments.push('content');
+  }
+
+  if (!project.activeDepartments.includes('integration')) {
+    project.activeDepartments.push('integration');
+  }
+
+  project.updatedBy = req.user.id;
+  await project.save();
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Content submitted successfully and ready for integration',
+    data: { project }
+  });
+});
 
 module.exports = {
   createProject,
@@ -1157,5 +1238,7 @@ module.exports = {
   getQuestionsByProject,
   createOrUpdateQuestions,
   deleteProject,
-  updateProject
+  updateProject,
+  submitContent,
+  saveContentDraft
 };

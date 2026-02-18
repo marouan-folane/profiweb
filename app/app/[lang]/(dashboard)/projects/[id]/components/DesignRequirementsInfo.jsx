@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import { api } from '@/config/axios.config';
+
+import FieldDescriptionPopout from './FieldDescriptionPopout';
+import { questionTranslations } from './questionTranslations';
 
 const DesignRequirementsInfo = ({
   formData,
@@ -10,6 +13,7 @@ const DesignRequirementsInfo = ({
   disabled,
   projectId
 }) => {
+  const [openField, setOpenField] = useState(null);
 
   // Add this to the imageOptions array:
   const corporateDesignOptions = [
@@ -82,7 +86,7 @@ const DesignRequirementsInfo = ({
           // Use current language from params or default to fr
           const lang = window.location.pathname.split('/')[1] || 'fr';
           const response = await api.get(`/upload/generate-link/${projectId}?lang=${lang}`);
-          
+
           if (response.data && response.data.uploadLink) {
             setUploadLink(response.data.uploadLink);
           } else {
@@ -282,9 +286,28 @@ const DesignRequirementsInfo = ({
 
         {/* Brand Colors - Improved with tags and color picker */}
         <div className="space-y-4">
-          <label className="block text-sm font-medium text-gray-700">
-            Brand Colors
-          </label>
+          <div className="flex items-center gap-2 relative">
+            <label className="block text-sm font-medium text-gray-700">
+              Brand Colors
+            </label>
+            {questionTranslations.colorScheme && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenField(openField === 'colorScheme' ? null : 'colorScheme')}
+                  className={`p-0.5 rounded-full transition-colors ${openField === 'colorScheme' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+                >
+                  <Icon icon="lucide:help-circle" className="w-4 h-4" />
+                </button>
+                {openField === 'colorScheme' && (
+                  <FieldDescriptionPopout
+                    translations={questionTranslations.colorScheme}
+                    onClose={() => setOpenField(null)}
+                  />
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Color tags display */}
           {colorTags.length > 0 && (
@@ -434,9 +457,28 @@ const DesignRequirementsInfo = ({
 
         {/* Tonality - Fixed: Using labels and preventing default */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Design Style & Tone
-          </label>
+          <div className="flex items-center gap-2 relative">
+            <label className="block text-sm font-medium text-gray-700">
+              Design Style & Tone
+            </label>
+            {questionTranslations.tonality && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenField(openField === 'tonality' ? null : 'tonality')}
+                  className={`p-0.5 rounded-full transition-colors ${openField === 'tonality' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+                >
+                  <Icon icon="lucide:help-circle" className="w-4 h-4" />
+                </button>
+                {openField === 'tonality' && (
+                  <FieldDescriptionPopout
+                    translations={questionTranslations.tonality}
+                    onClose={() => setOpenField(null)}
+                  />
+                )}
+              </div>
+            )}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {tonalityOptions.map((tone, idx) => {
               const isChecked = (formData.tonality || []).includes(tone);
@@ -558,7 +600,7 @@ const DesignRequirementsInfo = ({
                   </p>
                 </div>
               </div>
-              
+
               <div className="text-right">
                 <div className="flex items-center gap-2 text-sm text-blue-700 mb-1">
                   <Icon icon="mdi:timer" className="w-4 h-4" />

@@ -208,7 +208,26 @@ const projectSchema = new mongoose.Schema({
     type: String,
     enum: ['sales', 'info', 'design', 'content', 'integration', 'it', 'superadmin'],
     default: []
-  }]
+  }],
+
+  // Content Submission Fields
+  contentJson: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
+  contentText: {
+    type: String,
+    default: ""
+  },
+  isContentReady: {
+    type: Boolean,
+    default: false
+  },
+  contentSubmittedAt: Date,
+  contentDraftText: {
+    type: String,
+    default: ""
+  }
 
 }, {
   timestamps: true,

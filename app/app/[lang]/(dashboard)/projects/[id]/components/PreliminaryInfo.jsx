@@ -1,4 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Icon } from '@iconify/react';
+import FieldDescriptionPopout from './FieldDescriptionPopout';
+import { questionTranslations } from './questionTranslations';
 
 const PreliminaryInfo = ({
   formData,
@@ -7,10 +10,11 @@ const PreliminaryInfo = ({
   requiredFields,
   disabled
 }) => {
+  const [openField, setOpenField] = useState(null);
   const languageOptions = [
     "",
     "German",
-    "English", 
+    "English",
     "French",
     "Arabic",
     "Spanish",
@@ -26,9 +30,28 @@ const PreliminaryInfo = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Case Worker Name */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Case Worker
-            </label>
+            <div className="flex items-center gap-2 relative">
+              <label className="block text-sm font-medium text-gray-700">
+                Case Worker
+              </label>
+              {questionTranslations.caseWorkerName && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setOpenField(openField === 'caseWorkerName' ? null : 'caseWorkerName')}
+                    className={`p-0.5 rounded-full transition-colors ${openField === 'caseWorkerName' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+                  >
+                    <Icon icon="lucide:help-circle" className="w-4 h-4" />
+                  </button>
+                  {openField === 'caseWorkerName' && (
+                    <FieldDescriptionPopout
+                      translations={questionTranslations.caseWorkerName}
+                      onClose={() => setOpenField(null)}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
             <input
               type="text"
               value={formData.caseWorkerName || ""}

@@ -270,7 +270,7 @@ const Overview = () => {
               )}
 
 
-              {["superadmin", "d.d", "d.s", "d.in"].includes(session?.user?.role) && (
+              {["superadmin", "d.d", "d.c", "d.s", "d.in"].includes(session?.user?.role) && (
                 <button
                   onClick={() => handleTabChange("folders")}
                   className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${activeTab === "folders"

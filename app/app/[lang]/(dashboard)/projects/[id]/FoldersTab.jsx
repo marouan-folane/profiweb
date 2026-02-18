@@ -2,11 +2,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getFolders, getFilesByFolder, createFolder, deleteFolder } from "@/config/functions/folder";
+import { getProject } from "@/config/functions/project";
 import { uploadFiles } from "@/config/functions/upload";
 import { deleteFile } from "@/config/functions/file";
 import { Icon } from "@iconify/react";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
+import { api } from "@/config/axios.config";
 
 const FoldersTab = ({ projectId }) => {
   const { data: session } = useSession();
@@ -21,6 +23,18 @@ const FoldersTab = ({ projectId }) => {
   const [newFolderName, setNewFolderName] = useState("");
   const [uploadingFiles, setUploadingFiles] = useState([]);
 
+  // Content Submission State
+  const [project, setProject] = useState(null);
+  const [contentJson, setContentJson] = useState('');
+  const [contentText, setContentText] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingProject, setIsLoadingProject] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [lastSaved, setLastSaved] = useState(null);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [isPreviewTextModalOpen, setIsPreviewTextModalOpen] = useState(false);
+
+  const userRole = session?.user?.role?.toLowerCase();
   // ALL users can upload files and manage folders
   const canUploadFiles = true; // Everyone can upload
   const canManageFolders = true; // Everyone can manage folders
@@ -129,6 +143,127 @@ const FoldersTab = ({ projectId }) => {
       setAllProjectFolders(foldersRes.data.folders);
     }
   }, [foldersRes]);
+
+  // Load project data
+  useEffect(() => {
+    if (projectId) {
+      loadProject();
+    }
+  }, [projectId]);
+
+  const loadProject = async () => {
+    try {
+      setIsLoadingProject(true);
+      const response = await getProject(projectId);
+      if (response.status === 'success') {
+        const proj = response.data.project;
+        setProject(proj);
+        if (proj.contentJson) {
+          setContentJson(JSON.stringify(proj.contentJson, null, 2));
+        }
+        // Prefer draft over final content if draft exists
+        if (proj.contentDraftText) {
+          setContentText(proj.contentDraftText);
+        } else if (proj.contentText) {
+          setContentText(proj.contentText);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading project:', error);
+    } finally {
+      setIsLoadingProject(false);
+    }
+  };
+
+  // Auto-save logic
+  useEffect(() => {
+    if (userRole !== 'd.c' || !contentText || project?.isContentReady) return;
+
+    // Don't save if it's identical to what we already have
+    if (contentText === project?.contentDraftText || contentText === project?.contentText) return;
+
+    const timer = setTimeout(() => {
+      saveDraft();
+    }, 2000); // 2 second debounce
+
+    return () => clearTimeout(timer);
+  }, [contentText, userRole, project]);
+
+  const saveDraft = async () => {
+    try {
+      setIsSavingDraft(true);
+      await api.patch(`/projects/${projectId}/save-content-draft`, {
+        contentDraftText: contentText
+      });
+      setLastSaved(new Date());
+    } catch (error) {
+      console.error('Error saving draft:', error);
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
+  const handleJsonUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
+      toast.error('Please upload a valid JSON file');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target.result);
+        setContentJson(JSON.stringify(json, null, 2));
+        toast.success('JSON file uploaded and validated');
+      } catch (error) {
+        toast.error('Invalid JSON format in file');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleFormatText = () => {
+    if (!contentText.trim()) return;
+
+    const formatted = contentText
+      .replace(/\r\n/g, '\n')
+      .replace(/[ \t]+/g, ' ')
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line !== '')
+      .join('\n\n');
+
+    setContentText(formatted);
+    toast.success('Text formatted successfully');
+  };
+
+  const handleSubmitContent = async () => {
+    if (!contentJson || !contentText.trim()) {
+      toast.error('Both JSON and Text content are required');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const response = await api.patch(`/projects/${projectId}/submit-content`, {
+        contentJson: JSON.parse(contentJson),
+        contentText: contentText
+      });
+
+      if (response.data.status === 'success') {
+        toast.success('Content submitted successfully!');
+        setProject(response.data.data.project);
+      }
+    } catch (error) {
+      console.error('Error submitting content:', error);
+      toast.error(error.response?.data?.message || 'Failed to submit content');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Update files list when filesRes changes
   useEffect(() => {
@@ -318,197 +453,157 @@ const FoldersTab = ({ projectId }) => {
 
   return (
     <div className="space-y-6">
-      {/* Create Folder Modal */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg w-full max-w-md p-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900">Create New Folder</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Folder Name</label>
-                <input
-                  type="text"
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  placeholder="Enter folder name..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-              <div className="flex justify-end gap-3 mt-6">
-                <button
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCreateFolder}
-                  disabled={createFolderMutation.isPending}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-                >
-                  {createFolderMutation.isPending && <Icon icon="carbon:circle-dash" className="animate-spin" />}
-                  Create Folder
-                </button>
-              </div>
-            </div>
-          </div>
+      {/* Integration Department Restriction Message */}
+      {userRole === 'd.in' && !project?.isContentReady && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-8 text-center mb-6">
+          <Icon icon="lucide:clock" className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-amber-900 mb-2">Waiting for Structured Content</h3>
+          <p className="text-amber-700 max-w-md mx-auto">
+            The Integration Department cannot proceed until the Content Department has uploaded the structured JSON and formatted text content.
+          </p>
         </div>
       )}
 
-      {/* Folder Modal */}
-      {isModalOpen && selectedFolder && (
-        <div className="fixed inset-0 bg-black/50 bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
-            {/* Modal Header */}
-            <div className="flex justify-between items-center p-6 border-b">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Icon icon="carbon:folder" className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    {selectedFolder.name}
-                  </h2>
-                  <p className="text-sm text-gray-500">
-                    {filesList.length} file{filesList.length !== 1 ? 's' : ''} in this folder
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <input
-                  type="file"
-                  multiple
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                {/* Show upload button for ALL users, but hide for Generated instructions folder */}
-                {!isGeneratedFolder && (
-                  <button
-                    onClick={() => fileInputRef.current.click()}
-                    disabled={uploadMutation.isPending}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
-                  >
-                    {uploadMutation.isPending ? (
-                      <Icon icon="carbon:circle-dash" className="animate-spin" />
-                    ) : (
-                      <Icon icon="carbon:cloud-upload" />
-                    )}
-                    {uploadMutation.isPending ? 'Uploading...' : 'Upload Files'}
-                  </button>
-                )}
-                <button
-                  onClick={closeModal}
-                  className="text-gray-400 hover:text-gray-600 text-2xl"
-                >
-                  &times;
-                </button>
-              </div>
+      {/* Content Submission UI for Content Department */}
+      {userRole === 'd.c' && (
+        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 shadow-sm mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-md">
+              <Icon icon="lucide:file-up" className="w-6 h-6" />
             </div>
+            <div>
+              <h3 className="text-lg font-bold text-indigo-900">Structured Content Submission</h3>
+              <p className="text-indigo-700 text-sm">Upload JSON and paste formatted text for integration</p>
+            </div>
+          </div>
 
-            {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto p-6">
-              {isLoadingFiles ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-4 text-gray-500">Loading files...</p>
-                </div>
-              ) : filesError ? (
-                <div className="text-center py-12">
-                  <Icon icon="carbon:warning" className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Files</h3>
-                  <p className="text-gray-500">Failed to load files from folder</p>
-                </div>
-              ) : filesList.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Icon icon="carbon:document-blank" className="w-8 h-8 text-gray-400" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* JSON Upload */}
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-indigo-900">
+                1. Upload JSON File
+              </label>
+              <div
+                className={`border-2 border-dashed rounded-xl p-4 transition-all flex flex-col items-center justify-center gap-2 ${project?.isContentReady ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-75' : contentJson ? 'border-green-300 bg-green-50 cursor-pointer' : 'border-indigo-200 bg-white hover:border-indigo-400 cursor-pointer'}`}
+                onClick={() => !project?.isContentReady && document.getElementById('json-submission-upload')?.click()}
+              >
+                <Icon
+                  icon={contentJson ? "lucide:check-circle" : "lucide:upload-cloud"}
+                  className={`w-8 h-8 ${contentJson ? 'text-green-600' : 'text-indigo-400'}`}
+                />
+                <span className={`text-xs font-medium ${project?.isContentReady ? 'text-gray-500' : contentJson ? 'text-green-700' : 'text-indigo-600'}`}>
+                  {project?.isContentReady ? 'Submission Locked' : contentJson ? 'JSON Validated & Ready' : 'Drop JSON file or click to upload'}
+                </span>
+                <input
+                  id="json-submission-upload"
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={handleJsonUpload}
+                />
+              </div>
+              {contentJson && (
+                <div className="space-y-2">
+                  <div className="bg-white border border-green-200 rounded-lg p-2 max-h-32 overflow-y-auto">
+                    <pre className="text-[10px] text-gray-600 font-mono">
+                      {contentJson.substring(0, 300)}{contentJson.length > 300 ? '...' : ''}
+                    </pre>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Files Found</h3>
-                  <p className="text-gray-500 mb-4">This folder is empty. Upload some files to get started.</p>
-                  {/* Show upload suggestion for ALL users, but hide for Generated instructions folder */}
-                  {!isGeneratedFolder && (
-                    <button
-                      onClick={() => fileInputRef.current.click()}
-                      className="mt-2 text-blue-600 font-medium hover:underline"
-                    >
-                      Click here to upload
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filesList.map((file, index) => (
-                      <div
-                        key={file._id || index}
-                        className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all"
-                      >
-                        <div className="flex items-start gap-3 mb-3">
-                          <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Icon icon={getFileIcon(file)} className="w-6 h-6 text-blue-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-900 truncate">
-                              {file.originalName || file.filename || 'Untitled'}
-                            </h4>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs text-gray-500">
-                                {formatDate(file.createdAt)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="border-t border-gray-100 pt-3 mt-3 flex gap-2">
-                          <button
-                            onClick={() => handleViewFile(file)}
-                            className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-                          >
-                            <Icon icon="carbon:view" />
-                            View
-                          </button>
-                          {/* Show delete button for ALL users, but HIDE for Generated instructions folder */}
-                          {!isGeneratedFolder && (
-                            <button
-                              onClick={(e) => handleDeleteFile(e, file._id)}
-                              disabled={deleteFileMutation.isPending}
-                              className="px-3 py-2 bg-red-50 text-red-600 text-sm rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2 border border-red-100"
-                              title="Delete file"
-                            >
-                              <Icon icon="carbon:trash-can" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsPreviewModalOpen(true)}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+                  >
+                    <Icon icon="lucide:eye" className="w-3.5 h-3.5" />
+                    Preview Full JSON Content
+                  </button>
                 </div>
               )}
             </div>
 
-            {/* Modal Footer */}
-            <div className="border-t p-4 flex justify-between items-center">
-              <div className="text-sm text-gray-500">
-                Showing {filesList.length} file{filesList.length !== 1 ? 's' : ''}
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-indigo-900">2. Text Content</span>
+                  {isSavingDraft ? (
+                    <span className="text-[10px] text-indigo-400 flex items-center gap-1">
+                      <Icon icon="lucide:loader-2" className="w-3 h-3 animate-spin" />
+                      Saving...
+                    </span>
+                  ) : lastSaved && (
+                    <span className="text-[10px] text-green-500 flex items-center gap-1">
+                      <Icon icon="lucide:check" className="w-3 h-3" />
+                      Saved {lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  {contentText.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => setIsPreviewTextModalOpen(true)}
+                      className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
+                    >
+                      <Icon icon="lucide:eye" className="w-3.5 h-3.5" />
+                      Preview Text
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      if (project?.isContentReady) return;
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleFormatText();
+                    }}
+                    className={`text-xs px-2 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${project?.isContentReady ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}
+                    disabled={!contentText.trim() || project?.isContentReady}
+                  >
+                    <Icon icon="lucide:wand-2" className="w-3 h-3" />
+                    Auto-format
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={closeModal}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => refetchFiles()}
-                  disabled={isLoadingFiles}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-                >
-                  <Icon icon="carbon:renew" className={isLoadingFiles ? "animate-spin" : ""} />
-                  Refresh
-                </button>
-              </div>
+              <textarea
+                value={contentText}
+                onChange={(e) => !project?.isContentReady && setContentText(e.target.value)}
+                readOnly={project?.isContentReady}
+                placeholder={project?.isContentReady ? "Content is locked." : "Paste your content here..."}
+                className={`w-full h-32 px-3 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition-all ${project?.isContentReady ? 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed' : 'bg-white border-indigo-200'}`}
+              />
+              <p className="text-[10px] text-indigo-500 italic">
+                * High-quality formatting ensures faster integration.
+              </p>
             </div>
+          </div>
+
+          <div className="mt-8 flex items-center justify-between border-t border-indigo-100 pt-6">
+            <div className="flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-full ${project?.isContentReady ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+              <span className="text-sm font-medium text-gray-700">
+                Status: <span className={project?.isContentReady ? 'text-green-700' : 'text-gray-500 font-bold'}>
+                  {project?.isContentReady ? ' 👉 Ready for Integration' : 'Pending Submission'}
+                </span>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleSubmitContent}
+              disabled={!contentJson || !contentText.trim() || isSubmitting || project?.isContentReady}
+              className={`px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center gap-2 ${!contentJson || !contentText.trim() || isSubmitting || project?.isContentReady
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'
+                }`}
+            >
+              {isSubmitting ? (
+                <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+              ) : project?.isContentReady ? (
+                <Icon icon="lucide:lock" className="w-4 h-4" />
+              ) : (
+                <Icon icon="lucide:send" className="w-4 h-4" />
+              )}
+              {project?.isContentReady ? 'Content Submitted' : 'Submit for Integration'}
+            </button>
           </div>
         </div>
       )}
@@ -601,6 +696,303 @@ const FoldersTab = ({ projectId }) => {
           </div>
         )}
       </div>
+
+      {/* Create Folder Modal */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-md p-6">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900">Create New Folder</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Folder Name</label>
+                <input
+                  type="text"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  placeholder="Enter folder name..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateFolder}
+                  disabled={createFolderMutation.isPending}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {createFolderMutation.isPending && <Icon icon="carbon:circle-dash" className="animate-spin" />}
+                  Create Folder
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Folder Modal */}
+      {isModalOpen && selectedFolder && (
+        <div className="fixed inset-0 bg-black/50 bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center p-6 border-b">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Icon icon="carbon:folder" className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    {selectedFolder.name}
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    {filesList.length} file{filesList.length !== 1 ? 's' : ''} in this folder
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <input
+                  type="file"
+                  multiple
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                {!isGeneratedFolder && (
+                  <button
+                    onClick={() => fileInputRef.current.click()}
+                    disabled={uploadMutation.isPending}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {uploadMutation.isPending ? (
+                      <Icon icon="carbon:circle-dash" className="animate-spin" />
+                    ) : (
+                      <Icon icon="carbon:cloud-upload" />
+                    )}
+                    {uploadMutation.isPending ? 'Uploading...' : 'Upload Files'}
+                  </button>
+                )}
+                <button
+                  onClick={closeModal}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  &times;
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {isLoadingFiles ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-4 text-gray-500">Loading files...</p>
+                </div>
+              ) : filesError ? (
+                <div className="text-center py-12">
+                  <Icon icon="carbon:warning" className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Files</h3>
+                  <p className="text-gray-500">Failed to load files from folder</p>
+                </div>
+              ) : filesList.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Icon icon="carbon:document-blank" className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Files Found</h3>
+                  <p className="text-gray-500 mb-4">This folder is empty. Upload some files to get started.</p>
+                  {!isGeneratedFolder && (
+                    <button
+                      onClick={() => fileInputRef.current.click()}
+                      className="mt-2 text-blue-600 font-medium hover:underline"
+                    >
+                      Click here to upload
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filesList.map((file, index) => (
+                      <div
+                        key={file._id || index}
+                        className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all"
+                      >
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Icon icon={getFileIcon(file)} className="w-6 h-6 text-blue-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-gray-900 truncate">
+                              {file.originalName || file.filename || 'Untitled'}
+                            </h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-gray-500">
+                                {formatDate(file.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="border-t border-gray-100 pt-3 mt-3 flex gap-2">
+                          <button
+                            onClick={() => handleViewFile(file)}
+                            className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                          >
+                            <Icon icon="carbon:view" />
+                            View
+                          </button>
+                          {!isGeneratedFolder && (
+                            <button
+                              onClick={(e) => handleDeleteFile(e, file._id)}
+                              disabled={deleteFileMutation.isPending}
+                              className="px-3 py-2 bg-red-50 text-red-600 text-sm rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2 border border-red-100"
+                              title="Delete file"
+                            >
+                              <Icon icon="carbon:trash-can" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="border-t p-4 flex justify-between items-center">
+              <div className="text-sm text-gray-500">
+                Showing {filesList.length} file{filesList.length !== 1 ? 's' : ''}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={closeModal}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => refetchFiles()}
+                  disabled={isLoadingFiles}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  <Icon icon="carbon:renew" className={isLoadingFiles ? "animate-spin" : ""} />
+                  Refresh
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* JSON Preview Modal */}
+      {isPreviewModalOpen && contentJson && (
+        <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl border border-indigo-100">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-indigo-50/30">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-md">
+                  <Icon icon="lucide:file-json" className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-indigo-900">JSON Content Preview</h2>
+                  <p className="text-sm text-indigo-600">Formatted and validated structured data</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsPreviewModalOpen(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
+              >
+                <Icon icon="lucide:x" className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 bg-[#0f172a]">
+              <div className="bg-[#1e293b] rounded-xl border border-slate-700 shadow-2xl relative group min-h-full">
+                <div className="absolute top-4 left-4 flex gap-1.5 indicator">
+                  <div className="w-3 h-3 rounded-full bg-rose-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(contentJson);
+                    toast.success('JSON copied to clipboard');
+                  }}
+                  className="absolute top-4 right-4 p-2 bg-slate-700 text-slate-300 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-slate-600 hover:text-white"
+                  title="Copy JSON"
+                >
+                  <Icon icon="lucide:copy" className="w-4 h-4" />
+                </button>
+                <div className="p-10 pt-16">
+                  <pre className="text-xs md:text-sm text-indigo-100 font-mono leading-relaxed whitespace-pre p-6 bg-[#0f172a] rounded-lg border border-slate-800 shadow-inner overflow-x-auto">
+                    {contentJson}
+                  </pre>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t p-4 flex justify-end bg-white">
+              <button
+                onClick={() => setIsPreviewModalOpen(false)}
+                className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-md active:scale-95"
+              >
+                Done Previewing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Text Preview Modal */}
+      {isPreviewTextModalOpen && contentText && (
+        <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl border border-indigo-100">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-indigo-50/30">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-md">
+                  <Icon icon="lucide:file-text" className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-indigo-900">Text Content Preview</h2>
+                  <p className="text-sm text-indigo-600">Final formatted text for the project</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsPreviewTextModalOpen(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
+              >
+                <Icon icon="lucide:x" className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 bg-gray-50">
+              <div className="bg-white p-8 md:p-12 rounded-xl border border-gray-200 shadow-sm min-h-full">
+                <div className="prose prose-indigo max-w-none">
+                  {contentText.split('\n\n').map((para, i) => (
+                    <p key={i} className="text-gray-800 leading-relaxed mb-4 text-sm md:text-base">
+                      {para}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t p-4 flex justify-end bg-white">
+              <button
+                onClick={() => setIsPreviewTextModalOpen(false)}
+                className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-md active:scale-95"
+              >
+                Done Previewing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

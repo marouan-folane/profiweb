@@ -1,4 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Icon } from '@iconify/react';
+import FieldDescriptionPopout from './FieldDescriptionPopout';
+import { questionTranslations } from './questionTranslations';
 
 const WebsiteGoalsInfo = ({
   formData,
@@ -7,6 +10,7 @@ const WebsiteGoalsInfo = ({
   requiredFields,
   disabled
 }) => {
+  const [openField, setOpenField] = useState(null);
   const businessTypeOptions = [
     "",
     "B2B (Business to Business)",
@@ -22,9 +26,28 @@ const WebsiteGoalsInfo = ({
       <div className="p-6 space-y-4">
         {/* Website Purpose */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Website Goals
-          </label>
+          <div className="flex items-center gap-2 relative">
+            <label className="block text-sm font-medium text-gray-700">
+              Website Goals
+            </label>
+            {questionTranslations.websitePurpose && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenField(openField === 'websitePurpose' ? null : 'websitePurpose')}
+                  className={`p-0.5 rounded-full transition-colors ${openField === 'websitePurpose' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+                >
+                  <Icon icon="lucide:help-circle" className="w-4 h-4" />
+                </button>
+                {openField === 'websitePurpose' && (
+                  <FieldDescriptionPopout
+                    translations={questionTranslations.websitePurpose}
+                    onClose={() => setOpenField(null)}
+                  />
+                )}
+              </div>
+            )}
+          </div>
           <textarea
             value={formData.websitePurpose || ""}
             onChange={(e) => handleInputChange('websitePurpose', e.target.value)}
@@ -37,9 +60,28 @@ const WebsiteGoalsInfo = ({
 
         {/* Target Customers */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Target Audience
-          </label>
+          <div className="flex items-center gap-2 relative">
+            <label className="block text-sm font-medium text-gray-700">
+              Target Audience
+            </label>
+            {questionTranslations.targetCustomers && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenField(openField === 'targetCustomers' ? null : 'targetCustomers')}
+                  className={`p-0.5 rounded-full transition-colors ${openField === 'targetCustomers' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+                >
+                  <Icon icon="lucide:help-circle" className="w-4 h-4" />
+                </button>
+                {openField === 'targetCustomers' && (
+                  <FieldDescriptionPopout
+                    translations={questionTranslations.targetCustomers}
+                    onClose={() => setOpenField(null)}
+                  />
+                )}
+              </div>
+            )}
+          </div>
           <textarea
             value={formData.targetCustomers || ""}
             onChange={(e) => handleInputChange('targetCustomers', e.target.value)}

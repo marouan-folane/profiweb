@@ -9,7 +9,9 @@ const {
     createOrUpdateQuestions,
     getQuestionsByProject,
     deleteProject,
-    updateProject
+    updateProject,
+    submitContent,
+    saveContentDraft
 } = require("../controllers/projectController");
 const { protect } = require("../middlewares/auth");
 
@@ -31,6 +33,12 @@ router.route("/:id/archived")
 
 router.route("/:id/restore")
     .patch(restoreProject);
+
+router.route("/:id/submit-content")
+    .patch(submitContent);
+
+router.route("/:id/save-content-draft")
+    .patch(saveContentDraft);
 
 // Question routes should also come before the general :id route
 router.route("/:id/questions")

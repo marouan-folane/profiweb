@@ -219,9 +219,13 @@ const CategoryBadge = ({ category }) => {
   const config = CATEGORY_CONFIG[category] || CATEGORY_CONFIG['Other'];
 
   return (
-    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${config.bg} ${config.border} border transition-all hover:shadow-sm`}>
-      <Icon icon={config.icon} className={`w-4 h-4 ${config.text}`} />
-      <span className={`text-xs font-semibold ${config.text}`}>
+    <div className={cn(
+      "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all hover:shadow-sm",
+      config.bg, config.border,
+      "dark:bg-slate-900/60 dark:border-white/10 dark:hover:border-white/20"
+    )}>
+      <Icon icon={config.icon} className={cn("w-4 h-4", config.text, "dark:brightness-110")} />
+      <span className={cn("text-xs font-semibold", config.text, "dark:brightness-110")}>
         {category}
       </span>
     </div>
@@ -1312,74 +1316,75 @@ const ProjectsPage = () => {
             <>
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 dark:border-slate-700">
+                  <thead className="bg-slate-50/50 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-white/5">
                     <tr>
-                      <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">Project</th>
-                      <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">Client</th>
-                      <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">Category</th>
+                      <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Project</th>
+                      <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Client</th>
+                      <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Category</th>
                       {session?.user?.role !== "superadmin" && (
-                        <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
+                        <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Status</th>
                       )}
-                      <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">Priority</th>
-                      <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">Budget</th>
-                      <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                      <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Priority</th>
+                      <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Budget</th>
+                      <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                         {activeTab === 'active' ? 'Due Date' : 'Archived Date'}
                       </th>
 
-                      {["superadmin"].includes(session?.user?.role) && <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">Notes</th>}
+                      {["superadmin"].includes(session?.user?.role) && <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Notes</th>}
 
                       {["superadmin", "d.i", "d.c", "d.d", "d.it", "d.in"].includes(session?.user?.role) && (
-                        <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                           Actions
                         </th>
                       )}
 
                     </tr>
                   </thead>
-                  <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
+                  <tbody className="bg-white dark:bg-slate-900/40 divide-y divide-slate-100 dark:divide-white/5">
                     {currentProjects.map((project) => (
                       <tr
                         key={project._id}
-                        className={`hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group ${activeTab === 'archived' ? 'opacity-80 hover:opacity-100' : ''}`}
+                        className={cn(
+                          "transition-all duration-300 group border-b border-slate-100 dark:border-white/5",
+                          "hover:bg-slate-50 dark:hover:bg-white/[0.02]",
+                          activeTab === 'archived' && "opacity-80 hover:opacity-100"
+                        )}
                       >
                         <td className="py-5 px-6">
-                          <div className="font-semibold text-slate-900 dark:text-slate-100 text-base mb-1 group-hover:text-blue-600 transition-colors">
+                          <div className="font-bold text-slate-900 dark:text-slate-100 text-base mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors tracking-tight">
                             {project.title}
                           </div>
-                          <div className="text-sm text-slate-600 line-clamp-1 mb-2">
+                          <div className="text-sm text-slate-500 dark:text-slate-400 line-clamp-1 mb-3">
                             {project.description?.substring(0, 100)}{project.description?.length > 100 ? '...' : ''}
                           </div>
                           <div className="flex flex-wrap gap-1.5">
-
                             {project.tags?.slice(0, 3).map((tag, idx) => (
                               <span
                                 key={idx}
-                                className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200 dark:border-slate-700"
+                                className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/10 uppercase tracking-wider"
                               >
                                 {tag}
                               </span>
                             ))}
-
                             {project.tags?.length > 3 && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-600">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-500">
                                 +{project.tags.length - 3}
                               </span>
                             )}
-
                           </div>
                         </td>
 
                         <td className="py-5 px-6">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center text-white font-semibold text-sm">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-xs shadow-sm shadow-blue-500/20">
                               {project.client?.name?.charAt(0) || 'C'}
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-slate-900">
+                              <div className="text-sm font-bold text-slate-900 dark:text-slate-200">
                                 {project.client?.name || 'N/A'}
                               </div>
                               {project.client?.contactPerson?.name && (
-                                <div className="text-xs text-slate-500">
+                                <div className="text-[11px] text-slate-500 dark:text-slate-500 font-medium">
                                   {project.client.contactPerson.name}
                                 </div>
                               )}
@@ -1393,59 +1398,45 @@ const ProjectsPage = () => {
 
                         {session?.user?.role !== "superadmin" && (
                           <td className="py-5 px-6">
-
                             {session?.user?.role === "d.s" &&
                               (project.completedDepartments?.includes("sales") ? (
-                                <Badge color={getStatusColor(project.status)} variant="soft">
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-700 border border-green-200">
+                                <Badge color="success" variant="soft" className="dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20">
+                                  <span className="inline-flex items-center gap-1">
                                     <Icon icon="lucide:check-circle" className="w-3 h-3" />
                                     Completed
                                   </span>
                                 </Badge>
-                              ) : session?.user?.role === "d.s" && (
-                                <Badge color={getStatusColor(project.status)} variant="soft">
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-700 border border-red-200">
+                              ) : (
+                                <Badge color="destructive" variant="soft" className="dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20">
+                                  <span className="inline-flex items-center gap-1">
                                     <Icon icon="lucide:x-circle" className="w-3 h-3" />
-                                    Not Completed
+                                    Pending
                                   </span>
                                 </Badge>
                               ))}
-
-                            {session?.user?.role === "d.i" &&
-                              project.completedDepartments?.includes("info") ? (
-                              <Badge color={getStatusColor(project.status)} variant="soft">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-700 border border-green-200">
-                                  <Icon icon="lucide:check-circle" className="w-3 h-3" />
-                                  Completed
-                                </span>
-                              </Badge>
-                            ) : session?.user?.role === "d.i" && (
-                              <Badge color={getStatusColor(project.status)} variant="soft">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-700 border border-red-200">
-                                  <Icon icon="lucide:x-circle" className="w-3 h-3" />
-                                  Not Completed
-                                </span>
-                              </Badge>
-                            )}
-
                           </td>
                         )}
 
                         <td className="py-5 px-6">
-                          <Badge color={getPriorityColor(project.priority)} variant="outline" size="sm">
+                          <Badge
+                            color={getPriorityColor(project.priority)}
+                            variant="outline"
+                            size="sm"
+                            className="dark:bg-slate-900/40 dark:border-white/10 dark:text-slate-300 font-bold uppercase text-[10px] tracking-widest"
+                          >
                             {PRIORITY_MAP[project.priority] || project.priority}
                           </Badge>
                         </td>
 
                         <td className="py-5 px-6">
-                          <div className="text-sm font-semibold text-slate-900">
+                          <div className="text-sm font-black text-slate-900 dark:text-blue-400 tracking-tight">
                             {formatCurrency(project.budget, project.currency)}
                           </div>
                         </td>
 
                         <td className="py-5 px-6">
                           <div className="space-y-2">
-                            <div className="text-sm text-slate-700">
+                            <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                               {activeTab === 'active'
                                 ? formatDate(project.endDate)
                                 : formatDate(project.archivedAt || project.updatedAt)
@@ -1458,7 +1449,7 @@ const ProjectsPage = () => {
                               />
                             )}
                             {activeTab === 'active' && project.endDate && new Date(project.endDate) < new Date() && project.status !== 'completed' && (
-                              <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
+                              <div className="flex items-center gap-1 text-[10px] font-bold text-red-500 dark:text-red-400 uppercase tracking-tighter mt-1">
                                 <Icon icon="lucide:alert-circle" className="w-3 h-3" />
                                 Overdue
                               </div>
@@ -1474,17 +1465,17 @@ const ProjectsPage = () => {
                                 onClick={() => handleOpenNoteDialog(project._id, project.title, project.note)}
                               >
                                 <Icon icon="lucide:sticky-note" className="w-4 h-4 text-amber-500 flex-shrink-0" />
-                                <span className="text-sm text-slate-600 truncate max-w-[120px] group-hover/note:text-slate-900">
+                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 truncate max-w-[120px] group-hover/note:text-slate-900 dark:group-hover/note:text-slate-200">
                                   {project.note}
                                 </span>
                               </div>
                             ) : (
                               <button
-                                className="flex items-center gap-2 text-slate-400 hover:text-blue-600 transition-colors"
+                                className="flex items-center gap-2 text-slate-400 dark:text-slate-600 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                                 onClick={() => handleOpenNoteDialog(project._id, project.title)}
                               >
                                 <Icon icon="lucide:plus-circle" className="w-4 h-4" />
-                                <span className="text-sm">Add note</span>
+                                <span className="text-xs font-bold">Add note</span>
                               </button>
                             )}
                           </td>
@@ -1498,7 +1489,7 @@ const ProjectsPage = () => {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="hover:bg-blue-50 hover:text-blue-600"
+                                    className="h-8 w-8 text-slate-500 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/10 dark:hover:text-blue-400"
                                     onClick={() => router.push(`/projects/${project._id}`)}
                                     title="View Project"
                                   >
@@ -1510,7 +1501,7 @@ const ProjectsPage = () => {
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="hover:bg-red-50 hover:text-red-600"
+                                      className="h-8 w-8 text-slate-500 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10 dark:hover:text-amber-400"
                                       onClick={() => handleOpenArchiveDialog(project)}
                                       title="Archive Project"
                                     >
@@ -1520,7 +1511,7 @@ const ProjectsPage = () => {
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="hover:bg-red-100 hover:text-red-700 border border-red-200"
+                                      className="h-8 w-8 text-slate-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                                       onClick={() => handleOpenDeleteDialog(project)}
                                       title="Delete Permanently"
                                     >
@@ -1534,7 +1525,7 @@ const ProjectsPage = () => {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="hover:bg-blue-50 hover:text-blue-600"
+                                  className="h-8 w-8 text-slate-500 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/10 dark:hover:text-blue-400"
                                   onClick={() => router.push(`/projects/${project._id}/overview`)}
                                   title="View Project"
                                 >
@@ -1543,7 +1534,7 @@ const ProjectsPage = () => {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="hover:bg-green-50 hover:text-green-600"
+                                  className="h-8 w-8 text-slate-500 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-500/10 dark:hover:text-green-400"
                                   onClick={() => handleOpenRestoreDialog(project)}
                                   title="Restore Project"
                                 >
@@ -1552,7 +1543,7 @@ const ProjectsPage = () => {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="hover:bg-red-100 hover:text-red-700 border border-red-200"
+                                  className="h-8 w-8 text-slate-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                                   onClick={() => handleOpenDeleteDialog(project)}
                                   title="Delete Permanently"
                                 >

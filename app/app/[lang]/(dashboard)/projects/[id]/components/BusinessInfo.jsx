@@ -1,4 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Icon } from '@iconify/react';
+import FieldDescriptionPopout from './FieldDescriptionPopout';
+import { questionTranslations } from './questionTranslations';
 
 const BusinessInfo = ({
   formData,
@@ -7,6 +10,7 @@ const BusinessInfo = ({
   requiredFields,
   disabled
 }) => {
+  const [openField, setOpenField] = useState(null);
   const legalFormOptions = [
     "",
     "SARL",
@@ -30,10 +34,29 @@ const BusinessInfo = ({
       <div className="p-6 space-y-4">
         {/* Company Name */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Full Company Name
-            {requiredFields.includes('companyName') && <span className="text-red-500 ml-1">*</span>}
-          </label>
+          <div className="flex items-center gap-2 relative">
+            <label className="block text-sm font-medium text-gray-700">
+              Full Company Name
+              {requiredFields.includes('companyName') && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            {questionTranslations.companyName && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenField(openField === 'companyName' ? null : 'companyName')}
+                  className={`p-0.5 rounded-full transition-colors ${openField === 'companyName' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+                >
+                  <Icon icon="lucide:help-circle" className="w-4 h-4" />
+                </button>
+                {openField === 'companyName' && (
+                  <FieldDescriptionPopout
+                    translations={questionTranslations.companyName}
+                    onClose={() => setOpenField(null)}
+                  />
+                )}
+              </div>
+            )}
+          </div>
           <input
             type="text"
             value={formData.companyName || ""}
@@ -68,10 +91,29 @@ const BusinessInfo = ({
 
         {/* Business Address */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Business Address
-            {requiredFields.includes('businessAddress') && <span className="text-red-500 ml-1">*</span>}
-          </label>
+          <div className="flex items-center gap-2 relative">
+            <label className="block text-sm font-medium text-gray-700">
+              Business Address
+              {requiredFields.includes('businessAddress') && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            {questionTranslations.businessAddress && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenField(openField === 'businessAddress' ? null : 'businessAddress')}
+                  className={`p-0.5 rounded-full transition-colors ${openField === 'businessAddress' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+                >
+                  <Icon icon="lucide:help-circle" className="w-4 h-4" />
+                </button>
+                {openField === 'businessAddress' && (
+                  <FieldDescriptionPopout
+                    translations={questionTranslations.businessAddress}
+                    onClose={() => setOpenField(null)}
+                  />
+                )}
+              </div>
+            )}
+          </div>
           <textarea
             value={formData.businessAddress || ""}
             onChange={(e) => handleInputChange('businessAddress', e.target.value)}
@@ -87,10 +129,29 @@ const BusinessInfo = ({
 
         {/* Company Telephone */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Telephone number
-            {requiredFields.includes('companyTelephone') && <span className="text-red-500 ml-1">*</span>}
-          </label>
+          <div className="flex items-center gap-2 relative">
+            <label className="block text-sm font-medium text-gray-700">
+              Telephone number
+              {requiredFields.includes('companyTelephone') && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            {questionTranslations.companyTelephone && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenField(openField === 'companyTelephone' ? null : 'companyTelephone')}
+                  className={`p-0.5 rounded-full transition-colors ${openField === 'companyTelephone' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+                >
+                  <Icon icon="lucide:help-circle" className="w-4 h-4" />
+                </button>
+                {openField === 'companyTelephone' && (
+                  <FieldDescriptionPopout
+                    translations={questionTranslations.companyTelephone}
+                    onClose={() => setOpenField(null)}
+                  />
+                )}
+              </div>
+            )}
+          </div>
           <input
             type="number"
             value={formData.companyTelephone || ""}
@@ -106,10 +167,29 @@ const BusinessInfo = ({
 
         {/* Company Email */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Email address
-            {requiredFields.includes('companyEmail') && <span className="text-red-500 ml-1">*</span>}
-          </label>
+          <div className="flex items-center gap-2 relative">
+            <label className="block text-sm font-medium text-gray-700">
+              Email address
+              {requiredFields.includes('companyEmail') && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            {questionTranslations.companyEmail && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenField(openField === 'companyEmail' ? null : 'companyEmail')}
+                  className={`p-0.5 rounded-full transition-colors ${openField === 'companyEmail' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+                >
+                  <Icon icon="lucide:help-circle" className="w-4 h-4" />
+                </button>
+                {openField === 'companyEmail' && (
+                  <FieldDescriptionPopout
+                    translations={questionTranslations.companyEmail}
+                    onClose={() => setOpenField(null)}
+                  />
+                )}
+              </div>
+            )}
+          </div>
           <input
             type="email"
             value={formData.companyEmail || ""}
@@ -171,10 +251,29 @@ const BusinessInfo = ({
 
         {/* Services Offered */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            What services does the company offer?
-            {requiredFields.includes('servicesOffered') && <span className="text-red-500 ml-1">*</span>}
-          </label>
+          <div className="flex items-center gap-2 relative">
+            <label className="block text-sm font-medium text-gray-700">
+              What services does the company offer?
+              {requiredFields.includes('servicesOffered') && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            {questionTranslations.servicesOffered && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenField(openField === 'servicesOffered' ? null : 'servicesOffered')}
+                  className={`p-0.5 rounded-full transition-colors ${openField === 'servicesOffered' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+                >
+                  <Icon icon="lucide:help-circle" className="w-4 h-4" />
+                </button>
+                {openField === 'servicesOffered' && (
+                  <FieldDescriptionPopout
+                    translations={questionTranslations.servicesOffered}
+                    onClose={() => setOpenField(null)}
+                  />
+                )}
+              </div>
+            )}
+          </div>
           <textarea
             value={formData.servicesOffered || ""}
             onChange={(e) => handleInputChange('servicesOffered', e.target.value)}
