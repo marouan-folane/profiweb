@@ -111,7 +111,10 @@ const updateClient = catchAsync(async (req, res, next) => {
 });
 
 const getClientById = catchAsync(async (req, res, next) => {
-  const client = await Client.findById(req.params.id).populate('projects');
+  const client = await Client.findById(req.params.id).populate({
+    path: 'projects',
+    match: { isDeleted: false, isActive: true }
+  });
 
   if (!client) {
     return next(new AppError("No client found with that ID", 404));
@@ -169,7 +172,11 @@ const getClients = catchAsync(async (req, res, next) => {
     .sort(sort)
     .skip(skip)
     .limit(limitInt)
-    .populate('projects', 'title status')
+    .populate({
+      path: 'projects',
+      match: { isDeleted: false, isActive: true },
+      select: 'title status'
+    })
     .select('-__v'); // Exclude version key
 
   // Get total count for pagination

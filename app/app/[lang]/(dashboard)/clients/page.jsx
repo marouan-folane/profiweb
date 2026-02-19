@@ -1,8 +1,10 @@
 "use client";
 import * as React from "react";
-import { Search, Plus, Trash2, MoreHorizontal, User, Building2, Mail, Phone, Globe, Loader2 } from "lucide-react";
+import { Search, Plus, Trash2, MoreHorizontal, User, Building2, Mail, Phone, Globe, Loader2, Eye } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -42,8 +44,12 @@ export default function ClientManagementPage() {
     const [currentPage, setCurrentPage] = React.useState(1);
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
+    const params = useParams();
+    const lang = params?.lang || "en";
+
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+    const [isViewProjectsOpen, setIsViewProjectsOpen] = React.useState(false);
     const [selectedClient, setSelectedClient] = React.useState(null);
     const [formData, setFormData] = React.useState({
         name: "",
@@ -111,6 +117,11 @@ export default function ClientManagementPage() {
             industry: client.industry || ""
         });
         setIsEditDialogOpen(true);
+    };
+
+    const handleViewProjectsClick = (client) => {
+        setSelectedClient(client);
+        setIsViewProjectsOpen(true);
     };
 
     const handleDeleteClick = (id) => {
@@ -248,7 +259,11 @@ export default function ClientManagementPage() {
                                             <TableCell>
                                                 <div className="flex flex-wrap gap-1">
                                                     {client.projects && client.projects.length > 0 ? (
-                                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="text-[10px] px-1.5 py-0 cursor-pointer hover:bg-primary/10 transition-colors"
+                                                            onClick={() => handleViewProjectsClick(client)}
+                                                        >
                                                             {client.projects.length} Projects
                                                         </Badge>
                                                     ) : (
@@ -268,7 +283,7 @@ export default function ClientManagementPage() {
                                                         <DropdownMenuItem className="cursor-pointer" onClick={() => handleEditClick(client)}>
                                                             Edit Client
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem className="cursor-pointer">
+                                                        <DropdownMenuItem className="cursor-pointer" onClick={() => handleViewProjectsClick(client)}>
                                                             View Projects
                                                         </DropdownMenuItem>
                                                         <DropdownMenuSeparator />
@@ -372,6 +387,40 @@ export default function ClientManagementPage() {
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+            {/* View Projects Dialog */}
+            <Dialog open={isViewProjectsOpen} onOpenChange={setIsViewProjectsOpen}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>Projects for {selectedClient?.name}</DialogTitle>
+                        <DialogDescription>
+                            List of active projects associated with this client.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        {selectedClient?.projects && selectedClient.projects.length > 0 ? (
+                            <div className="space-y-3">
+                                {selectedClient.projects.map((project) => (
+                                    <div key={project._id} className="flex items-center justify-between p-3 rounded-lg border border-muted hover:border-primary/50 transition-colors group">
+                                        <div className="flex flex-col">
+                                            <span className="font-medium text-gray-900">{project.title}</span>
+                                        </div>
+                                        <Link
+                                            href={`/${lang}/projects/${project._id}`}
+                                            className="text-muted-foreground hover:text-primary transition-colors p-2 hover:bg-muted rounded-full"
+                                        >
+                                            <Eye className="h-4 w-4" />
+                                        </Link>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 text-muted-foreground">
+                                No active projects found for this client.
+                            </div>
+                        )}
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>
