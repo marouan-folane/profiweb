@@ -114,28 +114,44 @@ export function UserManagementTable() {
     // Process data
     const processedData = React.useMemo(() => {
         if (!usersData?.data) return sampleData;
-        
-        return usersData.data.map(user => ({
-            id: user._id || user.id,
-            firstName: user.firstName || '',
-            lastName: user.lastName || '',
-            email: user.email || 'No email',
-            role: user.role || 'User',
-            department: user.department || 'Not Assigned',
-            status: user.isActive !== false ? 'active' : 'inactive',
-            lastLogin: user.lastLogin || user.updatedAt || new Date().toISOString(),
-            profileImage: user.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username || user.email}`,
-        }));
+
+        const roleDeptMapping = {
+            'd.s': 'D.Sales',
+            'd.i': 'D.Integration',
+            'd.it': 'D.IT Department',
+            'd.d': 'D.Design',
+            'd.in': 'D.Informations',
+            'd.c': 'D.Content',
+            'admin': 'D.Administration',
+            'manager': 'D.Management'
+        };
+
+        return usersData.data.map(user => {
+            const roleKey = user.role?.toLowerCase().trim();
+            const mappedDept = roleDeptMapping[roleKey] || user.department || 'Not Assigned';
+
+            return {
+                id: user._id || user.id,
+                firstName: user.firstName || '',
+                lastName: user.lastName || '',
+                email: user.email || 'No email',
+                role: user.role || 'User',
+                department: mappedDept,
+                status: user.isActive !== false ? 'active' : 'inactive',
+                lastLogin: user.lastLogin || user.updatedAt || new Date().toISOString(),
+                profileImage: user.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username || user.email}`,
+            };
+        });
     }, [usersData]);
 
     // Filter and search data
     const filteredData = React.useMemo(() => {
         let filtered = processedData;
-        
+
         // Search filter
         if (searchTerm) {
             const term = searchTerm.toLowerCase();
-            filtered = filtered.filter(user => 
+            filtered = filtered.filter(user =>
                 user.firstName.toLowerCase().includes(term) ||
                 user.lastName.toLowerCase().includes(term) ||
                 user.email.toLowerCase().includes(term) ||
@@ -143,19 +159,19 @@ export function UserManagementTable() {
                 user.department.toLowerCase().includes(term)
             );
         }
-        
+
         // Status filter
         if (selectedStatus !== "all") {
             filtered = filtered.filter(user => user.status === selectedStatus);
         }
-        
+
         // Role filter
         if (selectedRole !== "all") {
-            filtered = filtered.filter(user => 
+            filtered = filtered.filter(user =>
                 user.role.toLowerCase() === selectedRole.toLowerCase()
             );
         }
-        
+
         return filtered;
     }, [processedData, searchTerm, selectedStatus, selectedRole]);
 
@@ -194,7 +210,7 @@ export function UserManagementTable() {
             toast.error("Please select at least one user");
             return;
         }
-        
+
         if (window.confirm(`Are you sure you want to deactivate ${selectedRows.size} user(s)?`)) {
             selectedRows.forEach(userId => {
                 deactivateMutation.mutate(userId);
@@ -207,7 +223,7 @@ export function UserManagementTable() {
             toast.error("Please select at least one user");
             return;
         }
-        
+
         if (window.confirm(`Are you sure you want to activate ${selectedRows.size} user(s)?`)) {
             selectedRows.forEach(userId => {
                 activateMutation.mutate(userId);
@@ -220,7 +236,7 @@ export function UserManagementTable() {
             toast.error("Please select at least one user");
             return;
         }
-        
+
         if (window.confirm(`Are you sure you want to permanently delete ${selectedRows.size} user(s)? This action cannot be undone.`)) {
             selectedRows.forEach(userId => {
                 deleteMutation.mutate(userId);
@@ -281,8 +297,8 @@ export function UserManagementTable() {
                             </svg>
                             <p className="mt-4 text-gray-600">Error loading users</p>
                             <p className="text-sm text-gray-500 mt-1">{error?.message || 'Please try again later'}</p>
-                            <Button 
-                                variant="outline" 
+                            <Button
+                                variant="outline"
                                 className="mt-4 border-gray-300"
                                 onClick={() => refetch()}
                             >
@@ -306,9 +322,9 @@ export function UserManagementTable() {
                         </CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button 
-                            size="sm" 
-                            className="bg-blue-600 hover:bg-blue-700 text-white" 
+                        <Button
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
                             onClick={() => window.location.href = "/users/new"}
                         >
                             <Plus className="mr-2 h-4 w-4" />
@@ -382,8 +398,8 @@ export function UserManagementTable() {
                                 className="pl-9 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 w-full sm:w-64"
                             />
                         </div>
-                        <Select 
-                            value={selectedStatus} 
+                        <Select
+                            value={selectedStatus}
                             onValueChange={setSelectedStatus}
                         >
                             <SelectTrigger className="h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 w-full sm:w-40">
@@ -396,8 +412,8 @@ export function UserManagementTable() {
                                 <SelectItem value="pending">Pending</SelectItem>
                             </SelectContent>
                         </Select>
-                        <Select 
-                            value={selectedRole} 
+                        <Select
+                            value={selectedRole}
                             onValueChange={setSelectedRole}
                         >
                             <SelectTrigger className="h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 w-full sm:w-40">
@@ -441,9 +457,8 @@ export function UserManagementTable() {
                                 paginatedData.map((user) => (
                                     <TableRow
                                         key={user.id}
-                                        className={`border-gray-100 hover:bg-gray-50/50 transition-colors ${
-                                            selectedRows.has(user.id) ? 'bg-blue-50/30' : ''
-                                        }`}
+                                        className={`border-gray-100 hover:bg-gray-50/50 transition-colors ${selectedRows.has(user.id) ? 'bg-blue-50/30' : ''
+                                            }`}
                                     >
                                         <TableCell>
                                             <Checkbox
@@ -477,10 +492,10 @@ export function UserManagementTable() {
                                                 variant="outline"
                                                 color={
                                                     user.role === 'Admin' ? 'destructive' :
-                                                    user.role === 'Manager' ? 'warning' :
-                                                    user.role === 'D.T' ? 'info' :
-                                                    user.role === 'D.I' ? 'success' :
-                                                    user.role === 'D.C' ? 'primary' : 'default'
+                                                        user.role === 'Manager' ? 'warning' :
+                                                            user.role === 'D.T' ? 'info' :
+                                                                user.role === 'D.I' ? 'success' :
+                                                                    user.role === 'D.C' ? 'primary' : 'default'
                                                 }
                                                 className="font-medium"
                                             >
@@ -490,8 +505,8 @@ export function UserManagementTable() {
                                         <TableCell>
                                             <Badge
                                                 variant="soft"
-                                                color={user.status === 'active' ? 'success' : 
-                                                       user.status === 'inactive' ? 'destructive' : 'warning'}
+                                                color={user.status === 'active' ? 'success' :
+                                                    user.status === 'inactive' ? 'destructive' : 'warning'}
                                                 className="capitalize font-medium"
                                             >
                                                 {user.status}
@@ -510,11 +525,11 @@ export function UserManagementTable() {
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end" className="w-48">
                                                     <DropdownMenuLabel className="text-gray-700">Actions</DropdownMenuLabel>
-                                                    
+
                                                     <DropdownMenuSeparator />
-                                                    
+
                                                     {user.status === 'active' ? (
-                                                        <DropdownMenuItem 
+                                                        <DropdownMenuItem
                                                             className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 cursor-pointer"
                                                             onClick={() => handleDeactivate(user.id, `${user.firstName} ${user.lastName}`)}
                                                         >
@@ -522,7 +537,7 @@ export function UserManagementTable() {
                                                             Deactivate
                                                         </DropdownMenuItem>
                                                     ) : (
-                                                        <DropdownMenuItem 
+                                                        <DropdownMenuItem
                                                             className="text-green-600 hover:text-green-700 hover:bg-green-50 cursor-pointer"
                                                             onClick={() => handleActivate(user.id, `${user.firstName} ${user.lastName}`)}
                                                         >
@@ -530,8 +545,8 @@ export function UserManagementTable() {
                                                             Activate
                                                         </DropdownMenuItem>
                                                     )}
-                                                    
-                                                    <DropdownMenuItem 
+
+                                                    <DropdownMenuItem
                                                         className="text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
                                                         onClick={() => handleDelete(user.id, `${user.firstName} ${user.lastName}`)}
                                                     >
@@ -552,8 +567,8 @@ export function UserManagementTable() {
                                             </svg>
                                             <p>No users found.</p>
                                             {(searchTerm || selectedStatus !== 'all' || selectedRole !== 'all') && (
-                                                <Button 
-                                                    variant="link" 
+                                                <Button
+                                                    variant="link"
                                                     className="text-blue-600 hover:text-blue-700"
                                                     onClick={() => {
                                                         setSearchTerm('');
