@@ -80,6 +80,7 @@ const DashboardPageView = ({ trans, lang }) => {
       icon: Users,
       color: "text-blue-500",
       bg: "bg-blue-500/10",
+      href: "/users",
     },
     {
       title: "Total Projects",
@@ -87,6 +88,7 @@ const DashboardPageView = ({ trans, lang }) => {
       icon: Briefcase,
       color: "text-orange-500",
       bg: "bg-orange-500/10",
+      href: "/projects",
     },
     {
       title: "Total Clients",
@@ -94,6 +96,7 @@ const DashboardPageView = ({ trans, lang }) => {
       icon: FileText,
       color: "text-green-500",
       bg: "bg-green-500/10",
+      href: "/clients",
     },
     {
       title: "Active Templates",
@@ -101,6 +104,7 @@ const DashboardPageView = ({ trans, lang }) => {
       icon: Layout,
       color: "text-purple-500",
       bg: "bg-purple-500/10",
+      href: "/templates",
     },
   ];
 
@@ -196,17 +200,21 @@ const DashboardPageView = ({ trans, lang }) => {
       {/* Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statsCards.map((card, index) => (
-          <Card key={index} className="overflow-hidden border-none shadow-md">
+          <Card
+            key={index}
+            className="overflow-hidden border border-primary/5 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-300 cursor-pointer hover:-translate-y-1 active:scale-[0.98] group"
+            onClick={() => router.push(`/${lang}${card.href}`)}
+          >
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-xl ${card.bg}`}>
+                <div className={`p-3 rounded-xl ${card.bg} group-hover:scale-110 transition-transform duration-300`}>
                   <card.icon className={`h-6 w-6 ${card.color}`} />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">
+                  <p className="text-sm font-medium text-muted-foreground group-hover:text-primary transition-colors">
                     {card.title}
                   </p>
-                  <h3 className="text-2xl font-bold">{card.value}</h3>
+                  <h3 className="text-2xl font-bold tracking-tight">{card.value}</h3>
                 </div>
               </div>
             </CardContent>
@@ -219,26 +227,29 @@ const DashboardPageView = ({ trans, lang }) => {
         <div className="xl:col-span-2">
 
           {/* Platform Health/Info */}
-          <Card className="shadow-md bg-white to-transparent border-primary/10">
-            <CardHeader>
-              <CardTitle>Platform Quick Actions</CardTitle>
+          <Card className="shadow-md bg-white to-transparent border-primary/10 overflow-hidden">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl">Platform Quick Actions</CardTitle>
               <CardDescription>Common administrative tasks</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                 {[
-                  { label: "Manage Users", href: "/users", icon: Users },
-                  { label: "Project List", href: "/projects", icon: Briefcase },
-                  { label: "AI Templates", href: "/templates", icon: Layout },
-                  { label: "Site Analytics", href: "/accesses", icon: TrendingUp },
+                  { label: "Manage Users", href: "/users", icon: Users, color: "text-blue-500", bg: "bg-blue-50" },
+                  { label: "Manage Clients", href: "/clients", icon: FileText, color: "text-green-500", bg: "bg-green-50" },
+                  { label: "Project List", href: "/projects", icon: Briefcase, color: "text-orange-500", bg: "bg-orange-50" },
+                  { label: "AI Templates", href: "/templates", icon: Layout, color: "text-purple-500", bg: "bg-purple-50" },
+                  { label: "Site Analytics", href: "/accesses", icon: TrendingUp, color: "text-pink-500", bg: "bg-pink-50" },
                 ].map((action, idx) => (
                   <a
                     key={idx}
                     href={`/${lang}${action.href}`}
-                    className="flex flex-col items-center justify-center p-4 rounded-xl border bg-background hover:bg-accent transition-colors gap-2 text-center shadow-sm"
+                    className="flex flex-col items-center justify-center p-4 rounded-xl border border-transparent bg-gray-50 hover:bg-white hover:border-primary/20 hover:shadow-md transition-all duration-200 gap-2 text-center group active:scale-95"
                   >
-                    <action.icon className="h-5 w-5 text-primary" />
-                    <span className="text-xs font-semibold">{action.label}</span>
+                    <div className={`p-2 rounded-lg ${action.bg} group-hover:scale-110 transition-transform`}>
+                      <action.icon className={`h-5 w-5 ${action.color}`} />
+                    </div>
+                    <span className="text-xs font-semibold text-gray-700 group-hover:text-primary transition-colors">{action.label}</span>
                   </a>
                 ))}
               </div>
