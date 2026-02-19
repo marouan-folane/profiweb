@@ -4,6 +4,7 @@ const path = require('path');
 const https = require('https');
 const http = require('http');
 const AIInteraction = require('../models/AIInteraction');
+const PDFMarkdownRenderer = require('./PDFMarkdownRenderer');
 
 class AiStructorPdfGenerator {
     constructor() {
@@ -1419,6 +1420,65 @@ The AI must not:
             return true;
         }
         return false;
+    }
+
+    /**
+     * Generate a professional PDF from formatted content text
+     */
+    async generateFormattedContentPdf(project, contentText) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const filename = `content-${project._id}-${Date.now()}.pdf`;
+                const filePath = path.join(this.uploadsDir, filename);
+
+                const doc = new PDFDocument({
+                    size: 'A4',
+                    margin: 0,
+                    bufferPages: true
+                });
+
+                const stream = fs.createWriteStream(filePath);
+                doc.pipe(stream);
+
+                // Add Header
+                await this.addProfessionalHeader(doc, 'FORMATTED CONTENT');
+
+                // Content Section
+                const pageWidth = 595.28;
+                const contentWidth = pageWidth - this.PAGE_MARGIN.left - this.PAGE_MARGIN.right;
+                const maxY = 841.89 - this.PAGE_MARGIN.bottom - 40;
+
+                const renderer = new PDFMarkdownRenderer(doc, this.COLORS, this.PAGE_MARGIN);
+                renderer.renderMarkdownText(contentText, doc.y, contentWidth, maxY);
+
+                // Add page numbers
+                const pageCount = doc.bufferedPageRange().count;
+                for (let i = 0; i < pageCount; i++) {
+                    doc.switchToPage(i);
+                    this.addPageNumber(doc, i + 1, pageCount);
+                }
+
+                doc.end();
+
+                stream.on('finish', () => {
+                    resolve({
+                        filename,
+                        filePath,
+                        url: `/uploads/pdfs/${filename}`,
+                        pages: pageCount,
+                        message: 'Content PDF created successfully!'
+                    });
+                });
+
+                stream.on('error', (error) => {
+                    reject(error);
+                });
+
+            } catch (error) {
+                console.error('❌ Error generating content PDF:', error);
+                reject(error);
+            }
+        });
     }
 }
 

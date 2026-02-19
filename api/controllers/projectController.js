@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const catchAsync = require("../utils/catchAsync");
 const Project = require("../models/project.model");
 const Client = require("../models/client.model");
@@ -1220,6 +1222,143 @@ const submitContent = catchAsync(async (req, res, next) => {
 
   project.updatedBy = req.user.id;
   await project.save();
+
+  // ===== PDF GENERATION FOR CONTENT =====
+  try {
+    const AIStructorPDFGenerator = require('../utils/aistructorpdfgenerator');
+    const File = require("../models/file.model");
+    const Folder = require("../models/folder.model");
+
+    console.log('🔍 Starting Content PDF generation...');
+
+    // Generate the PDF
+    const contentPdf = await AIStructorPDFGenerator.generateFormattedContentPdf(
+      project,
+      formattedText
+    );
+
+    // FOLDER MANAGEMENT
+    const folderName = "Formatted content pdf";
+    let pdfFolder = await Folder.findOne({
+      name: folderName,
+      project: project._id,
+    });
+
+    if (!pdfFolder) {
+      pdfFolder = await Folder.create({
+        name: folderName,
+        user: req.user.id,
+        project: project._id,
+        description: "Folder for formatted content PDFs"
+      });
+    }
+
+    // FILE MANAGEMENT
+    let existingFile = await File.findOne({
+      project: project._id,
+      folder: pdfFolder._id,
+    });
+
+    let createdFile;
+    if (!existingFile) {
+      createdFile = await File.create({
+        filename: contentPdf.filename,
+        originalName: contentPdf.filename,
+        path: contentPdf.path || `uploads/pdfs/${contentPdf.filename}`,
+        size: contentPdf.size || '0',
+        project: project._id,
+        user: req.user.id,
+        folder: pdfFolder._id,
+      });
+    } else {
+      existingFile.filename = contentPdf.filename;
+      existingFile.originalName = contentPdf.filename;
+      existingFile.path = contentPdf.path || `uploads/pdfs/${contentPdf.filename}`;
+      existingFile.updatedAt = new Date();
+      createdFile = await existingFile.save();
+    }
+
+    // Add to project documents if not already there
+    const ProjectModel = require("../models/project.model");
+    await ProjectModel.findByIdAndUpdate(id, {
+      $addToSet: { documents: createdFile._id }
+    });
+
+    console.log('✅ Content PDF generated and saved');
+
+    // ===== JSON FILE PERSISTENCE FOR CONTENT =====
+    try {
+      console.log('🔍 Starting Content JSON persistence...');
+
+      const jsonFilename = `content-${project._id}-${Date.now()}.json`;
+      const jsonDir = path.join(__dirname, '../uploads/others');
+      if (!fs.existsSync(jsonDir)) {
+        fs.mkdirSync(jsonDir, { recursive: true });
+      }
+      const jsonPath = path.join(jsonDir, jsonFilename);
+
+      // Save JSON to file
+      fs.writeFileSync(jsonPath, JSON.stringify(contentJson, null, 2));
+
+      // FOLDER MANAGEMENT for JSON
+      const Folder = require("../models/folder.model");
+      const jsonFolderName = "Structured content json";
+      let jsonFolder = await Folder.findOne({
+        name: jsonFolderName,
+        project: project._id,
+      });
+
+      if (!jsonFolder) {
+        jsonFolder = await Folder.create({
+          name: jsonFolderName,
+          user: req.user.id,
+          project: project._id,
+          description: "Folder for structured content JSON files"
+        });
+      }
+
+      // FILE MANAGEMENT for JSON
+      const File = require("../models/file.model");
+      let existingJsonFile = await File.findOne({
+        project: project._id,
+        folder: jsonFolder._id,
+      });
+
+      let createdJsonFile;
+      const stats = fs.statSync(jsonPath);
+
+      if (!existingJsonFile) {
+        createdJsonFile = await File.create({
+          filename: jsonFilename,
+          originalName: jsonFilename,
+          path: `uploads/others/${jsonFilename}`,
+          size: stats.size.toString(),
+          project: project._id,
+          user: req.user.id,
+          folder: jsonFolder._id,
+        });
+      } else {
+        existingJsonFile.filename = jsonFilename;
+        existingJsonFile.originalName = jsonFilename;
+        existingJsonFile.path = `uploads/others/${jsonFilename}`;
+        existingJsonFile.size = stats.size.toString();
+        existingJsonFile.updatedAt = new Date();
+        createdJsonFile = await existingJsonFile.save();
+      }
+
+      // Add to project documents if not already there
+      const ProjectModel = require("../models/project.model");
+      await ProjectModel.findByIdAndUpdate(id, {
+        $addToSet: { documents: createdJsonFile._id }
+      });
+
+      console.log('✅ Content JSON persisted and saved');
+    } catch (jsonError) {
+      console.error('❌ Error persisting content JSON:', jsonError);
+    }
+  } catch (pdfError) {
+    console.error('❌ Error generating content PDF:', pdfError);
+  }
 
   res.status(200).json({
     status: 'success',
