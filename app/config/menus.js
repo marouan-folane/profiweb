@@ -1,7 +1,7 @@
-import { 
-  Users as UsersIcon, 
-  UserPlus, 
-  List, 
+import {
+  Users as UsersIcon,
+  UserPlus,
+  List,
   UserCog,
   MessageSquare,
   MessageCircle,
@@ -62,6 +62,17 @@ export const menusConfig = {
           title: "Create",
           icon: UserPlus,
           href: "/projects/new",
+        },
+      ]
+    },
+    {
+      title: "Clients",
+      icon: UsersIcon,
+      child: [
+        {
+          title: "List",
+          icon: List,
+          href: "/clients",
         },
       ]
     },

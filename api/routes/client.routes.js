@@ -1,8 +1,10 @@
 const express = require("express");
 const {
-createClient,
-deleteClient,
-getClients
+    createClient,
+    deleteClient,
+    updateClient,
+    getClients,
+    getClientById
 } = require("../controllers/clientController");
 const { protect } = require("../middlewares/auth");
 
@@ -13,6 +15,9 @@ router.use(protect);
 // Public routes
 router.route("/").get(getClients).post(createClient);
 
-router.route("/:id").delete(deleteClient);
+router.route("/:id")
+    .get(getClientById)
+    .patch(updateClient)
+    .delete(deleteClient);
 
 module.exports = router;

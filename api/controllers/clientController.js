@@ -34,7 +34,7 @@ const createClient = catchAsync(async (req, res, next) => {
 
   // Check if client with email already exists
   const existingClient = await Client.findOne({ email });
-  
+
   if (existingClient) {
     return next(new AppError("A client with this email already exists", 409));
   }
@@ -80,12 +80,54 @@ const createClient = catchAsync(async (req, res, next) => {
 });
 
 const deleteClient = catchAsync(async (req, res, next) => {
-  
+  const client = await Client.findByIdAndUpdate(req.params.id, { isActive: false }, { new: true });
+
+  if (!client) {
+    return next(new AppError("No client found with that ID", 404));
+  }
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Client deleted successfully'
+  });
+});
+
+const updateClient = catchAsync(async (req, res, next) => {
+  const client = await Client.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+    runValidators: true
+  });
+
+  if (!client) {
+    return next(new AppError("No client found with that ID", 404));
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      client
+    }
+  });
+});
+
+const getClientById = catchAsync(async (req, res, next) => {
+  const client = await Client.findById(req.params.id).populate('projects');
+
+  if (!client) {
+    return next(new AppError("No client found with that ID", 404));
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      client
+    }
+  });
 });
 
 const getClients = catchAsync(async (req, res, next) => {
   // Get query parameters for filtering, sorting, pagination
-  const { 
+  const {
     search,
     status,
     industry,
@@ -96,7 +138,7 @@ const getClients = catchAsync(async (req, res, next) => {
 
   // Build query
   let query = { isActive: true };
-  
+
   // Search by name, email, company, or phone
   if (search) {
     query.$or = [
@@ -152,5 +194,7 @@ const getClients = catchAsync(async (req, res, next) => {
 module.exports = {
   createClient,
   deleteClient,
-  getClients
+  getClients,
+  updateClient,
+  getClientById
 };
