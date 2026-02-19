@@ -5,7 +5,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -26,8 +25,6 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Dialog,
     DialogContent,
@@ -39,17 +36,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { getAllClients, createNewClient, updateClient, deleteClient } from "@/config/functions/client";
 
-const statusColors = {
-    active: "success",
-    inactive: "destructive",
-    lead: "warning",
-    prospect: "info",
-};
-
 export default function ClientManagementPage() {
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = React.useState("");
-    const [activeTab, setActiveTab] = React.useState("all");
     const [currentPage, setCurrentPage] = React.useState(1);
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
@@ -61,16 +50,13 @@ export default function ClientManagementPage() {
         email: "",
         company: "",
         phone: "",
-        industry: "",
-        status: "lead"
+        industry: ""
     });
 
     // Fetch clients
     const { data: clientsResponse, isLoading, isError, error, refetch } = useQuery({
-        queryKey: ['clients', activeTab],
-        queryFn: () => getAllClients({
-            status: activeTab === "all" ? undefined : activeTab,
-        }),
+        queryKey: ['clients'],
+        queryFn: () => getAllClients(),
     });
 
     const createMutation = useMutation({
@@ -111,8 +97,7 @@ export default function ClientManagementPage() {
             email: "",
             company: "",
             phone: "",
-            industry: "",
-            status: "lead"
+            industry: ""
         });
     };
 
@@ -123,8 +108,7 @@ export default function ClientManagementPage() {
             email: client.email || "",
             company: client.company || "",
             phone: client.phone || "",
-            industry: client.industry || "",
-            status: client.status || "lead"
+            industry: client.industry || ""
         });
         setIsEditDialogOpen(true);
     };
@@ -140,10 +124,6 @@ export default function ClientManagementPage() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleStatusChange = (value) => {
-        setFormData(prev => ({ ...prev, status: value }));
-    };
-
     const handleSubmit = (e) => {
         e.preventDefault();
         if (isEditDialogOpen) {
@@ -155,7 +135,6 @@ export default function ClientManagementPage() {
 
     const clientsData = clientsResponse?.data?.clients || [];
 
-    // Filter and search data (if client-side filtering is needed on top of API)
     const filteredData = React.useMemo(() => {
         if (!clientsData) return [];
         let filtered = clientsData;
@@ -173,7 +152,6 @@ export default function ClientManagementPage() {
         return filtered;
     }, [clientsData, searchTerm]);
 
-    // Pagination
     const totalPages = Math.ceil(filteredData.length / rowsPerPage);
     const startIndex = (currentPage - 1) * rowsPerPage;
     const endIndex = startIndex + rowsPerPage;
@@ -205,16 +183,6 @@ export default function ClientManagementPage() {
             <Card className="border-none shadow-sm">
                 <CardHeader className="pb-0">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
-                            <TabsList className="bg-muted/50 p-1">
-                                <TabsTrigger value="all" className="data-[state=active]:bg-background">All Clients</TabsTrigger>
-                                <TabsTrigger value="active" className="data-[state=active]:bg-background text-emerald-600">Active</TabsTrigger>
-                                <TabsTrigger value="inactive" className="data-[state=active]:bg-background text-rose-600">Inactive</TabsTrigger>
-                                <TabsTrigger value="lead" className="data-[state=active]:bg-background text-amber-600">Lead</TabsTrigger>
-                                <TabsTrigger value="prospect" className="data-[state=active]:bg-background text-blue-600">Prospect</TabsTrigger>
-                            </TabsList>
-                        </Tabs>
-
                         <div className="flex items-center gap-2">
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -236,7 +204,6 @@ export default function ClientManagementPage() {
                                     <TableHead className="font-semibold text-gray-900">Client</TableHead>
                                     <TableHead className="font-semibold text-gray-900">Company</TableHead>
                                     <TableHead className="font-semibold text-gray-900">Contact</TableHead>
-                                    <TableHead className="font-semibold text-gray-900">Status</TableHead>
                                     <TableHead className="font-semibold text-gray-900">Projects</TableHead>
                                     <TableHead className="font-semibold text-gray-900 text-right">Actions</TableHead>
                                 </TableRow>
@@ -279,11 +246,6 @@ export default function ClientManagementPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant="soft" color={statusColors[client.status] || "default"} className="capitalize">
-                                                    {client.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
                                                 <div className="flex flex-wrap gap-1">
                                                     {client.projects && client.projects.length > 0 ? (
                                                         <Badge variant="outline" className="text-[10px] px-1.5 py-0">
@@ -320,7 +282,7 @@ export default function ClientManagementPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                                        <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
                                             No clients found.
                                         </TableCell>
                                     </TableRow>
@@ -394,24 +356,10 @@ export default function ClientManagementPage() {
                                 <Input id="phone" name="phone" value={formData.phone} onChange={handleFormChange} placeholder="+212..." />
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="industry">Industry</Label>
                                 <Input id="industry" name="industry" value={formData.industry} onChange={handleFormChange} placeholder="Tech, Retail, etc." />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="status">Status</Label>
-                                <Select value={formData.status} onValueChange={handleStatusChange}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="lead">Lead</SelectItem>
-                                        <SelectItem value="prospect">Prospect</SelectItem>
-                                        <SelectItem value="active">Active</SelectItem>
-                                        <SelectItem value="inactive">Inactive</SelectItem>
-                                    </SelectContent>
-                                </Select>
                             </div>
                         </div>
                         <DialogFooter className="pt-4">

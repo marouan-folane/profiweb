@@ -17,6 +17,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -305,11 +312,11 @@ const NewProjectPage = () => {
           }));
         }
 
-        // Hide form after 2 seconds
+        // Hide form after 1.5 seconds
         setTimeout(() => {
           setShowClientForm(false);
           setClientSuccess('');
-        }, 2000);
+        }, 1500);
       } else {
         // Handle API errors
         const errorMessage = response?.message || response?.error || 'Failed to create client';
@@ -551,256 +558,173 @@ const NewProjectPage = () => {
         </div>
       </div>
 
-      {/* Client Creation Form - Shows when button is clicked */}
-      {showClientForm && (
-        <div className="mb-8 animate-in fade-in slide-in-from-top-2 duration-300">
-          <Card className="border-2 border-blue-200 shadow-lg">
-            <CardHeader className="bg-blue-50">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-lg flex items-center gap-2 text-blue-800">
-                  <Icon icon="heroicons:user-plus" className="w-5 h-5" />
-                  Create New Client
-                </CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowClientForm(false)}
-                  className="h-8 w-8 p-0"
-                  disabled={creatingClient}
-                >
-                  <Icon icon="heroicons:x-mark" className="w-4 h-4" />
-                </Button>
+      {/* Client Creation Modal */}
+      <Dialog open={showClientForm} onOpenChange={setShowClientForm}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-blue-800">
+              <Icon icon="heroicons:user-plus" className="w-5 h-5" />
+              Create New Client
+            </DialogTitle>
+            <DialogDescription>
+              Enter the details for the new client. Required fields are marked with *.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Client Form Errors */}
+          {(clientErrors.length > 0 || clientApiError) && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg animate-in fade-in">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-full bg-red-100">
+                  <Icon icon="heroicons:exclamation-triangle" className="w-5 h-5 text-red-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-red-800 mb-1 text-sm">
+                    {clientApiError ? 'Creation Error' : 'Validation Errors'}
+                  </h3>
+                  {clientApiError ? (
+                    <div className="text-xs text-red-700">
+                      <p>{clientApiError}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <ul className="text-xs text-red-700 list-disc list-inside">
+                        {clientErrors.map((error, index) => (
+                          <li key={index}>{error}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {/* Client Form Errors */}
-              {(clientErrors.length > 0 || clientApiError) && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg animate-in fade-in">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-full bg-red-100">
-                      <Icon icon="heroicons:exclamation-triangle" className="w-5 h-5 text-red-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-red-800 mb-1">
-                        {clientApiError ? 'Creation Error' : 'Validation Errors'}
-                      </h3>
-                      {clientApiError ? (
-                        <div className="text-sm text-red-700">
-                          <p>{clientApiError}</p>
-                          {clientApiError.includes('email already exists') && (
-                            <p className="text-xs mt-1 opacity-75">Please use a different email address.</p>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <p className="text-sm text-red-700">
-                            Please fix the following errors:
-                          </p>
-                          <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
-                            {clientErrors.map((error, index) => (
-                              <li key={index} className="ml-2">{error}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+            </div>
+          )}
+
+          {/* Client Success Message */}
+          {clientSuccess && (
+            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg animate-in fade-in">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-full bg-green-100">
+                  <Icon icon="heroicons:check-circle" className="w-5 h-5 text-green-600" />
                 </div>
-              )}
-
-              {/* Client Success Message */}
-              {clientSuccess && (
-                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg animate-in fade-in">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-full bg-green-100">
-                      <Icon icon="heroicons:check-circle" className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-green-800 mb-1">Success!</h3>
-                      <p className="text-sm text-green-700">{clientSuccess}</p>
-                      <p className="text-xs mt-1 text-green-600 opacity-75">
-                        Form will close automatically...
-                      </p>
-                    </div>
-                  </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-green-800 mb-1 text-sm">Success!</h3>
+                  <p className="text-xs text-green-700">{clientSuccess}</p>
                 </div>
-              )}
+              </div>
+            </div>
+          )}
 
-              <form onSubmit={handleCreateClient} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Basic Information */}
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="clientName" className="text-sm font-medium">
-                        Full Name *
-                        {clientErrors.includes('Name is required') && (
-                          <span className="text-red-500 ml-1">*</span>
-                        )}
-                      </Label>
-                      <Input
-                        id="clientName"
-                        name="name"
-                        value={clientFormData.name}
-                        onChange={handleClientInputChange}
-                        placeholder="John Doe"
-                        disabled={creatingClient}
-                        className={clientErrors.includes('Name is required') ? 'border-red-300' : ''}
-                      />
-                    </div>
+          <form onSubmit={handleCreateClient} className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="clientName" className="text-xs font-medium">Full Name *</Label>
+                <Input
+                  id="clientName"
+                  name="name"
+                  value={clientFormData.name}
+                  onChange={handleClientInputChange}
+                  placeholder="John Doe"
+                  disabled={creatingClient}
+                  className={clientErrors.includes('Name is required') ? 'border-red-300' : ''}
+                />
+              </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="clientEmail" className="text-sm font-medium">
-                        Email Address *
-                        {clientErrors.includes('Email is required') || clientErrors.includes('Please enter a valid email address') ? (
-                          <span className="text-red-500 ml-1">*</span>
-                        ) : null}
-                      </Label>
-                      <Input
-                        id="clientEmail"
-                        name="email"
-                        type="email"
-                        value={clientFormData.email}
-                        onChange={handleClientInputChange}
-                        placeholder="john@example.com"
-                        disabled={creatingClient}
-                        className={
-                          clientErrors.includes('Email is required') ||
-                            clientErrors.includes('Please enter a valid email address') ? 'border-red-300' : ''
-                        }
-                      />
-                    </div>
+              <div className="space-y-2">
+                <Label htmlFor="clientEmail" className="text-xs font-medium">Email Address *</Label>
+                <Input
+                  id="clientEmail"
+                  name="email"
+                  type="email"
+                  value={clientFormData.email}
+                  onChange={handleClientInputChange}
+                  placeholder="john@example.com"
+                  disabled={creatingClient}
+                  className={clientErrors.includes('Email is required') || clientErrors.includes('Please enter a valid email address') ? 'border-red-300' : ''}
+                />
+              </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="clientPhone" className="text-sm font-medium">Phone Number</Label>
-                      <Input
-                        id="clientPhone"
-                        type="number"
-                        name="phone"
-                        value={clientFormData.phone}
-                        onChange={handleClientInputChange}
-                        placeholder="+212 600-000000"
-                        disabled={creatingClient}
-                      />
-                    </div>
+              <div className="space-y-2">
+                <Label htmlFor="clientPhone" className="text-xs font-medium">Phone Number</Label>
+                <Input
+                  id="clientPhone"
+                  type="number"
+                  name="phone"
+                  value={clientFormData.phone}
+                  onChange={handleClientInputChange}
+                  placeholder="+212 600-000000"
+                  disabled={creatingClient}
+                />
+              </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="clientCompany" className="text-sm font-medium">Company</Label>
-                      <Input
-                        id="clientCompany"
-                        name="company"
-                        value={clientFormData.company}
-                        onChange={handleClientInputChange}
-                        placeholder="Company Name"
-                        disabled={creatingClient}
-                      />
-                    </div>
-                  </div>
+              <div className="space-y-2">
+                <Label htmlFor="clientCompany" className="text-xs font-medium">Company</Label>
+                <Input
+                  id="clientCompany"
+                  name="company"
+                  value={clientFormData.company}
+                  onChange={handleClientInputChange}
+                  placeholder="Company Name"
+                  disabled={creatingClient}
+                />
+              </div>
 
-                  {/* Status & Additional Info */}
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* <div className="space-y-2">
-                        <Label className="text-sm font-medium">Status</Label>
-                        <Select
-                          value={clientFormData.status}
-                          onValueChange={(value) => handleClientSelectChange('status', value)}
-                          disabled={creatingClient}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {CLIENT_STATUS_OPTIONS.map((status) => (
-                              <SelectItem key={status.value} value={status.value}>
-                                {status.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div> */}
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="clientIndustry" className="text-xs font-medium">Industry</Label>
+                <Input
+                  id="clientIndustry"
+                  name="industry"
+                  value={clientFormData.industry}
+                  onChange={handleClientInputChange}
+                  placeholder="e.g., Technology, Retail, etc."
+                  disabled={creatingClient}
+                />
+              </div>
 
-                      {/* <div className="space-y-2">
-                        <Label className="text-sm font-medium">Source</Label>
-                        <Select
-                          value={clientFormData.source}
-                          onValueChange={(value) => handleClientSelectChange('source', value)}
-                          disabled={creatingClient}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select source" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {CLIENT_SOURCE_OPTIONS.map((source) => (
-                              <SelectItem key={source.value} value={source.value}>
-                                {source.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div> */}
-                    </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="clientNotes" className="text-xs font-medium">Notes</Label>
+                <Textarea
+                  id="clientNotes"
+                  name="notes"
+                  value={clientFormData.notes}
+                  onChange={handleClientInputChange}
+                  placeholder="Additional notes about the client..."
+                  rows={3}
+                  disabled={creatingClient}
+                />
+              </div>
+            </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="clientIndustry" className="text-sm font-medium">Industry</Label>
-                      <Input
-                        id="clientIndustry"
-                        name="industry"
-                        value={clientFormData.industry}
-                        onChange={handleClientInputChange}
-                        placeholder="e.g., Technology, Retail, etc."
-                        disabled={creatingClient}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="clientNotes" className="text-sm font-medium">Notes</Label>
-                      <Textarea
-                        id="clientNotes"
-                        name="notes"
-                        value={clientFormData.notes}
-                        onChange={handleClientInputChange}
-                        placeholder="Additional notes about the client..."
-                        rows={2}
-                        disabled={creatingClient}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="flex justify-end gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowClientForm(false)}
-                    disabled={creatingClient}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={creatingClient}
-                    className="gap-2"
-                  >
-                    {creatingClient ? (
-                      <>
-                        <Icon icon="heroicons:arrow-path" className="w-4 h-4 animate-spin" />
-                        Creating...
-                      </>
-                    ) : (
-                      <>
-                        <Icon icon="heroicons:user-plus" className="w-4 h-4" />
-                        Create Client
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowClientForm(false)}
+                disabled={creatingClient}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={creatingClient}
+                className="gap-2"
+              >
+                {creatingClient ? (
+                  <>
+                    <Icon icon="heroicons:arrow-path" className="w-4 h-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Icon icon="heroicons:user-plus" className="w-4 h-4" />
+                    Create Client
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Form */}
