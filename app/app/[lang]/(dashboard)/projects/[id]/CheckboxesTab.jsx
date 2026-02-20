@@ -4,7 +4,7 @@ import {
   createOrUpdateItem,
   deleteChecklistItem
 } from "@/config/functions/checklist";
-import { getProject, validateContentChecklist } from "@/config/functions/project";
+import { getProject } from "@/config/functions/project";
 import { useSession } from 'next-auth/react';
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
@@ -13,62 +13,8 @@ const CheckboxesTab = ({ projectId }) => {
   const { data: session } = useSession();
   const userRole = session?.user?.role?.toLowerCase(); // for department integration is d.i
 
-  // Content Department Checklist (for d.c role)
-  const contentDepartmentSections = [
-    {
-      id: 'content_planning',
-      title: "Content Planning & Strategy",
-      items: [
-        { id: 'content_strategy', label: 'Content strategy document created', checked: false },
-        { id: 'target_audience', label: 'Target audience defined and documented', checked: false },
-        { id: 'content_calendar', label: 'Content calendar prepared', checked: false },
-        { id: 'seo_keywords', label: 'SEO keywords researched and selected', checked: false },
-      ]
-    },
-    {
-      id: 'homepage_content',
-      title: "Homepage Content",
-      items: [
-        { id: 'hero_section', label: 'Hero section copy written', checked: false },
-        { id: 'value_proposition', label: 'Value proposition clearly defined', checked: false },
-        { id: 'services_overview', label: 'Services/products overview content', checked: false },
-        { id: 'about_section', label: 'About us section content', checked: false },
-        { id: 'cta_sections', label: 'Call-to-action sections written', checked: false },
-      ]
-    },
-    {
-      id: 'page_content',
-      title: "Page Content Creation",
-      items: [
-        { id: 'about_page', label: 'About page content complete', checked: false },
-        { id: 'services_pages', label: 'Services/products pages content', checked: false },
-        { id: 'contact_page', label: 'Contact page with forms and details', checked: false },
-        { id: 'blog_posts', label: 'Initial blog posts (3-5 articles)', checked: false },
-        { id: 'faq_section', label: 'FAQ section content', checked: false },
-      ]
-    },
-    {
-      id: 'seo_content',
-      title: "SEO Content Optimization",
-      items: [
-        { id: 'meta_titles', label: 'Meta titles written for all pages', checked: false },
-        { id: 'meta_descriptions', label: 'Meta descriptions optimized', checked: false },
-        { id: 'header_tags', label: 'H1, H2, H3 tags properly used', checked: false },
-        { id: 'image_alt_tags', label: 'Image alt text written', checked: false },
-        { id: 'internal_linking', label: 'Internal linking strategy implemented', checked: false },
-      ]
-    },
-    {
-      id: 'content_quality',
-      title: "Content Quality Assurance",
-      items: [
-        { id: 'proofreading', label: 'All content proofread for errors', checked: false },
-        { id: 'brand_voice', label: 'Consistent brand voice maintained', checked: false },
-        { id: 'readability', label: 'Readability score checked and optimized', checked: false },
-        { id: 'legal_compliance', label: 'Legal compliance (GDPR, terms, privacy)', checked: false },
-      ]
-    }
-  ];
+  // Content Department checklist is now handled inside FoldersTab.jsx (modal)
+  // Only IT, Design, and Integration checklists remain here.
 
   // Design Department Checklist (for d.d role)
   const designDepartmentSections = [
@@ -297,6 +243,7 @@ const CheckboxesTab = ({ projectId }) => {
   ];
 
   // Determine which checklist to show based on role
+  // Note: d.c checklist is now a modal inside FoldersTab — not shown here
   const getChecklistForRole = () => {
     switch (userRole) {
       case 'd.it':
@@ -305,13 +252,6 @@ const CheckboxesTab = ({ projectId }) => {
           description: 'Department: IT / Technical - Install the correct template stack in the correct hosting environment',
           sections: technicalSetupSections,
           roleName: 'IT Department'
-        };
-      case 'd.c':
-        return {
-          title: 'Content Department Checklist',
-          description: 'Department: Content - Create and optimize all website content for engagement and SEO',
-          sections: contentDepartmentSections,
-          roleName: 'Content Department'
         };
       case 'd.d':
         return {
@@ -348,9 +288,7 @@ const CheckboxesTab = ({ projectId }) => {
   const [contentStatus, setContentStatus] = useState('pending');
   const [isValidating, setIsValidating] = useState(false);
 
-  const isChecklistLocked = (userRole === 'd.c' || userRole === 'superadmin') && (contentStatus === 'checklist_validated' || contentStatus === 'completed');
-  // For other roles, it's always "read-only" in practice but here we specifically lock for content/admin once validated
-  const isActuallyLocked = (userRole === 'd.c' || userRole === 'superadmin') && (contentStatus === 'checklist_validated' || contentStatus === 'completed');
+  const isActuallyLocked = (userRole === 'superadmin') && (contentStatus === 'checklist_validated' || contentStatus === 'completed');
 
   // Load checklist data on component mount
   useEffect(() => {
@@ -860,27 +798,6 @@ const CheckboxesTab = ({ projectId }) => {
         })}
       </div>
 
-      {userRole === 'd.c' && contentStatus === 'pending' && (
-        <div className="mt-8 pt-8 border-t border-gray-200 flex justify-end">
-          <button
-            onClick={handleValidateChecklist}
-            disabled={isValidating || loading}
-            className="flex items-center gap-2 px-6 py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary-dark transition-all shadow-md active:scale-95 disabled:opacity-50"
-          >
-            {isValidating ? (
-              <>
-                <Icon icon="eos-icons:loading" className="h-5 w-5" />
-                Validating...
-              </>
-            ) : (
-              <>
-                <Icon icon="heroicons:check-badge" className="h-5 w-5" />
-                Validate & Complete Checklist
-              </>
-            )}
-          </button>
-        </div>
-      )}
     </div>
   );
 };

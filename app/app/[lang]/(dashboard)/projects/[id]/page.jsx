@@ -251,7 +251,7 @@ const Overview = () => {
               )}
 
 
-              {["d.it", "d.c", "d.d", "d.in"].includes(session?.user?.role) && (
+              {["d.it", "d.d", "d.in"].includes(session?.user?.role) && (
                 <button
                   onClick={() => handleTabChange("checkboxes")}
                   className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${activeTab === "checkboxes"
