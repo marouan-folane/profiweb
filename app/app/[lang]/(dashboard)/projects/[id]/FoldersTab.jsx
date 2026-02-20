@@ -635,12 +635,9 @@ const FoldersTab = ({ projectId }) => {
           <div className="mt-8 pt-6 border-t border-indigo-200">
             {project?.contentStatus === 'completed' ? (
               <div className="bg-green-600 rounded-xl p-4 flex items-center gap-4 text-white shadow-lg">
-                <div className="bg-white/20 p-2 rounded-lg">
-                  <Icon icon="lucide:party-popper" className="w-6 h-6" />
-                </div>
+              
                 <div className="flex-1">
-                  <h4 className="font-bold">Content Department Workflow Completed!</h4>
-                  <p className="text-xs text-green-500 opacity-90">All documents and content have been finalized and shared with the Integration Department.</p>
+                  <h4 className="font-bold">All documents and content have been finalized.</h4>
                 </div>
                 <Icon icon="lucide:check-circle" className="w-8 h-8 opacity-50" />
               </div>

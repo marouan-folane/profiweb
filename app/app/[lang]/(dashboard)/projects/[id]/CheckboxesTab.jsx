@@ -350,7 +350,7 @@ const CheckboxesTab = ({ projectId }) => {
 
   const isChecklistLocked = (userRole === 'd.c' || userRole === 'superadmin') && (contentStatus === 'checklist_validated' || contentStatus === 'completed');
   // For other roles, it's always "read-only" in practice but here we specifically lock for content/admin once validated
-  const isActuallyLocked = contentStatus === 'checklist_validated' || contentStatus === 'completed';
+  const isActuallyLocked = (userRole === 'd.c' || userRole === 'superadmin') && (contentStatus === 'checklist_validated' || contentStatus === 'completed');
 
   // Load checklist data on component mount
   useEffect(() => {
