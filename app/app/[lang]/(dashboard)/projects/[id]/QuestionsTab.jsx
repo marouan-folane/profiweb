@@ -366,12 +366,10 @@ const QuestionsTab = ({ setFormSubmitted }) => {
   const isInfoDept = userRole === 'd.i';
   const isSalesDept = userRole === 'd.s';
 
-  // Logic for locking:
-  // If infoStatus is completed:
-  // - Filled fields are readonly
-  // - Empty fields are disabled
-  // - No one from d.i can edit
-  const isLockedForEdit = isInfoCompleted && (isInfoDept || isSalesDept || isSuperAdmin);
+  // HARD LOCK: once questionnaire is completed, everyone is locked out of editing
+  // Filled fields become readonly, empty fields become disabled
+  // This applies to ALL roles — d.i, d.s, superadmin — no exceptions
+  const isLockedForEdit = isInfoCompleted;
 
   // Load project data
   useEffect(() => {
@@ -703,6 +701,12 @@ const QuestionsTab = ({ setFormSubmitted }) => {
 
   // Main submit function
   const handleSubmit = async (shouldRedirect = true) => {
+    // HARD LOCK: client-side guard (backend also enforces this)
+    if (infoStatus === 'completed') {
+      toast.error('Questionnaire is locked and cannot be modified.');
+      return;
+    }
+
     // First validate the form and highlight errors
     const isValid = validateForm();
 

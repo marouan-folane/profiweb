@@ -486,6 +486,17 @@ const updateProject = catchAsync(async (req, res, next) => {
     return next(new AppError('Project not found', 404));
   }
 
+  // HARD LOCK: Block questionnaire-related field updates when questionnaire is locked
+  const QUESTIONNAIRE_FIELDS = [
+    'title', 'description', 'shortDescription', 'client',
+    'category', 'tags', 'selectedTemplateId', 'templateName',
+    'questionsStatus', 'clientId'
+  ];
+  const isQuestionnaireUpdate = QUESTIONNAIRE_FIELDS.some(f => req.body[f] !== undefined);
+  if (project.infoStatus === 'completed' && isQuestionnaireUpdate) {
+    return next(new AppError('Questionnaire is locked and cannot be modified.', 403));
+  }
+
   // Check if client exists if clientId is being updated
   if (clientId && clientId !== project.client.id.toString()) {
     const client = await Client.findById(clientId);
@@ -763,6 +774,11 @@ const createOrUpdateQuestions = catchAsync(async (req, res, next) => {
   const project = await Project.findById(projectId);
   if (!project) {
     return next(new AppError('Project not found', 404));
+  }
+
+  // HARD LOCK: Reject all writes once questionnaire is completed
+  if (project.infoStatus === 'completed') {
+    return next(new AppError('Questionnaire is locked and cannot be modified.', 403));
   }
 
   // Validate that questions array exists
