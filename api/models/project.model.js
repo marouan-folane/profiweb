@@ -239,7 +239,26 @@ const projectSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
-  infoCompletedAt: Date
+  infoCompletedAt: Date,
+
+  // Content Department Workflow Status
+  // pending → checklist_validated → completed
+  contentStatus: {
+    type: String,
+    enum: ['pending', 'checklist_validated', 'completed'],
+    default: 'pending'
+  },
+  contentChecklistValidatedAt: Date,
+  contentChecklistValidatedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  contentCompletedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  contentCompletedAt: Date
+
 
 }, {
   timestamps: true,

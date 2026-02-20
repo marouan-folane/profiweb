@@ -1172,6 +1172,11 @@ const saveContentDraft = catchAsync(async (req, res, next) => {
     return next(new AppError('Project not found', 404));
   }
 
+  // HARD LOCK: reject writes once content workflow is completed
+  if (project.contentStatus === 'completed') {
+    return next(new AppError('Content workflow is completed and locked.', 403));
+  }
+
   project.contentDraftText = contentDraftText || "";
   project.updatedBy = req.user.id;
   await project.save();
@@ -1190,6 +1195,11 @@ const submitContent = catchAsync(async (req, res, next) => {
   const project = await Project.findById(id);
   if (!project) {
     return next(new AppError('Project not found', 404));
+  }
+
+  // HARD LOCK: reject writes once content workflow is completed
+  if (project.contentStatus === 'completed') {
+    return next(new AppError('Content workflow is completed and locked.', 403));
   }
 
   // Use draft if contentText is not provided
@@ -1423,6 +1433,184 @@ const completeInfoQuestionnaire = catchAsync(async (req, res, next) => {
   });
 });
 
+// ===============================================================
+// CONTENT DEPARTMENT — PHASE 1: Validate & Lock Checklist
+// ===============================================================
+const validateContentChecklist = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  // Permission check
+  if (!['superadmin', 'd.c'].includes(req.user.role)) {
+    return next(new AppError('Only the Content Department or a Super Admin can validate the checklist', 403));
+  }
+
+  const project = await Project.findById(id);
+  if (!project) {
+    return next(new AppError('Project not found', 404));
+  }
+
+  if (project.contentStatus === 'checklist_validated' || project.contentStatus === 'completed') {
+    return next(new AppError('Checklist is already validated and locked', 400));
+  }
+
+  // Update status
+  project.contentStatus = 'checklist_validated';
+  project.contentChecklistValidatedAt = new Date();
+  project.contentChecklistValidatedBy = req.user.id;
+  project.updatedBy = req.user.id;
+  await project.save();
+
+  // ===== CHECKLIST PDF GENERATION =====
+  try {
+    const AIStructorPDFGenerator = require('../utils/aistructorpdfgenerator');
+    const File = require('../models/file.model');
+    const Folder = require('../models/folder.model');
+
+    console.log('📋 Generating Checklist Completion PDF...');
+
+    // Fetch all checklist items for this project from DB
+    const ChecklistItem = require('../models/checklist.model');
+    const allItems = await ChecklistItem.find({ projectId: project._id }).lean();
+
+    // Section title map (mirrors frontend contentDepartmentSections)
+    const SECTION_TITLE_MAP = {
+      content_planning: 'Content Planning & Strategy',
+      homepage_content: 'Homepage Content',
+      page_content: 'Page Content Creation',
+      seo_content: 'SEO Content Optimization',
+      content_quality: 'Content Quality Assurance'
+    };
+
+    // Group items by sectionId
+    const sectionMap = {};
+    allItems.forEach(item => {
+      const sid = item.sectionId;
+      if (!sectionMap[sid]) {
+        sectionMap[sid] = {
+          id: sid,
+          title: SECTION_TITLE_MAP[sid] || sid,
+          items: []
+        };
+      }
+      sectionMap[sid].items.push({
+        id: item.itemId,
+        label: item.label,
+        checked: item.checked,
+        isCustom: item.isCustom
+      });
+    });
+
+    // Preserve section display order
+    const SECTION_ORDER = ['content_planning', 'homepage_content', 'page_content', 'seo_content', 'content_quality'];
+    const groupedSections = [
+      ...SECTION_ORDER.filter(id => sectionMap[id]).map(id => sectionMap[id]),
+      ...Object.keys(sectionMap).filter(id => !SECTION_ORDER.includes(id)).map(id => sectionMap[id])
+    ];
+
+    const checklistPdf = await AIStructorPDFGenerator.generateChecklistCompletionPdf(
+      project,
+      req.user,
+      groupedSections
+    );
+
+    // Folder management
+    const folderName = 'Checklist Completion PDF';
+    let pdfFolder = await Folder.findOne({ name: folderName, project: project._id });
+    if (!pdfFolder) {
+      pdfFolder = await Folder.create({
+        name: folderName,
+        user: req.user.id,
+        project: project._id,
+        description: 'Folder for Content Department checklist completion PDF'
+      });
+    }
+
+    // File management — replace existing if present
+    let existingFile = await File.findOne({ project: project._id, folder: pdfFolder._id });
+    let createdFile;
+    if (!existingFile) {
+      createdFile = await File.create({
+        filename: checklistPdf.filename,
+        originalName: checklistPdf.filename,
+        path: checklistPdf.path || `uploads/pdfs/${checklistPdf.filename}`,
+        size: checklistPdf.size || '0',
+        project: project._id,
+        user: req.user.id,
+        folder: pdfFolder._id
+      });
+    } else {
+      existingFile.filename = checklistPdf.filename;
+      existingFile.originalName = checklistPdf.filename;
+      existingFile.path = checklistPdf.path || `uploads/pdfs/${checklistPdf.filename}`;
+      existingFile.updatedAt = new Date();
+      createdFile = await existingFile.save();
+    }
+
+    // Add to project documents
+    await Project.findByIdAndUpdate(id, { $addToSet: { documents: createdFile._id } });
+    console.log('✅ Checklist PDF generated and saved to folder');
+  } catch (pdfError) {
+    // PDF failure should not roll back the status change — log and continue
+    console.error('⚠️  Checklist PDF generation failed (non-fatal):', pdfError.message);
+  }
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Checklist validated and locked successfully',
+    data: { project }
+  });
+});
+
+// ===============================================================
+// CONTENT DEPARTMENT — PHASE 2: Final Completion Lock
+// ===============================================================
+const completeContentWorkflow = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  // Permission check
+  if (!['superadmin', 'd.c'].includes(req.user.role)) {
+    return next(new AppError('Only the Content Department or a Super Admin can complete the content workflow', 403));
+  }
+
+  const project = await Project.findById(id);
+  if (!project) {
+    return next(new AppError('Project not found', 404));
+  }
+
+  if (project.contentStatus === 'completed') {
+    return next(new AppError('Content workflow is already completed', 400));
+  }
+
+  // Prerequisites: checklist must be validated AND content must be submitted
+  if (project.contentStatus !== 'checklist_validated') {
+    return next(new AppError('Checklist must be validated before completing the content workflow', 400));
+  }
+
+  if (!project.isContentReady) {
+    return next(new AppError('Structured content (JSON + text) must be submitted before completing the content workflow', 400));
+  }
+
+  // Update status
+  project.contentStatus = 'completed';
+  project.contentCompletedBy = req.user.id;
+  project.contentCompletedAt = new Date();
+  project.updatedBy = req.user.id;
+
+  // Department workflow — ensure content is in completedDepartments
+  project.activeDepartments = project.activeDepartments.filter(dept => dept !== 'content');
+  if (!project.completedDepartments.includes('content')) {
+    project.completedDepartments.push('content');
+  }
+
+  await project.save();
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Content workflow marked as completed successfully',
+    data: { project }
+  });
+});
+
 module.exports = {
   createProject,
   getProjectById,
@@ -1436,5 +1624,7 @@ module.exports = {
   updateProject,
   submitContent,
   saveContentDraft,
-  completeInfoQuestionnaire
+  completeInfoQuestionnaire,
+  validateContentChecklist,
+  completeContentWorkflow
 };

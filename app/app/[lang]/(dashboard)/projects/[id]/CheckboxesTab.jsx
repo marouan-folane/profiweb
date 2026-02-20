@@ -4,7 +4,10 @@ import {
   createOrUpdateItem,
   deleteChecklistItem
 } from "@/config/functions/checklist";
+import { getProject, validateContentChecklist } from "@/config/functions/project";
 import { useSession } from 'next-auth/react';
+import { toast } from "sonner";
+import { Icon } from "@iconify/react";
 
 const CheckboxesTab = ({ projectId }) => {
   const { data: session } = useSession();
@@ -295,7 +298,7 @@ const CheckboxesTab = ({ projectId }) => {
 
   // Determine which checklist to show based on role
   const getChecklistForRole = () => {
-    switch(userRole) {
+    switch (userRole) {
       case 'd.it':
         return {
           title: 'Technical Setup Checklist',
@@ -342,13 +345,31 @@ const CheckboxesTab = ({ projectId }) => {
   const [addingToSection, setAddingToSection] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [contentStatus, setContentStatus] = useState('pending');
+  const [isValidating, setIsValidating] = useState(false);
+
+  const isChecklistLocked = (userRole === 'd.c' || userRole === 'superadmin') && (contentStatus === 'checklist_validated' || contentStatus === 'completed');
+  // For other roles, it's always "read-only" in practice but here we specifically lock for content/admin once validated
+  const isActuallyLocked = contentStatus === 'checklist_validated' || contentStatus === 'completed';
 
   // Load checklist data on component mount
   useEffect(() => {
     if (projectId && userRole) {
       loadChecklist();
+      loadProjectStatus();
     }
   }, [projectId, userRole]);
+
+  const loadProjectStatus = async () => {
+    try {
+      const response = await getProject(projectId);
+      if (response.status === 'success') {
+        setContentStatus(response.data.project.contentStatus || 'pending');
+      }
+    } catch (error) {
+      console.error('Error loading project status:', error);
+    }
+  };
 
   const loadChecklist = async () => {
     try {
@@ -410,7 +431,7 @@ const CheckboxesTab = ({ projectId }) => {
 
   // Save item to backend
   const saveItem = async (item) => {
-    if (!projectId) return;
+    if (!projectId || isActuallyLocked) return;
 
     try {
       setSaving(true);
@@ -429,8 +450,30 @@ const CheckboxesTab = ({ projectId }) => {
     }
   };
 
+  const handleValidateChecklist = async () => {
+    if (!window.confirm("Are you sure you want to validate and lock this checklist? This will generate a completion PDF and you won't be able to edit the checklist anymore.")) return;
+
+    try {
+      setIsValidating(true);
+      const response = await validateContentChecklist(projectId);
+
+      if (response.status === 'success') {
+        toast.success("Checklist validated and locked successfully!");
+        setContentStatus('checklist_validated');
+      } else {
+        toast.error(response.message || "Failed to validate checklist");
+      }
+    } catch (error) {
+      console.error("Error validating checklist:", error);
+      toast.error("An error occurred while validating the checklist");
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
   // Toggle checkbox
   const toggleCheckbox = async (itemId) => {
+    if (isActuallyLocked) return;
     const updatedSections = checklistSections.map(section => {
       const updatedItems = section.items.map(item => {
         // Check main item
@@ -597,7 +640,7 @@ const CheckboxesTab = ({ projectId }) => {
               checked={item.checked || false}
               onChange={() => toggleCheckbox(item.id)}
               className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary focus:ring-2"
-              disabled={loading || saving}
+              disabled={loading || saving || isActuallyLocked}
             />
           </div>
           <label
@@ -620,7 +663,7 @@ const CheckboxesTab = ({ projectId }) => {
             onClick={() => removeCustomItem(item.id, sectionId)}
             className="text-red-500 hover:text-red-700 text-sm ml-4"
             title="Remove this item"
-            disabled={loading || saving}
+            disabled={loading || saving || isActuallyLocked}
           >
             Remove
           </button>
@@ -666,12 +709,27 @@ const CheckboxesTab = ({ projectId }) => {
         <button
           type="button"
           onClick={addNewSection}
-          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-          disabled={loading || saving}
+          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+          disabled={loading || saving || isActuallyLocked}
         >
           + Add New Section
         </button>
       </div>
+
+      {isActuallyLocked && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+          <div className="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <Icon icon="heroicons:lock-closed-20-solid" className="h-6 w-6 text-green-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-green-900">Checklist Validated & Locked</h3>
+            <p className="text-green-700 text-sm">
+              The content checklist has been validated. A completion PDF has been generated and stored in the project folders.
+              {contentStatus === 'completed' ? ' The entire content workflow is now marked as complete.' : ' You can now proceed to finalize the content upload.'}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Checklist Sections */}
       <div className="space-y-6">
@@ -703,8 +761,8 @@ const CheckboxesTab = ({ projectId }) => {
                   <button
                     type="button"
                     onClick={() => toggleAllInSection(section.id)}
-                    className="text-sm text-primary hover:text-primary-dark font-medium"
-                    disabled={loading || saving}
+                    className="text-sm text-primary hover:text-primary-dark font-medium disabled:opacity-50"
+                    disabled={loading || saving || isActuallyLocked}
                   >
                     {section.items.every(item => item.checked) ? 'Uncheck All' : 'Check All'}
                   </button>
@@ -780,14 +838,20 @@ const CheckboxesTab = ({ projectId }) => {
                 ) : (
                   /* Add Custom Item Button for this section */
                   <div className="mt-4 pt-4 border-t border-gray-200">
-                    <button
-                      type="button"
-                      onClick={() => setAddingToSection(section.id)}
-                      className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
-                      disabled={loading || saving}
-                    >
-                      + Add Custom Item to this section
-                    </button>
+                    {!isActuallyLocked ? (
+                      <button
+                        type="button"
+                        onClick={() => setAddingToSection(section.id)}
+                        className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                        disabled={loading || saving}
+                      >
+                        + Add Custom Item to this section
+                      </button>
+                    ) : (
+                      <div className="text-center py-2 text-gray-400 text-sm italic">
+                        Section is locked for edits
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -795,6 +859,28 @@ const CheckboxesTab = ({ projectId }) => {
           );
         })}
       </div>
+
+      {userRole === 'd.c' && contentStatus === 'pending' && (
+        <div className="mt-8 pt-8 border-t border-gray-200 flex justify-end">
+          <button
+            onClick={handleValidateChecklist}
+            disabled={isValidating || loading}
+            className="flex items-center gap-2 px-6 py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary-dark transition-all shadow-md active:scale-95 disabled:opacity-50"
+          >
+            {isValidating ? (
+              <>
+                <Icon icon="eos-icons:loading" className="h-5 w-5" />
+                Validating...
+              </>
+            ) : (
+              <>
+                <Icon icon="heroicons:check-badge" className="h-5 w-5" />
+                Validate & Complete Checklist
+              </>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -1327,6 +1327,9 @@ const ProjectsPage = () => {
                       {session?.user?.role === "d.i" && (
                         <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Info Status</th>
                       )}
+                      {session?.user?.role === "d.c" && (
+                        <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Content Status</th>
+                      )}
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Priority</th>
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Budget</th>
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
@@ -1430,6 +1433,33 @@ const ProjectsPage = () => {
                                 <span className="inline-flex items-center gap-1">
                                   <Icon icon="lucide:check-circle" className="w-3 h-3" />
                                   Completed
+                                </span>
+                              </Badge>
+                            ) : (
+                              <Badge color="warning" variant="soft" className="dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">
+                                <span className="inline-flex items-center gap-1">
+                                  <Icon icon="lucide:clock" className="w-3 h-3" />
+                                  Pending
+                                </span>
+                              </Badge>
+                            )}
+                          </td>
+                        )}
+
+                        {session?.user?.role === "d.c" && (
+                          <td className="py-5 px-6">
+                            {project.contentStatus === 'completed' ? (
+                              <Badge color="success" variant="soft" className="dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20">
+                                <span className="inline-flex items-center gap-1">
+                                  <Icon icon="lucide:check-circle" className="w-3 h-3" />
+                                  Completed
+                                </span>
+                              </Badge>
+                            ) : project.contentStatus === 'checklist_validated' ? (
+                              <Badge color="warning" variant="soft" className="dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20">
+                                <span className="inline-flex items-center gap-1">
+                                  <Icon icon="lucide:list-checks" className="w-3 h-3" />
+                                  Checklist Done
                                 </span>
                               </Badge>
                             ) : (

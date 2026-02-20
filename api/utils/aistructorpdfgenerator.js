@@ -1480,6 +1480,192 @@ The AI must not:
             }
         });
     }
+    /**
+     * Generate a professional checklist completion PDF for Content Department
+     */
+    async generateChecklistCompletionPdf(project, user, checklistSections = []) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const filename = `checklist-${project._id}-${Date.now()}.pdf`;
+                const filePath = path.join(this.uploadsDir, filename);
+
+                const doc = new PDFDocument({
+                    size: 'A4',
+                    margin: 0,
+                    bufferPages: true
+                });
+
+                const stream = fs.createWriteStream(filePath);
+                doc.pipe(stream);
+
+                const pageWidth = 595.28;
+                const contentWidth = pageWidth - this.PAGE_MARGIN.left - this.PAGE_MARGIN.right;
+                const maxY = 841.89 - this.PAGE_MARGIN.bottom - 40;
+
+                // ===== PAGE 1: Header + Project Info =====
+                await this.addProfessionalHeader(doc, 'CHECKLIST COMPLETION');
+
+                // Project title
+                doc.fontSize(24)
+                    .font('Helvetica-Bold')
+                    .fillColor(this.COLORS.primary)
+                    .text(project.title || 'Untitled Project', this.PAGE_MARGIN.left, doc.y, {
+                        width: contentWidth
+                    });
+                doc.moveDown(0.4);
+
+                // Accent underline
+                doc.moveTo(this.PAGE_MARGIN.left, doc.y)
+                    .lineTo(this.PAGE_MARGIN.left + 80, doc.y)
+                    .lineWidth(3)
+                    .strokeColor(this.COLORS.accent)
+                    .stroke();
+                doc.moveDown(1.5);
+
+                // ===== VALIDATION INFO BOX =====
+                // Compute stats from sections
+                const allSectionItems = checklistSections.flatMap(s => s.items || []);
+                const totalItems = allSectionItems.length;
+                const checkedItems = allSectionItems.filter(i => i.checked).length;
+
+                const infoBoxY = doc.y;
+                const infoBoxH = 100;
+                doc.roundedRect(this.PAGE_MARGIN.left, infoBoxY, contentWidth, infoBoxH, 6)
+                    .fillColor(this.COLORS.background)
+                    .fill()
+                    .strokeColor(this.COLORS.border)
+                    .lineWidth(1)
+                    .stroke();
+                doc.rect(this.PAGE_MARGIN.left, infoBoxY, 4, infoBoxH)
+                    .fillColor(this.COLORS.accent)
+                    .fill();
+
+                const validatedDate = new Date().toLocaleString('en-US', {
+                    weekday: 'long', year: 'numeric', month: 'long',
+                    day: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+                const validatedBy = user?.name || user?.email || 'Content Department';
+
+                doc.fontSize(11).font('Helvetica-Bold').fillColor(this.COLORS.text)
+                    .text('Validated by:', this.PAGE_MARGIN.left + 20, infoBoxY + 16, { continued: true })
+                    .font('Helvetica').fillColor(this.COLORS.textLight)
+                    .text(` ${validatedBy}`);
+                doc.moveDown(0.4);
+                doc.fontSize(11).font('Helvetica-Bold').fillColor(this.COLORS.text)
+                    .text('Validated on:', this.PAGE_MARGIN.left + 20, doc.y, { continued: true })
+                    .font('Helvetica').fillColor(this.COLORS.textLight)
+                    .text(` ${validatedDate}`);
+                doc.moveDown(0.4);
+                doc.fontSize(11).font('Helvetica-Bold').fillColor(this.COLORS.text)
+                    .text('Client:', this.PAGE_MARGIN.left + 20, doc.y, { continued: true })
+                    .font('Helvetica').fillColor(this.COLORS.textLight)
+                    .text(` ${project.client?.name || 'N/A'}`);
+                doc.moveDown(0.4);
+                if (totalItems > 0) {
+                    doc.fontSize(11).font('Helvetica-Bold').fillColor(this.COLORS.text)
+                        .text('Items completed:', this.PAGE_MARGIN.left + 20, doc.y, { continued: true })
+                        .font('Helvetica').fillColor(checkedItems === totalItems ? this.COLORS.success : this.COLORS.textLight)
+                        .text(` ${checkedItems} / ${totalItems} checked`);
+                }
+
+                doc.y = infoBoxY + infoBoxH + 20;
+
+                // ===== VERIFIED BADGE =====
+                const badgeY = doc.y;
+                doc.roundedRect(this.PAGE_MARGIN.left, badgeY, contentWidth, 36, 6)
+                    .fillColor(this.COLORS.success)
+                    .fill();
+                doc.fontSize(14).font('Helvetica-Bold').fillColor('#ffffff')
+                    .text('✓  Checklist Validated & Completed by Content Department',
+                        this.PAGE_MARGIN.left + 20, badgeY + 10,
+                        { width: contentWidth - 40, align: 'left' });
+                doc.y = badgeY + 36 + 20;
+
+                // ===== CHECKLIST SECTIONS =====
+                this.addSectionHeader(doc, 'Checklist Summary', contentWidth);
+                doc.moveDown(1);
+
+                if (checklistSections.length === 0) {
+                    // No checklist data stored — render generic completion note
+                    doc.fontSize(11).font('Helvetica').fillColor(this.COLORS.textLight)
+                        .text('Checklist items were validated and confirmed complete by the Content Department.',
+                            this.PAGE_MARGIN.left, doc.y, { width: contentWidth, lineGap: 4 });
+                } else {
+                    checklistSections.forEach((section) => {
+                        this.checkPageBreakQuestions(doc, 80);
+
+                        // Section sub-header
+                        this.addSectionHeader(doc, section.title || 'Section', contentWidth, true);
+                        doc.moveDown(0.8);
+
+                        const items = section.items || [];
+                        items.forEach((item) => {
+                            if (doc.y > maxY - 20) {
+                                doc.addPage();
+                                doc.x = this.PAGE_MARGIN.left;
+                                doc.y = this.PAGE_MARGIN.top + 20;
+                            }
+
+                            const itemY = doc.y;
+                            const isChecked = item.checked === true;
+
+                            // Checkbox square
+                            doc.rect(this.PAGE_MARGIN.left + 10, itemY + 2, 12, 12)
+                                .strokeColor(isChecked ? this.COLORS.success : this.COLORS.border)
+                                .lineWidth(1.5)
+                                .stroke();
+
+                            if (isChecked) {
+                                doc.fontSize(10).font('Helvetica-Bold')
+                                    .fillColor(this.COLORS.success)
+                                    .text('✓', this.PAGE_MARGIN.left + 11, itemY + 2);
+                            }
+
+                            // Item label
+                            doc.fontSize(10)
+                                .font(isChecked ? 'Helvetica-Bold' : 'Helvetica')
+                                .fillColor(isChecked ? this.COLORS.text : this.COLORS.textLight)
+                                .text(item.label || '',
+                                    this.PAGE_MARGIN.left + 32, itemY + 2,
+                                    { width: contentWidth - 42, lineGap: 2 });
+
+                            doc.moveDown(0.5);
+                        });
+
+                        doc.moveDown(0.8);
+                    });
+                }
+
+                // ===== PAGE NUMBERS =====
+                const pageCount = doc.bufferedPageRange().count;
+                for (let i = 0; i < pageCount; i++) {
+                    doc.switchToPage(i);
+                    this.addPageNumber(doc, i + 1, pageCount);
+                }
+
+                doc.end();
+
+                stream.on('finish', () => {
+                    const stats = fs.statSync(filePath);
+                    resolve({
+                        filename,
+                        path: `uploads/pdfs/${filename}`,
+                        size: stats.size.toString(),
+                        pages: pageCount,
+                        message: 'Checklist PDF created successfully!'
+                    });
+                });
+
+                stream.on('error', (error) => {
+                    reject(error);
+                });
+
+            } catch (error) {
+                console.error('❌ Error generating checklist PDF:', error);
+                reject(error);
+            }
+        });
+    }
 }
 
 module.exports = new AiStructorPdfGenerator();

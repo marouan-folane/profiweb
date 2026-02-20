@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getFolders, getFilesByFolder, createFolder, deleteFolder } from "@/config/functions/folder";
-import { getProject } from "@/config/functions/project";
+import { getProject, completeContentWorkflow } from "@/config/functions/project";
 import { uploadFiles } from "@/config/functions/upload";
 import { deleteFile } from "@/config/functions/file";
 import { Icon } from "@iconify/react";
@@ -33,6 +33,7 @@ const FoldersTab = ({ projectId }) => {
   const [lastSaved, setLastSaved] = useState(null);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isPreviewTextModalOpen, setIsPreviewTextModalOpen] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const userRole = session?.user?.role?.toLowerCase();
   // ALL users can upload files and manage folders
@@ -177,7 +178,7 @@ const FoldersTab = ({ projectId }) => {
 
   // Auto-save logic
   useEffect(() => {
-    if (userRole !== 'd.c' || !contentText || project?.isContentReady) return;
+    if (userRole !== 'd.c' || !contentText || project?.isContentReady || project?.contentStatus === 'completed') return;
 
     // Don't save if it's identical to what we already have
     if (contentText === project?.contentDraftText || contentText === project?.contentText) return;
@@ -262,6 +263,28 @@ const FoldersTab = ({ projectId }) => {
       toast.error(error.response?.data?.message || 'Failed to submit content');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCompleteWorkflow = async () => {
+    if (!window.confirm("Are you sure you want to mark the Content Department workflow as complete? This will finalize the phase and you won't be able to modify content anymore.")) return;
+
+    try {
+      setIsCompleting(true);
+      const response = await completeContentWorkflow(projectId);
+      if (response.status === 'success') {
+        toast.success("Content Department workflow marked as complete!");
+        setProject(response.data.project);
+        // Refresh folders to show any new PDFs generated during workflow
+        queryClient.invalidateQueries(['folders', projectId]);
+      } else {
+        toast.error(response.message || "Failed to complete workflow");
+      }
+    } catch (error) {
+      console.error("Error completing content workflow:", error);
+      toast.error("An error occurred during workflow completion");
+    } finally {
+      setIsCompleting(false);
     }
   };
 
@@ -484,15 +507,15 @@ const FoldersTab = ({ projectId }) => {
                 1. Upload JSON File
               </label>
               <div
-                className={`border-2 border-dashed rounded-xl p-4 transition-all flex flex-col items-center justify-center gap-2 ${project?.isContentReady ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-75' : contentJson ? 'border-green-300 bg-green-50 cursor-pointer' : 'border-indigo-200 bg-white hover:border-indigo-400 cursor-pointer'}`}
-                onClick={() => !project?.isContentReady && document.getElementById('json-submission-upload')?.click()}
+                className={`border-2 border-dashed rounded-xl p-4 transition-all flex flex-col items-center justify-center gap-2 ${project?.isContentReady || project?.contentStatus === 'completed' ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-75' : contentJson ? 'border-green-300 bg-green-50 cursor-pointer' : 'border-indigo-200 bg-white hover:border-indigo-400 cursor-pointer'}`}
+                onClick={() => !project?.isContentReady && project?.contentStatus !== 'completed' && document.getElementById('json-submission-upload')?.click()}
               >
                 <Icon
                   icon={contentJson ? "lucide:check-circle" : "lucide:upload-cloud"}
                   className={`w-8 h-8 ${contentJson ? 'text-green-600' : 'text-indigo-400'}`}
                 />
-                <span className={`text-xs font-medium ${project?.isContentReady ? 'text-gray-500' : contentJson ? 'text-green-700' : 'text-indigo-600'}`}>
-                  {project?.isContentReady ? 'Submission Locked' : contentJson ? 'JSON Validated & Ready' : 'Drop JSON file or click to upload'}
+                <span className={`text-xs font-medium ${project?.isContentReady || project?.contentStatus === 'completed' ? 'text-gray-500' : contentJson ? 'text-green-700' : 'text-indigo-600'}`}>
+                  {project?.contentStatus === 'completed' ? 'Content Finalized' : project?.isContentReady ? 'Submission Locked' : contentJson ? 'JSON Validated & Ready' : 'Drop JSON file or click to upload'}
                 </span>
                 <input
                   id="json-submission-upload"
@@ -551,13 +574,13 @@ const FoldersTab = ({ projectId }) => {
                   <button
                     type="button"
                     onClick={(e) => {
-                      if (project?.isContentReady) return;
+                      if (project?.isContentReady || project?.contentStatus === 'completed') return;
                       e.preventDefault();
                       e.stopPropagation();
                       handleFormatText();
                     }}
-                    className={`text-xs px-2 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${project?.isContentReady ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}
-                    disabled={!contentText.trim() || project?.isContentReady}
+                    className={`text-xs px-2 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${project?.isContentReady || project?.contentStatus === 'completed' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}
+                    disabled={!contentText.trim() || project?.isContentReady || project?.contentStatus === 'completed'}
                   >
                     <Icon icon="lucide:wand-2" className="w-3 h-3" />
                     Auto-format
@@ -566,10 +589,10 @@ const FoldersTab = ({ projectId }) => {
               </div>
               <textarea
                 value={contentText}
-                onChange={(e) => !project?.isContentReady && setContentText(e.target.value)}
-                readOnly={project?.isContentReady}
-                placeholder={project?.isContentReady ? "Content is locked." : "Paste your content here..."}
-                className={`w-full h-32 px-3 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition-all ${project?.isContentReady ? 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed' : 'bg-white border-indigo-200'}`}
+                onChange={(e) => !project?.isContentReady && project?.contentStatus !== 'completed' && setContentText(e.target.value)}
+                readOnly={project?.isContentReady || project?.contentStatus === 'completed'}
+                placeholder={project?.contentStatus === 'completed' ? "Content workflow finalized." : project?.isContentReady ? "Content is locked." : "Paste your content here..."}
+                className={`w-full h-32 px-3 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition-all ${project?.isContentReady || project?.contentStatus === 'completed' ? 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed' : 'bg-white border-indigo-200'}`}
               />
               <p className="text-[10px] text-indigo-500 italic">
                 * High-quality formatting ensures faster integration.
@@ -579,31 +602,87 @@ const FoldersTab = ({ projectId }) => {
 
           <div className="mt-8 flex items-center justify-between border-t border-indigo-100 pt-6">
             <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${project?.isContentReady ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+              <div className={`w-3 h-3 rounded-full ${project?.contentStatus === 'completed' ? 'bg-green-600 shadow-[0_0_8px_rgba(22,163,74,0.6)]' : project?.isContentReady ? 'bg-green-500' : 'bg-gray-300'}`}></div>
               <span className="text-sm font-medium text-gray-700">
-                Status: <span className={project?.isContentReady ? 'text-green-700' : 'text-gray-500 font-bold'}>
-                  {project?.isContentReady ? ' 👉 Ready for Integration' : 'Pending Submission'}
+                Status: <span className={project?.contentStatus === 'completed' ? 'text-green-700 font-bold' : project?.isContentReady ? 'text-green-700' : 'text-gray-500 font-bold'}>
+                  {project?.contentStatus === 'completed' ? 'Workflow Completed ✅' : project?.isContentReady ? 'Ready for Integration' : 'Pending Submission'}
                 </span>
               </span>
             </div>
             <button
               type="button"
               onClick={handleSubmitContent}
-              disabled={!contentJson || !contentText.trim() || isSubmitting || project?.isContentReady}
-              className={`px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center gap-2 ${!contentJson || !contentText.trim() || isSubmitting || project?.isContentReady
+              disabled={!contentJson || !contentText.trim() || isSubmitting || project?.isContentReady || project?.contentStatus === 'completed'}
+              className={`px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center gap-2 ${!contentJson || !contentText.trim() || isSubmitting || project?.isContentReady || project?.contentStatus === 'completed'
                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
                 : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'
                 }`}
             >
               {isSubmitting ? (
                 <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+              ) : project?.contentStatus === 'completed' ? (
+                <Icon icon="lucide:check-circle-2" className="w-4 h-4 text-green-500" />
               ) : project?.isContentReady ? (
                 <Icon icon="lucide:lock" className="w-4 h-4" />
               ) : (
                 <Icon icon="lucide:send" className="w-4 h-4" />
               )}
-              {project?.isContentReady ? 'Content Submitted' : 'Submit for Integration'}
+              {project?.contentStatus === 'completed' ? 'Content Finalized' : project?.isContentReady ? 'Content Submitted' : 'Submit for Integration'}
             </button>
+          </div>
+
+          {/* Workflow Completion Section */}
+          <div className="mt-8 pt-6 border-t border-indigo-200">
+            {project?.contentStatus === 'completed' ? (
+              <div className="bg-green-600 rounded-xl p-4 flex items-center gap-4 text-white shadow-lg">
+                <div className="bg-white/20 p-2 rounded-lg">
+                  <Icon icon="lucide:party-popper" className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-bold">Content Department Workflow Completed!</h4>
+                  <p className="text-xs text-green-500 opacity-90">All documents and content have been finalized and shared with the Integration Department.</p>
+                </div>
+                <Icon icon="lucide:check-circle" className="w-8 h-8 opacity-50" />
+              </div>
+            ) : (
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-indigo-900">Final Milestone: Complete Phase</h4>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <Icon
+                        icon={project?.contentStatus === 'checklist_validated' ? "lucide:check-circle-2" : "lucide:circle"}
+                        className={`w-3.5 h-3.5 ${project?.contentStatus === 'checklist_validated' ? 'text-green-600' : 'text-gray-400'}`}
+                      />
+                      <span className={`text-[11px] ${project?.contentStatus === 'checklist_validated' ? 'text-gray-900 font-semibold' : 'text-gray-500'}`}>Checklist Validated</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Icon
+                        icon={project?.isContentReady ? "lucide:check-circle-2" : "lucide:circle"}
+                        className={`w-3.5 h-3.5 ${project?.isContentReady ? 'text-green-600' : 'text-gray-400'}`}
+                      />
+                      <span className={`text-[11px] ${project?.isContentReady ? 'text-gray-900 font-semibold' : 'text-gray-500'}`}>Content Submitted</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleCompleteWorkflow}
+                  disabled={project?.contentStatus !== 'checklist_validated' || !project?.isContentReady || isCompleting}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 ${project?.contentStatus === 'checklist_validated' && project?.isContentReady && !isCompleting
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                    }`}
+                >
+                  {isCompleting ? (
+                    <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Icon icon="lucide:target" className="w-4 h-4" />
+                  )}
+                  Mark Content Upload as Complete
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
