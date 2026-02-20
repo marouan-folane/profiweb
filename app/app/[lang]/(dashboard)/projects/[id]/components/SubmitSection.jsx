@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
+import { completeInfoQuestionnaire } from "@/config/functions/project";
 
 const SubmitSection = ({
   formData,
@@ -10,7 +12,13 @@ const SubmitSection = ({
   areAllRequiredFieldsFilled,
   handleSubmit,
   updateProjectMutation,
+  infoStatus,
+  isLockedForEdit,
+  isInfoDept,
+  isSuperAdmin,
+  projectId
 }) => {
+  const [completeMutationLoading, setCompleteMutationLoading] = useState(false);
   const currentCompletion = getCompletionPercentage();
   const overallCompletion = getOverallCompletionPercentage();
   const allRequiredFilled = areAllRequiredFieldsFilled();
@@ -20,7 +28,7 @@ const SubmitSection = ({
   // Function to check which fields are missing
   const getMissingFields = () => {
     const missingFields = [];
-    
+
     requiredFields.forEach(field => {
       const keys = field.split('.');
       let value;
@@ -69,7 +77,7 @@ const SubmitSection = ({
     console.log('Filled required fields:', filledRequiredFields);
     console.log('Missing required fields:', missingFields.length);
     console.log('Template selected:', selectedTemplate ? 'Yes' : 'No');
-    
+
     // Log each field's status
     console.log('\n=== FIELD BY FIELD CHECK ===');
     requiredFields.forEach(field => {
@@ -148,6 +156,39 @@ const SubmitSection = ({
 
     // Proceed with normal submit
     handleSubmit();
+  };
+
+  const handleCompleteQuestinnaire = async () => {
+    if (!allRequiredFilled) {
+      toast.error("Please fill all required fields before completing.");
+      return;
+    }
+
+    try {
+      setCompleteMutationLoading(true);
+      // First save the questions
+      // First save the questions without redirecting
+      await handleSubmit(false);
+
+      // Then mark as completed
+      const response = await completeInfoQuestionnaire(projectId);
+      if (response && (response.status === 'success' || response.status === 'ok')) {
+        toast.success("Questionnaire completed successfully!");
+        // Small delay before reload to show toast
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        const errorMsg = response?.message || response?.error || "Failed to complete questionnaire";
+        toast.error(errorMsg);
+        console.error("Completion failed:", response);
+      }
+    } catch (error) {
+      console.error("Completion error:", error);
+      toast.error(error.message || "An error occurred during completion");
+    } finally {
+      setCompleteMutationLoading(false);
+    }
   };
 
   return (
@@ -302,28 +343,37 @@ const SubmitSection = ({
         </div>
 
         <div className="flex flex-col gap-2 min-w-[200px]">
-          {/* Submit Button - Always clickable */}
-          <button
-            onClick={handleSubmitWithDebug}
-            className="px-6 py-3 bg-primary text-white rounded-md font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md cursor-pointer"
-          >
-            {updateProjectMutation.isPending ? (
-              <>
-                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Creating Project...
-              </>
-            ) : (
-              <>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Save & Complete Questionnaire
-              </>
-            )}
-          </button>
+          {infoStatus === 'completed' ? (
+            <div className="bg-green-100 text-green-800 px-6 py-3 rounded-md font-bold flex items-center justify-center gap-2 border border-green-200">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Info Department: Completed ✅
+            </div>
+          ) : (
+            <button
+              onClick={handleCompleteQuestinnaire}
+              disabled={updateProjectMutation.isPending || completeMutationLoading || isLockedForEdit}
+              className="px-6 py-3 bg-primary text-white rounded-md font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {updateProjectMutation.isPending || completeMutationLoading ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Save & Complete Questionnaire
+                </>
+              )}
+            </button>
+          )}
 
           {/* Status messages */}
           {!allRequiredFilled && currentCompletion > 0 && (

@@ -84,40 +84,49 @@ export const getProject = async (id) => {
 };
 
 export const createOrUpdateQuestions = async (projectId, data) => {
-  try {
-    const response = await api.patch(`/projects/${projectId}/questions`, data, {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error creating/updating questions:', error);
-    
-    // Log the actual request data for debugging
-    console.log('Request data sent:', data);
-    
-    return error.response?.data || {
-      error: true,
-      message: 'Failed to save questions'
-    };
-  }
+    try {
+        const response = await api.patch(`/projects/${projectId}/questions`, data, {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error creating/updating questions:', error);
+
+        // Log the actual request data for debugging
+        console.log('Request data sent:', data);
+
+        return error.response?.data || {
+            error: true,
+            message: 'Failed to save questions'
+        };
+    }
 };
 
 export const getQuestionsForProject = async (projectId) => {
-  try {
-    const response = await api.get(`/projects/${projectId}/questions`);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching questions questions:', error);
-  }
+    try {
+        const response = await api.get(`/projects/${projectId}/questions`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching questions questions:', error);
+    }
 };
 
 export const deleteProject = async (projectId) => {
-  try {
-    const response = await api.delete(`/projects/${projectId}`);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching questions questions:', error);
-  }
+    try {
+        const response = await api.delete(`/projects/${projectId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching questions questions:', error);
+    }
+};
+
+export const completeInfoQuestionnaire = async (projectId) => {
+    try {
+        const response = await api.patch(`/projects/${projectId}/complete-info-questionnaire`);
+        return response.data;
+    } catch (error) {
+        return error.response?.data;
+    }
 };

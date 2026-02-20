@@ -117,10 +117,10 @@ export function UserManagementTable() {
 
         const roleDeptMapping = {
             'd.s': 'D.Sales',
-            'd.i': 'D.Integration',
+            'd.i': 'D.Informations',
             'd.it': 'D.IT Department',
             'd.d': 'D.Design',
-            'd.in': 'D.Informations',
+            'd.in': 'D.Integration',
             'd.c': 'D.Content',
             'admin': 'D.Administration',
             'manager': 'D.Management'

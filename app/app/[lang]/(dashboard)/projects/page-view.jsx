@@ -1321,8 +1321,11 @@ const ProjectsPage = () => {
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Project</th>
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Client</th>
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Category</th>
-                      {session?.user?.role !== "superadmin" && (
+                      {session?.user?.role === "d.s" && (
                         <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                      )}
+                      {session?.user?.role === "d.i" && (
+                        <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Info Status</th>
                       )}
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Priority</th>
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Budget</th>
@@ -1330,7 +1333,11 @@ const ProjectsPage = () => {
                         {activeTab === 'active' ? 'Due Date' : 'Archived Date'}
                       </th>
 
-                      {["superadmin"].includes(session?.user?.role) && <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Notes</th>}
+                      {["superadmin"].includes(session?.user?.role) && (
+                        <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                          Notes
+                        </th>
+                      )}
 
                       {["superadmin", "d.i", "d.c", "d.d", "d.it", "d.in"].includes(session?.user?.role) && (
                         <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
@@ -1396,24 +1403,43 @@ const ProjectsPage = () => {
                           <CategoryBadge category={project.category} />
                         </td>
 
-                        {session?.user?.role !== "superadmin" && (
+                        {session?.user?.role === "d.s" && (
                           <td className="py-5 px-6">
-                            {session?.user?.role === "d.s" &&
-                              (project.completedDepartments?.includes("sales") ? (
-                                <Badge color="success" variant="soft" className="dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20">
-                                  <span className="inline-flex items-center gap-1">
-                                    <Icon icon="lucide:check-circle" className="w-3 h-3" />
-                                    Completed
-                                  </span>
-                                </Badge>
-                              ) : (
-                                <Badge color="destructive" variant="soft" className="dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20">
-                                  <span className="inline-flex items-center gap-1">
-                                    <Icon icon="lucide:x-circle" className="w-3 h-3" />
-                                    Pending
-                                  </span>
-                                </Badge>
-                              ))}
+                            {project.completedDepartments?.includes("sales") ? (
+                              <Badge color="success" variant="soft" className="dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20">
+                                <span className="inline-flex items-center gap-1">
+                                  <Icon icon="lucide:check-circle" className="w-3 h-3" />
+                                  Completed
+                                </span>
+                              </Badge>
+                            ) : (
+                              <Badge color="destructive" variant="soft" className="dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20">
+                                <span className="inline-flex items-center gap-1">
+                                  <Icon icon="lucide:x-circle" className="w-3 h-3" />
+                                  Pending
+                                </span>
+                              </Badge>
+                            )}
+                          </td>
+                        )}
+
+                        {session?.user?.role === "d.i" && (
+                          <td className="py-5 px-6">
+                            {project.infoStatus === 'completed' ? (
+                              <Badge color="success" variant="soft" className="dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20">
+                                <span className="inline-flex items-center gap-1">
+                                  <Icon icon="lucide:check-circle" className="w-3 h-3" />
+                                  Completed
+                                </span>
+                              </Badge>
+                            ) : (
+                              <Badge color="warning" variant="soft" className="dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">
+                                <span className="inline-flex items-center gap-1">
+                                  <Icon icon="lucide:clock" className="w-3 h-3" />
+                                  Pending
+                                </span>
+                              </Badge>
+                            )}
                           </td>
                         )}
 
@@ -1481,11 +1507,12 @@ const ProjectsPage = () => {
                           </td>
                         )}
 
-                        <td className="py-5 px-6">
-                          <div className="flex items-center gap-1">
-                            {activeTab === 'active' ? (
-                              <>
-                                {["superadmin", "d.i", "d.c", "d.it", "d.d", "d.in"].includes(session?.user?.role) && (
+
+                        {["superadmin", "d.i", "d.c", "d.d", "d.it", "d.in"].includes(session?.user?.role) && (
+                          <td className="py-5 px-6">
+                            <div className="flex items-center gap-1">
+                              {activeTab === 'active' ? (
+                                <>
                                   <Button
                                     variant="ghost"
                                     size="icon"
@@ -1495,64 +1522,64 @@ const ProjectsPage = () => {
                                   >
                                     <Icon icon="lucide:eye" className="w-4 h-4" />
                                   </Button>
-                                )}
-                                {["superadmin"].includes(session?.user?.role) && (
-                                  <>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-slate-500 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10 dark:hover:text-amber-400"
-                                      onClick={() => handleOpenArchiveDialog(project)}
-                                      title="Archive Project"
-                                    >
-                                      <Icon icon="lucide:archive" className="w-4 h-4" />
-                                    </Button>
+                                  {["superadmin"].includes(session?.user?.role) && (
+                                    <>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-slate-500 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10 dark:hover:text-amber-400"
+                                        onClick={() => handleOpenArchiveDialog(project)}
+                                        title="Archive Project"
+                                      >
+                                        <Icon icon="lucide:archive" className="w-4 h-4" />
+                                      </Button>
 
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-slate-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-                                      onClick={() => handleOpenDeleteDialog(project)}
-                                      title="Delete Permanently"
-                                    >
-                                      <Icon icon="lucide:trash-2" className="w-4 h-4" />
-                                    </Button>
-                                  </>
-                                )}
-                              </>
-                            ) : (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-slate-500 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/10 dark:hover:text-blue-400"
-                                  onClick={() => router.push(`/projects/${project._id}/overview`)}
-                                  title="View Project"
-                                >
-                                  <Icon icon="lucide:eye" className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-slate-500 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-500/10 dark:hover:text-green-400"
-                                  onClick={() => handleOpenRestoreDialog(project)}
-                                  title="Restore Project"
-                                >
-                                  <Icon icon="lucide:rotate-ccw" className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-slate-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-                                  onClick={() => handleOpenDeleteDialog(project)}
-                                  title="Delete Permanently"
-                                >
-                                  <Icon icon="lucide:trash-2" className="w-4 h-4" />
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </td>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-slate-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                                        onClick={() => handleOpenDeleteDialog(project)}
+                                        title="Delete Permanently"
+                                      >
+                                        <Icon icon="lucide:trash-2" className="w-4 h-4" />
+                                      </Button>
+                                    </>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-slate-500 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/10 dark:hover:text-blue-400"
+                                    onClick={() => router.push(`/projects/${project._id}/overview`)}
+                                    title="View Project"
+                                  >
+                                    <Icon icon="lucide:eye" className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-slate-500 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-500/10 dark:hover:text-green-400"
+                                    onClick={() => handleOpenRestoreDialog(project)}
+                                    title="Restore Project"
+                                  >
+                                    <Icon icon="lucide:rotate-ccw" className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-slate-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                                    onClick={() => handleOpenDeleteDialog(project)}
+                                    title="Delete Permanently"
+                                  >
+                                    <Icon icon="lucide:trash-2" className="w-4 h-4" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>

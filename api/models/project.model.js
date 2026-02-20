@@ -227,7 +227,19 @@ const projectSchema = new mongoose.Schema({
   contentDraftText: {
     type: String,
     default: ""
-  }
+  },
+
+  // Info Department Questionnaire Status
+  infoStatus: {
+    type: String,
+    enum: ['pending', 'completed'],
+    default: 'pending'
+  },
+  infoCompletedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  infoCompletedAt: Date
 
 }, {
   timestamps: true,

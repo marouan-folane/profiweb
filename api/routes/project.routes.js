@@ -11,7 +11,8 @@ const {
     deleteProject,
     updateProject,
     submitContent,
-    saveContentDraft
+    saveContentDraft,
+    completeInfoQuestionnaire
 } = require("../controllers/projectController");
 const { protect } = require("../middlewares/auth");
 
@@ -39,6 +40,9 @@ router.route("/:id/submit-content")
 
 router.route("/:id/save-content-draft")
     .patch(saveContentDraft);
+
+router.route("/:id/complete-info-questionnaire")
+    .patch(completeInfoQuestionnaire);
 
 // Question routes should also come before the general :id route
 router.route("/:id/questions")

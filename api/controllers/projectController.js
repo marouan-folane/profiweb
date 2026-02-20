@@ -82,7 +82,9 @@ const createProject = catchAsync(async (req, res, next) => {
 
     activeDepartments: ['info'],
     // Sales department is completed when project is created
-    completedDepartments: ['sales']
+    completedDepartments: ['sales'],
+
+    infoStatus: 'pending'
   });
 
   // Add project to client's projects list
@@ -1367,6 +1369,44 @@ const submitContent = catchAsync(async (req, res, next) => {
   });
 });
 
+const completeInfoQuestionnaire = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  // Check permissions: only d.i or superadmin can complete the questionnaire
+  if (!['superadmin', 'd.i'].includes(req.user.role)) {
+    return next(new AppError('Only the Info Department or a Super Admin can complete this questionnaire', 403));
+  }
+
+  const project = await Project.findById(id);
+
+  if (!project) {
+    return next(new AppError('Project not found', 404));
+  }
+
+  if (project.infoStatus === 'completed') {
+    return next(new AppError('Questionnaire is already completed', 400));
+  }
+
+  project.infoStatus = 'completed';
+  project.infoCompletedBy = req.user.id;
+  project.infoCompletedAt = Date.now();
+  project.updatedBy = req.user.id;
+
+  // Update department workflow
+  project.activeDepartments = project.activeDepartments.filter(dept => dept !== 'info');
+  if (!project.completedDepartments.includes('info')) {
+    project.completedDepartments.push('info');
+  }
+
+  await project.save();
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Questionnaire marked as completed successfully',
+    data: { project }
+  });
+});
+
 module.exports = {
   createProject,
   getProjectById,
@@ -1379,5 +1419,6 @@ module.exports = {
   deleteProject,
   updateProject,
   submitContent,
-  saveContentDraft
+  saveContentDraft,
+  completeInfoQuestionnaire
 };

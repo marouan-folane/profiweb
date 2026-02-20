@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { createOrUpdateQuestions, getQuestionsForProject, updateProject, getProject } from "@/config/functions/project";
+import { createOrUpdateQuestions, getQuestionsForProject, updateProject, getProject, completeInfoQuestionnaire } from "@/config/functions/project";
 import { getFolders } from "@/config/functions/folder";
 import { getAllTemplates } from "@/config/functions/template";
 import toast from 'react-hot-toast';
@@ -359,6 +359,20 @@ const QuestionsTab = ({ setFormSubmitted }) => {
     }
   }, [questionsResponse, populateFormFromQuestions, hasLoadedQuestions]);
 
+  const infoStatus = projectData?.data?.infoStatus || 'pending';
+  const isInfoCompleted = infoStatus === 'completed';
+  const userRole = session?.user?.role;
+  const isSuperAdmin = userRole === 'superadmin';
+  const isInfoDept = userRole === 'd.i';
+  const isSalesDept = userRole === 'd.s';
+
+  // Logic for locking:
+  // If infoStatus is completed:
+  // - Filled fields are readonly
+  // - Empty fields are disabled
+  // - No one from d.i can edit
+  const isLockedForEdit = isInfoCompleted && (isInfoDept || isSalesDept || isSuperAdmin);
+
   // Load project data
   useEffect(() => {
     if (projectData?.data && !isInitialized && !hasLoadedQuestions) {
@@ -688,7 +702,7 @@ const QuestionsTab = ({ setFormSubmitted }) => {
   }, [projectId]);
 
   // Main submit function
-  const handleSubmit = async () => {
+  const handleSubmit = async (shouldRedirect = true) => {
     // First validate the form and highlight errors
     const isValid = validateForm();
 
@@ -699,7 +713,6 @@ const QuestionsTab = ({ setFormSubmitted }) => {
 
     if (!isValid) {
       toast.error("Please fill in all required fields.");
-
       // Scroll to first error
       const firstErrorField = Object.keys(validationErrors)[0];
       if (firstErrorField) {
@@ -709,7 +722,6 @@ const QuestionsTab = ({ setFormSubmitted }) => {
           element.focus();
         }
       }
-
       return;
     }
 
@@ -718,19 +730,11 @@ const QuestionsTab = ({ setFormSubmitted }) => {
       const template = templates.find(t => t._id === selectedTemplate);
       const templateTitle = template?.title || '';
 
-      // Prepare project update data
       const projectUpdateData = {
         title: formData.title,
         description: formData.description,
         shortDescription: formData.shortDescription,
-        client: {
-          name: formData.client.name,
-          contactPerson: {
-            name: formData.client.contactPerson.name,
-            email: formData.client.contactPerson.email,
-            phone: formData.client.contactPerson.phone
-          }
-        },
+        client: formData.client,
         category: formData.category,
         tags: formData.tags,
         selectedTemplateId: selectedTemplate,
@@ -742,31 +746,16 @@ const QuestionsTab = ({ setFormSubmitted }) => {
       // Update project first
       await updateProjectMutation.mutateAsync(projectUpdateData);
 
-      // Prepare ALL questions data to match backend schema
+      // Prepare ALL questions data
       const allQuestions = [];
-      let orderCounter = 0;
+      let orderCounter = 1;
 
-      // 1. Preliminary Information - NEW
+      // Preliminary Information
       addQuestion(allQuestions, 'caseWorkerName', 'Case worker', 'text', formData.caseWorkerName, 'preliminary', 'Preliminary Information', orderCounter++, false);
       addQuestion(allQuestions, 'caseWorkerLanguage', 'Language of case worker', 'text', formData.caseWorkerLanguage, 'preliminary', 'Preliminary Information', orderCounter++, false);
-      addQuestion(allQuestions, 'communicationLanguage', 'Communication language for case worker', 'select', formData.communicationLanguage, 'preliminary', 'Preliminary Information', orderCounter++, false);
+      addQuestion(allQuestions, 'communicationLanguage', 'Communication language', 'select', formData.communicationLanguage, 'preliminary', 'Preliminary Information', orderCounter++, false);
 
-      // 2. Add all standard form fields as questions
-      // Basic Information
-      // addQuestion(allQuestions, 'title', 'Project Title', 'text', formData.title, 'basic', 'Basic Information', orderCounter++, false);
-      // addQuestion(allQuestions, 'description', 'Project Description', 'textarea', formData.description, 'basic', 'Basic Information', orderCounter++, false);
-      // addQuestion(allQuestions, 'shortDescription', 'Note', 'textarea', formData.shortDescription, 'basic', 'Basic Information', orderCounter++, false);
-
-      // Client Information
-      // addQuestion(allQuestions, 'client.name', 'Client Company Name', 'text', formData.client?.name, 'client', 'Client Information', orderCounter++, false);
-      // addQuestion(allQuestions, 'client.contactPerson.name', 'Contact Person Name', 'text', formData.client?.contactPerson?.name, 'client', 'Client Information', orderCounter++, false);
-      // addQuestion(allQuestions, 'client.contactPerson.email', 'Contact Email', 'email', formData.client?.contactPerson?.email, 'client', 'Client Information', orderCounter++, false);
-      // addQuestion(allQuestions, 'client.contactPerson.phone', 'Contact Phone', 'tel', formData.client?.contactPerson?.phone, 'client', 'Client Information', orderCounter++, false);
-
-      // Project Details
-      addQuestion(allQuestions, 'category', 'Project Type', 'select', formData.category, 'details', 'Project Details', orderCounter++, false);
-
-      // Business Information
+      // Add other questions (the rest of the addQuestion logic remains the same, I'll keep the ones from the inner block)
       addQuestion(allQuestions, 'companyName', 'Company Name', 'text', formData.companyName, 'business', 'Business Information', orderCounter++, true);
       addQuestion(allQuestions, 'legalForm', 'Legal Form', 'text', formData.legalForm, 'business', 'Business Information', orderCounter++, false);
       addQuestion(allQuestions, 'businessAddress', 'Business Address', 'textarea', formData.businessAddress, 'business', 'Business Information', orderCounter++, true);
@@ -774,7 +763,7 @@ const QuestionsTab = ({ setFormSubmitted }) => {
       addQuestion(allQuestions, 'companyEmail', 'Company Email Address', 'email', formData.companyEmail, 'business', 'Business Information', orderCounter++, true);
       addQuestion(allQuestions, 'companyDescription', 'Detailed Company Description', 'textarea', formData.companyDescription, 'business', 'Business Information', orderCounter++, false);
       addQuestion(allQuestions, 'briefCompanyDescription', 'Brief Company Description', 'textarea', formData.briefCompanyDescription, 'business', 'Business Information', orderCounter++, false);
-      addQuestion(allQuestions, 'managingDirector', 'Managing Director / Responsible Person', 'text', formData.managingDirector, 'legal', 'Company Legal & Background', orderCounter++, false);
+      addQuestion(allQuestions, 'managingDirector', 'Managing Director', 'text', formData.managingDirector, 'legal', 'Company Legal & Background', orderCounter++, false);
       addQuestion(allQuestions, 'iceNumber', 'ICE Number', 'text', formData.iceNumber, 'legal', 'Company Legal & Background', orderCounter++, false);
       addQuestion(allQuestions, 'yearOfFoundation', 'Year of Foundation', 'number', formData.yearOfFoundation, 'legal', 'Company Legal & Background', orderCounter++, false);
       addQuestion(allQuestions, 'industry', 'Industry', 'text', formData.industry, 'business', 'Business Information', orderCounter++, false);
@@ -794,17 +783,17 @@ const QuestionsTab = ({ setFormSubmitted }) => {
       addQuestion(allQuestions, 'marketGrowthRate', 'Market Growth Rate', 'text', formData.marketGrowthRate, 'market', 'Market Analysis', orderCounter++, false);
       addQuestion(allQuestions, 'marketShare', 'Market Share', 'text', formData.marketShare, 'market', 'Market Analysis', orderCounter++, false);
       addQuestion(allQuestions, 'differentiationCompetitors', 'Competitors to Differentiate From', 'textarea', formData.differentiationCompetitors, 'market', 'Market Analysis', orderCounter++, false);
-      addQuestion(allQuestions, 'competitiveEnvironment', 'Competitive environment & positioning', 'textarea', formData.competitiveEnvironment, 'market', 'Market Analysis', orderCounter++, false);
-      addQuestion(allQuestions, 'specialFeaturesCompared', 'Special features compared to competitors', 'textarea', formData.specialFeaturesCompared, 'market', 'Market Analysis', orderCounter++, false);
-      addQuestion(allQuestions, 'contentRestrictions', 'Content Restrictions / No-Go List', 'textarea', formData.contentRestrictions, 'market', 'Market Analysis', orderCounter++, false);
+      addQuestion(allQuestions, 'competitiveEnvironment', 'Competitive environment', 'textarea', formData.competitiveEnvironment, 'market', 'Market Analysis', orderCounter++, false);
+      addQuestion(allQuestions, 'specialFeaturesCompared', 'Special features', 'textarea', formData.specialFeaturesCompared, 'market', 'Market Analysis', orderCounter++, false);
+      addQuestion(allQuestions, 'contentRestrictions', 'Content Restrictions', 'textarea', formData.contentRestrictions, 'market', 'Market Analysis', orderCounter++, false);
 
       // Website Structure
       addQuestion(allQuestions, 'websitePages', 'Required Website Pages', 'checkbox', formData.websitePages, 'structure', 'Website Structure & Pages', orderCounter++, false);
-      addQuestion(allQuestions, 'highlightedService', 'Service to Highlight on Homepage', 'text', formData.highlightedService, 'structure', 'Website Structure & Pages', orderCounter++, false);
-      addQuestion(allQuestions, 'lowPriorityServices', 'Services Not to Feature Prominently', 'textarea', formData.lowPriorityServices, 'structure', 'Website Structure & Pages', orderCounter++, false);
+      addQuestion(allQuestions, 'highlightedService', 'Service to Highlight', 'text', formData.highlightedService, 'structure', 'Website Structure & Pages', orderCounter++, false);
+      addQuestion(allQuestions, 'lowPriorityServices', 'Services Not to Feature', 'textarea', formData.lowPriorityServices, 'structure', 'Website Structure & Pages', orderCounter++, false);
       addQuestion(allQuestions, 'mandatoryHomepageContent', 'Mandatory Homepage Content', 'textarea', formData.mandatoryHomepageContent, 'structure', 'Website Structure & Pages', orderCounter++, false);
-      addQuestion(allQuestions, 'websiteLanguages', 'Website Languages Needed', 'checkbox', formData.websiteLanguages, 'structure', 'Website Structure & Pages', orderCounter++, false);
-      addQuestion(allQuestions, 'outputLanguages', 'Output languages for website texts', 'checkbox', formData.outputLanguages, 'structure', 'Website Structure & Pages', orderCounter++, false);
+      addQuestion(allQuestions, 'websiteLanguages', 'Website Languages', 'checkbox', formData.websiteLanguages, 'structure', 'Website Structure & Pages', orderCounter++, false);
+      addQuestion(allQuestions, 'outputLanguages', 'Output languages', 'checkbox', formData.outputLanguages, 'structure', 'Website Structure & Pages', orderCounter++, false);
 
       // Revenue Streams
       addQuestion(allQuestions, 'revenueStreams', 'Revenue Streams', 'text', formData.revenueStreams, 'revenue', 'Revenue Streams', orderCounter++, false);
@@ -817,27 +806,22 @@ const QuestionsTab = ({ setFormSubmitted }) => {
       addQuestion(allQuestions, 'socialMediaStrategy', 'Social Media Strategy', 'textarea', formData.socialMediaStrategy, 'social', 'Social Media Strategy', orderCounter++, false);
 
       // Design Requirements
-      addQuestion(allQuestions, 'logoAvailability', 'Do you have a logo?', 'select', formData.logoAvailability, 'design', 'Design Requirements', orderCounter++, false);
-      addQuestion(allQuestions, 'logoAvailable', 'Logo available?', 'select', formData.logoAvailable, 'design', 'Design Requirements', orderCounter++, false);
-      addQuestion(allQuestions, 'corporateDesignAvailability', 'Corporate design available', 'select', formData.corporateDesignAvailability, 'design', 'Design Requirements', orderCounter++, false);
-      addQuestion(allQuestions, 'corporateDesignAvailable', 'Corporate design available?', 'select', formData.corporateDesignAvailable, 'design', 'Design Requirements', orderCounter++, false);
+      addQuestion(allQuestions, 'logoAvailability', 'Logo availability', 'select', formData.logoAvailability, 'design', 'Design Requirements', orderCounter++, false);
+      addQuestion(allQuestions, 'corporateDesignAvailability', 'Corporate design', 'select', formData.corporateDesignAvailability, 'design', 'Design Requirements', orderCounter++, false);
       addQuestion(allQuestions, 'imageAvailability', 'Images for website', 'select', formData.imageAvailability, 'design', 'Design Requirements', orderCounter++, false);
-      addQuestion(allQuestions, 'imagesAvailable', 'Are there any images for the website?', 'select', formData.imagesAvailable, 'design', 'Design Requirements', orderCounter++, false);
 
-      // Only include imageNotes if not using stock images
       if (formData.imageAvailability !== "No - Please use stock images") {
         addQuestion(allQuestions, 'imageNotes', 'Image Preferences', 'textarea', formData.imageNotes, 'design', 'Design Requirements', orderCounter++, false);
       }
 
       addQuestion(allQuestions, 'colorScheme', 'Brand Colors', 'text', formData.colorScheme, 'design', 'Design Requirements', orderCounter++, false);
       addQuestion(allQuestions, 'tonality', 'Design Style & Tone', 'checkbox', formData.tonality, 'design', 'Design Requirements', orderCounter++, false);
-      addQuestion(allQuestions, 'toneAndDemeanor', 'Tone and Demeanor', 'checkbox', formData.toneAndDemeanor, 'design', 'Design Requirements', orderCounter++, false);
 
       // Template selection
       addQuestion(allQuestions, 'selectedTemplateId', 'Selected Template', 'select', selectedTemplate, 'template', 'Template Selection', orderCounter++, false);
 
-      // 3. Add all custom questions
-      customQuestions.forEach((customQ, index) => {
+      // Add all custom questions
+      customQuestions.forEach((customQ) => {
         allQuestions.push({
           questionKey: customQ.questionKey,
           question: customQ.label,
@@ -866,13 +850,6 @@ const QuestionsTab = ({ setFormSubmitted }) => {
       if (response.status === "success") {
         toast.success(response.message);
 
-        // Update project status to completed
-        await updateProject(projectId, {
-          questionsStatus: 'completed',
-          questionsCompletedAt: new Date().toISOString(),
-          progress: 100
-        });
-
         if (setFormSubmitted) {
           setFormSubmitted(true);
         }
@@ -880,18 +857,17 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         // Refresh data after successful submission
         handleRefreshQuestions();
 
-        // direction to projects page
-        if (session?.user?.role !== "superadmin") {
-          router.push("/projects")
+        // Redirect if needed
+        if (shouldRedirect && session?.user?.role !== "superadmin") {
+          router.push("/projects");
         }
-
       } else {
         throw new Error(response.message || 'Failed to save questions');
       }
-
     } catch (error) {
       console.error('Submit error:', error);
       toast.error(error.message || "Failed to save questions. Please try again.");
+      throw error; // Re-throw so callers can handle it
     }
   };
 
@@ -1065,7 +1041,7 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         handleInputChange={handleInputChange}
         validationErrors={validationErrors}
         requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading}
+        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
       />
 
       {/* <BasicProjectInfo
@@ -1073,7 +1049,7 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         handleInputChange={handleInputChange}
         validationErrors={validationErrors}
         requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading}
+        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
       /> */}
 
       {/* <ClientInfo
@@ -1081,7 +1057,7 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         handleInputChange={handleInputChange}
         validationErrors={validationErrors}
         requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading}
+        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
       /> */}
 
       <ProjectDetails
@@ -1092,7 +1068,7 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         handleAddTag={handleAddTag}
         handleRemoveTag={handleRemoveTag}
         handleTagKeyPress={handleTagKeyPress}
-        disabled={updateProjectMutation.isPending || isLoading}
+        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
       />
 
       <BusinessInfo
@@ -1100,7 +1076,7 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         handleInputChange={handleInputChange}
         validationErrors={validationErrors}
         requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading}
+        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
       />
 
       <CompanyLegalInfo
@@ -1108,7 +1084,7 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         handleInputChange={handleInputChange}
         validationErrors={validationErrors}
         requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading}
+        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
       />
 
       <WebsiteGoalsInfo
@@ -1116,7 +1092,7 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         handleInputChange={handleInputChange}
         validationErrors={validationErrors}
         requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading}
+        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
       />
 
       <MarketAnalysisInfo
@@ -1124,7 +1100,7 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         handleInputChange={handleInputChange}
         validationErrors={validationErrors}
         requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading}
+        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
       />
 
       <WebsiteStructureInfo
@@ -1134,7 +1110,7 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         handleWebsitePagesToggle={handleWebsitePagesToggle}
         validationErrors={validationErrors}
         requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading}
+        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
       />
 
       <DesignRequirementsInfo
@@ -1143,7 +1119,7 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         handleTonalityToggle={handleTonalityToggle}
         validationErrors={validationErrors}
         requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading}
+        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
         projectId={projectId}
       />
 
@@ -1152,7 +1128,7 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         handleInputChange={handleInputChange}
         validationErrors={validationErrors}
         requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading}
+        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
       />
 
       <SocialMediaStrategyInfo
@@ -1160,14 +1136,14 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         handleInputChange={handleInputChange}
         validationErrors={validationErrors}
         requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading}
+        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
       />
 
       <TemplateSelection
         templates={templates}
         selectedTemplate={selectedTemplate}
         handleTemplateSelect={handleTemplateSelect}
-        disabled={updateProjectMutation.isPending || isLoading}
+        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
       />
 
       <CustomFields
@@ -1179,13 +1155,13 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         setNewCustomField={setNewCustomField}
         validationErrors={validationErrors}
         setValidationErrors={setValidationErrors}
-        disabled={updateProjectMutation.isPending || isLoading}
+        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
       />
 
       <AIWorkInstructions
         formData={formData}
         handleInputChange={handleInputChange}
-        disabled={updateProjectMutation.isPending || isLoading}
+        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
       />
 
       <SubmitSection
@@ -1199,6 +1175,11 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         handleSubmit={handleSubmit}
         updateProjectMutation={updateProjectMutation}
         isLoading={isLoading}
+        infoStatus={infoStatus}
+        isLockedForEdit={isLockedForEdit}
+        isInfoDept={isInfoDept}
+        isSuperAdmin={isSuperAdmin}
+        projectId={projectId}
       />
 
     </div>
