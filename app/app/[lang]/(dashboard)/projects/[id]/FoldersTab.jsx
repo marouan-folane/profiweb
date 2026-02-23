@@ -687,8 +687,8 @@ const FoldersTab = ({ projectId }) => {
           </div>
         )}
 
-        {/* Content Submission UI (Edit for Content, View for IT/Integration if validated) */}
-        {(userRole === 'd.c' || (['d.it', 'd.in', 'd.d', 'superadmin'].includes(userRole) && project?.contentStatus === 'checklist_validated')) && (
+        {/* Content Submission UI (Edit for Content, View for Integration if validated) */}
+        {(userRole === 'd.c' || (['d.in', 'd.d', 'superadmin'].includes(userRole) && ['checklist_validated', 'completed', 'submission_validated'].includes(project?.contentStatus))) && (
           <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 shadow-sm mb-8">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
@@ -896,17 +896,19 @@ const FoldersTab = ({ projectId }) => {
             <div className="flex items-center gap-4">
               <h3 className="text-lg font-semibold text-gray-900">Project Folders</h3>
               <span className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
-                {allProjectFolders.length} folder{allProjectFolders.length !== 1 ? 's' : ''}
+                {userRole === 'd.it' ? '1' : allProjectFolders.length} folder{(userRole === 'd.it' ? 1 : allProjectFolders.length) !== 1 ? 's' : ''}
               </span>
             </div>
-            {/* Show Add Folder button for ALL users */}
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-            >
-              <Icon icon="carbon:folder-add" />
-              Add Folder
-            </button>
+            {/* Show Add Folder button for ALL users except IT */}
+            {userRole !== 'd.it' && (
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                <Icon icon="carbon:folder-add" />
+                Add Folder
+              </button>
+            )}
           </div>
 
           {allProjectFolders.length === 0 ? (
@@ -923,64 +925,66 @@ const FoldersTab = ({ projectId }) => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {allProjectFolders.map((folder) => (
-                <div
-                  key={folder._id}
-                  onClick={() => handleFolderClick(folder)}
-                  className="border border-gray-200 rounded-lg p-4 transition-all cursor-pointer group hover:border-blue-300 hover:shadow-lg hover:bg-blue-50"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start">
-                        <h4 className="font-semibold text-gray-900 truncate text-lg flex-1">
-                          {folder.name || 'Untitled Folder'}
-                        </h4>
+              {allProjectFolders
+                .filter(folder => userRole !== 'd.it' || folder.name === "Structured content json")
+                .map((folder) => (
+                  <div
+                    key={folder._id}
+                    onClick={() => handleFolderClick(folder)}
+                    className="border border-gray-200 rounded-lg p-4 transition-all cursor-pointer group hover:border-blue-300 hover:shadow-lg hover:bg-blue-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start">
+                          <h4 className="font-semibold text-gray-900 truncate text-lg flex-1">
+                            {folder.name || 'Untitled Folder'}
+                          </h4>
 
-                        {/* Show delete folder button for ALL users (except for generated instructions folder) */}
-                        {folder.name?.toLowerCase() !== "generated instructions pdf" &&
-                          (folder.user === session?.user?.id || folder.user?._id === session?.user?.id) && (
-                            <button
-                              onClick={(e) => handleDeleteFolder(e, folder)}
-                              disabled={deleteFolderMutation.isPending}
-                              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
-                              title="Delete folder"
-                            >
-                              {deleteFolderMutation.isPending ? (
-                                <Icon icon="carbon:circle-dash" className="animate-spin w-5 h-5" />
-                              ) : (
-                                <Icon icon="carbon:trash-can" className="w-5 h-5" />
-                              )}
-                            </button>
-                          )}
+                          {/* Show delete folder button for users (but not IT) */}
+                          {userRole !== 'd.it' && folder.name?.toLowerCase() !== "generated instructions pdf" &&
+                            (folder.user === session?.user?.id || folder.user?._id === session?.user?.id) && (
+                              <button
+                                onClick={(e) => handleDeleteFolder(e, folder)}
+                                disabled={deleteFolderMutation.isPending}
+                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+                                title="Delete folder"
+                              >
+                                {deleteFolderMutation.isPending ? (
+                                  <Icon icon="carbon:circle-dash" className="animate-spin w-5 h-5" />
+                                ) : (
+                                  <Icon icon="carbon:trash-can" className="w-5 h-5" />
+                                )}
+                              </button>
+                            )}
+                        </div>
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                            Click to view files
+                          </span>
+                        </div>
                       </div>
-                      <div className="mt-2 flex items-center gap-2">
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                          Click to view files
-                        </span>
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2 text-gray-500">
+                          <Icon icon="carbon:calendar" />
+                          <span>{new Date(folder.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <Icon
+                          icon="carbon:chevron-right"
+                          className="text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-transform"
+                        />
                       </div>
                     </div>
                   </div>
-
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2 text-gray-500">
-                        <Icon icon="carbon:calendar" />
-                        <span>{new Date(folder.createdAt).toLocaleDateString()}</span>
-                      </div>
-                      <Icon
-                        icon="carbon:chevron-right"
-                        className="text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-transform"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
           )}
         </div>
 
         {/* Create Folder Modal */}
-        {isCreateModalOpen && (
+        {userRole !== 'd.it' && isCreateModalOpen && (
           <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
             <div className="bg-white rounded-lg w-full max-w-md p-6">
               <h2 className="text-xl font-semibold mb-4 text-gray-900">Create New Folder</h2>
@@ -1043,7 +1047,7 @@ const FoldersTab = ({ projectId }) => {
                     onChange={handleFileChange}
                     className="hidden"
                   />
-                  {!isGeneratedFolder && (
+                  {userRole !== 'd.it' && !isGeneratedFolder && (
                     <button
                       onClick={() => fileInputRef.current.click()}
                       disabled={uploadMutation.isPending}
@@ -1127,7 +1131,7 @@ const FoldersTab = ({ projectId }) => {
                               <Icon icon="carbon:view" />
                               View
                             </button>
-                            {!isGeneratedFolder && (
+                            {userRole !== 'd.it' && !isGeneratedFolder && (
                               <button
                                 onClick={(e) => handleDeleteFile(e, file._id)}
                                 disabled={deleteFileMutation.isPending}
