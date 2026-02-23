@@ -132,6 +132,11 @@ const getProjectById = catchAsync(async (req, res, next) => {
     return next(new AppError('Project not found', 404));
   }
 
+  // Role-based access control for Designers (d.d)
+  if (req.user.role === 'd.d' && (project.contentStatus !== 'completed' || project.itStatus !== 'integration_completed')) {
+    return next(new AppError('Not authorized to access this project yet. Designers can only access projects after Content and IT Integration are finalized.', 403));
+  }
+
   // Calculate additional project metrics
   const projectData = project.toObject();
 
@@ -694,6 +699,12 @@ const getAllProjects = catchAsync(async (req, res, next) => {
 
     // Get user's department from role
     const userDepartment = roleToDepartmentMap[userRole];
+
+    // Special rule for Designers (d.d): 
+    // They can only see projects if BOTH content and IT integration are finalized.
+    if (userRole === 'd.d' && (project.contentStatus !== 'completed' || project.itStatus !== 'integration_completed')) {
+      return false;
+    }
 
     // If user role doesn't map to a department or is not in the map, show all projects
     if (!userDepartment) {

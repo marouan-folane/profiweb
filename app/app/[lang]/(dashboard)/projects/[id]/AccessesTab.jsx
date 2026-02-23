@@ -379,11 +379,6 @@ const AccessesTab = ({ projectId }) => {
 
         const response = await createOrUpdateSiteAccess(projectId, dataToSend);
         toast.success(response.message || 'Access information saved successfully!');
-
-        // Open checklist popout only if setup not yet validated
-        if (itStatus !== 'setup_validated') {
-          await openITChecklistModal();
-        }
       } catch (error) {
         console.error('Error saving site access:', error);
         toast.error(error.response?.data?.message || 'Error saving access information');
@@ -494,42 +489,64 @@ const AccessesTab = ({ projectId }) => {
             </div>
           </div>
 
-          {/* Setup Validated Banner */}
+          {/* Phase 1: Setup Banner (Pending) */}
+          {userRole === 'd.it' && itStatus === 'pending' && (
+            <div className="mt-4 bg-white border border-blue-100 rounded-[32px] p-6 shadow-sm flex items-center justify-between">
+              <div className="flex items-center gap-5">
+                <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center text-blue-600">
+                  <Icon icon="lucide:clipboard-list" className="w-7 h-7" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Phase 1: Technical Setup</h3>
+                  <p className="text-gray-400 text-sm">Fill in the access details above, then validate the checklist to finish setup.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => openITChecklistModal()}
+                className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95 flex items-center gap-2"
+              >
+                <Icon icon="lucide:check-circle" className="w-4 h-4" />
+                Start Setup Validation
+              </button>
+            </div>
+          )}
+
+          {/* Setup Validated Status (Success mode) */}
           {itStatus === 'setup_validated' && (
-            <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-              <div className="h-9 w-9 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <Icon icon="lucide:check-circle-2" className="h-5 w-5 text-green-600" />
+            <div className="mt-4 bg-white border border-green-50 rounded-[32px] p-4 flex items-center gap-3">
+              <div className="h-10 w-10 bg-green-50 rounded-full flex items-center justify-center flex-shrink-0 text-green-600">
+                <Icon icon="lucide:check" className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="font-semibold text-green-900 text-sm">Setup Validated ✅</h3>
-                <p className="text-green-700 text-xs mt-0.5">
-                  IT setup checklist completed and locked. Phase 1 is ready.
+                <h3 className="font-bold text-gray-900 text-sm">Setup Validated ✅</h3>
+                <p className="text-gray-400 text-xs">
+                  IT setup checklist completed and locked. Phase 1 is finished.
                 </p>
               </div>
             </div>
           )}
         </div>
 
-        {/* ── Dashboard Simplified View for Integration ───────────────── */}
-        {(userRole === 'd.it' && itStatus === 'setup_validated' && contentStatus === 'completed') || itStatus === 'integration_completed' ? (
+        {/* ── Dashboard Simplified View (Phase 2 & Completion) ───────────────── */}
+        {itStatus !== 'pending' ? (
           <div className="space-y-6">
             {itStatus === 'setup_validated' && contentStatus === 'completed' && (
-              <div className="bg-white border-2 border-green-100 rounded-3xl p-8 shadow-sm flex items-center justify-between">
-                <div className="flex items-center gap-6">
-                  <div className="w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 shadow-sm border border-green-100">
-                    <Icon icon="lucide:check-circle-2" className="w-9 h-9" />
+              <div className="bg-white border border-green-100 rounded-[32px] p-6 shadow-sm flex items-center justify-between">
+                <div className="flex items-center gap-5">
+                  <div className="w-14 h-14 bg-green-50 rounded-full flex items-center justify-center text-green-600">
+                    <Icon icon="lucide:check" className="w-7 h-7" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black text-gray-900 tracking-tight">Ready for Final Integration</h2>
-                    <p className="text-gray-500 font-medium">Content is ready. Complete the final validation to finish the project.</p>
+                    <h2 className="text-xl font-bold text-gray-900 tracking-tight">Ready for Final Integration</h2>
+                    <p className="text-gray-400 text-sm">Content is ready. Complete the final validation to finish the project.</p>
                   </div>
                 </div>
 
                 <button
                   onClick={() => setIsIntegrationModalOpen(true)}
-                  className="px-8 py-3 bg-green-600 text-white rounded-2xl font-black hover:bg-green-700 shadow-lg shadow-green-100 transition-all active:scale-95 flex items-center gap-3 group"
+                  className="px-6 py-2.5 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all active:scale-95 flex items-center gap-2 group"
                 >
-                  <Icon icon="lucide:check-square" className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  <Icon icon="lucide:check-square" className="w-4 h-4" />
                   Complete Integration Checklist
                 </button>
               </div>
@@ -537,8 +554,8 @@ const AccessesTab = ({ projectId }) => {
 
             {/* Quick Access Info (Read Only) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-6 bg-white border border-gray-100 rounded-3xl shadow-sm">
-                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Site Domain</h4>
+              <div className="p-6 bg-white border border-gray-100 rounded-3xl">
+                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Site Domain</h4>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
                     <Icon icon="lucide:globe" className="w-5 h-5" />
@@ -546,20 +563,20 @@ const AccessesTab = ({ projectId }) => {
                   <span className="text-xl font-bold text-gray-900">{formData.domain.name || 'N/A'}</span>
                 </div>
               </div>
-              <div className="p-6 bg-white border border-gray-100 rounded-3xl shadow-sm">
-                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">WP Admin Access</h4>
+              <div className="p-6 bg-white border border-gray-100 rounded-3xl">
+                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">WP Admin Access</h4>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600">
                       <Icon icon="lucide:user" className="w-5 h-5" />
                     </div>
-                    <span className="font-bold text-gray-900">{formData.wordpress.adminUsername}</span>
+                    <span className="text-lg font-bold text-gray-900">{formData.wordpress.adminUsername}</span>
                   </div>
                   <a
                     href={formData.wordpress.loginUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="p-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+                    className="p-2 text-gray-300 hover:text-gray-600 transition-colors"
                   >
                     <Icon icon="lucide:external-link" className="w-5 h-5" />
                   </a>
@@ -815,38 +832,15 @@ const AccessesTab = ({ projectId }) => {
           </form>
         )}
 
-        {/* ── IT Integration Section (Phase 2 - Floating Button for non-ready states) ── */}
-        {userRole === 'd.it' && itStatus === 'setup_validated' && contentStatus !== 'completed' && (
-          <div className="mt-8 bg-indigo-50 border border-indigo-100 rounded-xl p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
-                  <Icon icon="lucide:check-circle-2" className="w-7 h-7" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-indigo-900">Final Integration Phase</h3>
-                  <p className="text-indigo-700 text-sm">Mark the project integration as completed after technical validation</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsIntegrationModalOpen(true)}
-                className="px-8 py-3 bg-green-600 text-white rounded-2xl font-black hover:bg-green-700 shadow-xl transition-all active:scale-95 flex items-center gap-3 group"
-              >
-                <Icon icon="lucide:party-popper" className="w-5 h-5 group-hover:scale-125 transition-transform" />
-                Finalize Integration
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Success state for completed integration */}
         {itStatus === 'integration_completed' && (
-          <div className="mt-8 bg-green-50 border border-green-200 rounded-xl p-8 text-center shadow-lg animate-in fade-in zoom-in duration-500">
-            <div className="w-20 h-20 bg-green-600 rounded-full flex items-center justify-center text-white mx-auto mb-4 shadow-xl shadow-green-200">
-              <Icon icon="lucide:check-check" className="w-10 h-10" />
+          <div className="mt-8 text-center p-8 bg-white border border-gray-100 rounded-[32px]">
+            <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center text-green-600 mx-auto mb-4 border border-green-100">
+              <Icon icon="lucide:check-check" className="w-8 h-8" />
             </div>
-            <h3 className="text-2xl font-black text-green-900 mb-2">Integration Done!</h3>
-            <p className="text-green-700 font-medium">The technical setup and integration have been fully finalized.</p>
+            <h3 className="text-xl font-bold text-gray-900 mb-1">Integration Done!</h3>
+            <p className="text-gray-400 text-sm">The technical setup and integration have been fully finalized.</p>
           </div>
         )}
       </div>
