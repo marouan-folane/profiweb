@@ -688,7 +688,7 @@ const FoldersTab = ({ projectId }) => {
         )}
 
         {/* Content Submission UI (Edit for Content, View for Integration if validated) */}
-        {(userRole === 'd.c' || (['d.in', 'd.d', 'superadmin'].includes(userRole) && ['checklist_validated', 'completed', 'submission_validated'].includes(project?.contentStatus))) && (
+        {(userRole === 'd.c' || (['superadmin'].includes(userRole) && ['checklist_validated', 'completed', 'submission_validated'].includes(project?.contentStatus))) && (
           <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 shadow-sm mb-8">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
@@ -896,7 +896,11 @@ const FoldersTab = ({ projectId }) => {
             <div className="flex items-center gap-4">
               <h3 className="text-lg font-semibold text-gray-900">Project Folders</h3>
               <span className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
-                {userRole === 'd.it' ? '1' : allProjectFolders.length} folder{(userRole === 'd.it' ? 1 : allProjectFolders.length) !== 1 ? 's' : ''}
+                {userRole === 'd.it' ? '1' :
+                  userRole === 'd.d' ? allProjectFolders.filter(f => f.name !== "Structured content json").length :
+                    allProjectFolders.length} folder{(userRole === 'd.it' ? 1 :
+                      userRole === 'd.d' ? allProjectFolders.filter(f => f.name !== "Structured content json").length :
+                        allProjectFolders.length) !== 1 ? 's' : ''}
               </span>
             </div>
             {/* Show Add Folder button for ALL users except IT */}
@@ -926,7 +930,11 @@ const FoldersTab = ({ projectId }) => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {allProjectFolders
-                .filter(folder => userRole !== 'd.it' || folder.name === "Structured content json")
+                .filter(folder => {
+                  if (userRole === 'd.it') return folder.name === "Structured content json";
+                  if (userRole === 'd.d') return folder.name !== "Structured content json";
+                  return true;
+                })
                 .map((folder) => (
                   <div
                     key={folder._id}
