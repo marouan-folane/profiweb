@@ -511,39 +511,29 @@ const AccessesTab = ({ projectId }) => {
         </div>
 
         {/* ── Dashboard Simplified View for Integration ───────────────── */}
-        {userRole === 'd.it' && itStatus === 'setup_validated' && contentStatus === 'completed' ? (
+        {(userRole === 'd.it' && itStatus === 'setup_validated' && contentStatus === 'completed') || itStatus === 'integration_completed' ? (
           <div className="space-y-6">
-            <div className="bg-indigo-600 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
-              <div className="relative z-10">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-inner">
-                    <Icon icon="lucide:rocket" className="w-8 h-8 text-white" />
+            {itStatus === 'setup_validated' && contentStatus === 'completed' && (
+              <div className="bg-white border-2 border-green-100 rounded-3xl p-8 shadow-sm flex items-center justify-between">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 shadow-sm border border-green-100">
+                    <Icon icon="lucide:check-circle-2" className="w-9 h-9" />
                   </div>
                   <div>
-                    <h2 className="text-3xl font-black tracking-tight">Ready for Final Integration</h2>
-                    <p className="text-indigo-100 font-medium">Content is ready. Complete the final validation to finish the project.</p>
+                    <h2 className="text-2xl font-black text-gray-900 tracking-tight">Ready for Final Integration</h2>
+                    <p className="text-gray-500 font-medium">Content is ready. Complete the final validation to finish the project.</p>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-4 mt-8">
-                  <button
-                    onClick={() => setIsIntegrationModalOpen(true)}
-                    className="px-10 py-4 bg-white text-indigo-700 rounded-2xl font-black text-lg hover:bg-indigo-50 shadow-xl transition-all active:scale-95 flex items-center gap-3 group"
-                  >
-                    <Icon icon="lucide:check-circle-2" className="w-6 h-6 group-hover:rotate-12 transition-transform" />
-                    Complete Integration Checklist
-                  </button>
-
-                  <div className="flex items-center gap-2 px-6 py-4 bg-indigo-500/30 backdrop-blur-sm rounded-2xl border border-white/10">
-                    <Icon icon="lucide:info" className="w-5 h-5 opacity-60" />
-                    <span className="text-sm font-bold uppercase tracking-wider">Phase: Validation</span>
-                  </div>
-                </div>
+                <button
+                  onClick={() => setIsIntegrationModalOpen(true)}
+                  className="px-8 py-3 bg-green-600 text-white rounded-2xl font-black hover:bg-green-700 shadow-lg shadow-green-100 transition-all active:scale-95 flex items-center gap-3 group"
+                >
+                  <Icon icon="lucide:check-square" className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  Complete Integration Checklist
+                </button>
               </div>
-
-              {/* Decorative background element */}
-              <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
-            </div>
+            )}
 
             {/* Quick Access Info (Read Only) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -972,47 +962,49 @@ const AccessesTab = ({ projectId }) => {
 
       {/* ── Integration Checklist Modal (Phase 2) ───────────────────────── */}
       {isIntegrationModalOpen && (
-        <div className="fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4 backdrop-blur-md">
-          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl border border-green-100 animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-200">
 
             {/* Modal Header */}
-            <div className="p-8 border-b border-gray-100 bg-green-50/50">
-              <div className="flex items-center justify-between mb-2">
+            <div className="p-8 pb-6 bg-white">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-green-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-green-200">
+                  <div className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-green-100">
                     <Icon icon="lucide:check-square" className="w-7 h-7" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black text-green-900 tracking-tight">Final Integration Checklist</h2>
-                    <p className="text-green-700/80 font-medium">Verify execution before project completion</p>
+                    <h2 className="text-2xl font-black text-gray-900 tracking-tight">Final Integration Checklist</h2>
+                    <p className="text-green-600/80 font-semibold text-sm">Verify execution before project completion</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setIsIntegrationModalOpen(false)}
-                  className="p-2 hover:bg-white rounded-full transition-colors text-green-900/40 hover:text-green-900"
+                  className="p-2 hover:bg-gray-100 rounded-full transition-all text-gray-400 hover:text-gray-600"
                 >
                   <Icon icon="lucide:x" className="w-6 h-6" />
                 </button>
               </div>
             </div>
 
+            <div className="h-px bg-gray-100" />
+
             {/* Modal Body */}
-            <div className="p-8 space-y-6">
+            <div className="p-8 pt-6 space-y-4 max-h-[60vh] overflow-y-auto">
               {integrationSections.map(section => (
-                <div key={section.id} className="space-y-4">
+                <div key={section.id} className="space-y-3">
                   {section.items.map(item => (
                     <label
                       key={item.id}
-                      className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer group ${item.checked
-                        ? 'bg-green-50 border-green-200 shadow-sm'
-                        : 'bg-white border-gray-100 hover:border-green-200 hover:bg-green-50/30'
+                      className={`flex items-center gap-4 p-5 rounded-2xl border transition-all cursor-pointer group ${item.checked
+                        ? 'bg-white border-green-100'
+                        : 'bg-white border-gray-100 hover:border-green-100'
                         }`}
                     >
                       <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${item.checked
-                        ? 'bg-green-600 border-green-600'
-                        : 'border-gray-300 bg-white group-hover:border-green-400'
+                        ? 'bg-white border-gray-200'
+                        : 'border-gray-200 bg-white group-hover:border-green-300'
                         }`}>
-                        {item.checked && <Icon icon="lucide:check" className="w-4 h-4 text-white" />}
+                        {item.checked && <Icon icon="lucide:check" className="w-4 h-4 text-green-600" />}
                         <input
                           type="checkbox"
                           className="sr-only"
@@ -1020,7 +1012,7 @@ const AccessesTab = ({ projectId }) => {
                           onChange={() => toggleIntegrationItem(item.id)}
                         />
                       </div>
-                      <span className={`font-bold transition-all ${item.checked ? 'text-green-900' : 'text-gray-600'}`}>
+                      <span className={`text-lg font-bold transition-all ${item.checked ? 'text-gray-400' : 'text-gray-700'}`}>
                         {item.label}
                       </span>
                     </label>
@@ -1029,36 +1021,42 @@ const AccessesTab = ({ projectId }) => {
               ))}
             </div>
 
+            <div className="h-px bg-gray-200 mt-2" />
+
             {/* Modal Footer */}
-            <div className="p-8 bg-gray-50 border-t flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className={`h-2 w-32 rounded-full bg-gray-200 overflow-hidden`}>
+            <div className="p-8 bg-white flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className={`h-1.5 w-32 rounded-full bg-gray-100 overflow-hidden`}>
                   <div
-                    className="h-full bg-green-600 transition-all duration-500"
+                    className="h-full bg-green-500 transition-all duration-500"
                     style={{
                       width: `${(checkedIntegrationCount / totalIntegrationCount) * 100}%`
                     }}
                   />
                 </div>
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                <span className="text-sm font-black text-gray-400 uppercase tracking-widest leading-none">
                   {checkedIntegrationCount} OF {totalIntegrationCount}
                 </span>
               </div>
 
-              <div className="flex gap-4">
+              <div className="flex gap-6 items-center">
                 <button
                   onClick={() => setIsIntegrationModalOpen(false)}
-                  className="px-6 py-3 text-gray-500 font-bold hover:text-gray-900 transition-colors"
+                  className="text-gray-500 font-black hover:text-gray-900 transition-colors uppercase tracking-widest text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleConfirmIntegration}
                   disabled={!allIntegrationChecked || isConfirmingIntegration}
-                  className={`px-8 py-3 rounded-2xl font-black text-white shadow-xl transition-all active:scale-95 flex items-center gap-3 ${allIntegrationChecked && !isConfirmingIntegration
-                    ? 'bg-green-600 hover:bg-green-700 shadow-green-200'
-                    : 'bg-gray-300 cursor-not-allowed shadow-none'
+                  className={`px-10 py-4 rounded-2xl font-black text-white shadow-xl transition-all active:scale-95 flex items-center gap-3 ${allIntegrationChecked && !isConfirmingIntegration
+                    ? 'bg-[#cbd5e1] text-[#64748b] hover:bg-[#94a3b8] hover:text-white'
+                    : 'bg-[#cbd5e1] text-[#94a3b8] cursor-not-allowed opacity-60'
                     }`}
+                  style={{
+                    backgroundColor: allIntegrationChecked && !isConfirmingIntegration ? '#cbd5e1' : '#cbd5e1',
+                    color: allIntegrationChecked && !isConfirmingIntegration ? '#1e293b' : '#94a3b8'
+                  }}
                 >
                   {isConfirmingIntegration && <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin" />}
                   Confirm Project Completion

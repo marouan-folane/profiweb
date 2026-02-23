@@ -288,7 +288,6 @@ const Overview = () => {
                 </button>
               )}
 
-
               {["d.it", "d.in"].includes(session?.user?.role) && (
                 <button
                   onClick={() => handleTabChange("accesses")}
@@ -297,7 +296,7 @@ const Overview = () => {
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }`}
                 >
-                  Accesses
+                  {(project.itStatus === 'setup_validated' && project.contentStatus === 'completed') || project.itStatus === 'integration_completed' ? "Integration" : "Accesses"}
                   {activeTab === "accesses" && isLoading && (
                     <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -306,8 +305,6 @@ const Overview = () => {
                   )}
                 </button>
               )}
-
-
             </nav>
           </div>
 
