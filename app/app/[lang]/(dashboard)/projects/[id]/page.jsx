@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import QuestionsTab from "./QuestionsTab";
 import FoldersTab from "./FoldersTab";
 import GeneratedTab from "./GeneratedTab";
-import CheckboxesTab from "./CheckboxesTab";
 import AccessesTab from "./AccessesTab";
 import { getProject } from "@/config/functions/project";
 import { useParams } from "next/navigation";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
+import { Button } from "@/components/ui/button";
+import { Icon } from "@iconify/react";
+import { Badge } from "@/components/ui/badge";
+import DesignChecklistModal from "./DesignChecklistModal";
 
 const Overview = () => {
   const params = useParams();
@@ -21,6 +24,7 @@ const Overview = () => {
   const [activeTab, setActiveTab] = useState("questions"); // Default to questions tab
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [lastActiveTab, setLastActiveTab] = useState("questions");
+  const [isDesignModalOpen, setIsDesignModalOpen] = useState(false);
 
   useEffect(() => {
     const setDefaultTabByRole = () => {
@@ -35,8 +39,9 @@ const Overview = () => {
         'd.i': 'questions',
         'd.it': 'accesses',
         'd.c': 'folders',
-        'd.d': 'checkboxes',
+        'd.d': 'folders',
         'd.s': 'questions',
+        'd.in': 'accesses',
       };
 
       // Get the tab for the role
@@ -45,7 +50,7 @@ const Overview = () => {
       if (defaultTab) {
         setActiveTab(defaultTab);
       } else if (role.startsWith('d.')) {
-        setActiveTab('checkboxes');
+        setActiveTab('folders');
       } else {
         setActiveTab('questions');
       }
@@ -201,6 +206,29 @@ const Overview = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Designer Confirm Button */}
+                {session?.user?.role === "d.d" && (
+                  <div className="mt-4 pt-4 border-t border-gray-100 flex justify-start">
+                    {project.designStatus === 'completed' ? (
+                      <Badge color="success" variant="soft" className="px-4 py-2">
+                        <span className="inline-flex items-center gap-2 text-sm">
+                          <Icon icon="lucide:check-circle" className="w-5 h-5" />
+                          Design Workflow Completed
+                        </span>
+                      </Badge>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        className="gap-2 border-pink-200 text-pink-700 hover:bg-pink-50 hover:text-pink-800 font-bold px-6 py-2 transition-all active:scale-95"
+                        onClick={() => setIsDesignModalOpen(true)}
+                      >
+                        <Icon icon="lucide:palette" className="w-5 h-5" />
+                        Confirm Work (Design Department)
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Refresh Button */}
@@ -251,23 +279,6 @@ const Overview = () => {
               )}
 
 
-              {["d.d", "d.in"].includes(session?.user?.role) && (
-                <button
-                  onClick={() => handleTabChange("checkboxes")}
-                  className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${activeTab === "checkboxes"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    }`}
-                >
-                  Checklist
-                  {activeTab === "checkboxes" && isLoading && (
-                    <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  )}
-                </button>
-              )}
 
 
               {(["superadmin", "d.d", "d.c", "d.s", "d.in"].includes(session?.user?.role) || (session?.user?.role === 'd.it' && ((project.itStatus === 'setup_validated' && project.contentStatus === 'completed') || project.itStatus === 'integration_completed'))) && (
@@ -315,11 +326,21 @@ const Overview = () => {
             )}
             {activeTab === "folders" && <FoldersTab projectId={projectId} />}
             {activeTab === "generated" && <GeneratedTab projectId={projectId} />}
-            {activeTab === "checkboxes" && <CheckboxesTab projectId={projectId} />}
             {activeTab === "accesses" && <AccessesTab projectId={projectId} />}
           </div>
         </div>
       </div>
+
+      <DesignChecklistModal
+        isOpen={isDesignModalOpen}
+        onClose={() => setIsDesignModalOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries(['project', projectId]);
+          refetchProject();
+        }}
+        projectId={projectId}
+        projectTitle={projectTitle}
+      />
     </div>
   );
 };

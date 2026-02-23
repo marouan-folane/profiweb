@@ -496,10 +496,6 @@ const ProjectsPage = () => {
   const [projectToDeleteClient, setProjectToDeleteClient] = useState('');
   const [projectToDeleteBudget, setProjectToDeleteBudget] = useState('');
 
-  // Design Modal State
-  const [isDesignModalOpen, setIsDesignModalOpen] = useState(false);
-  const [selectedProjectForDesign, setSelectedProjectForDesign] = useState(null);
-
   const [countdown, setCountdown] = useState(5);
   const [countdownActive, setCountdownActive] = useState(false);
   const [countdownInterval, setCountdownInterval] = useState(null);
@@ -1374,7 +1370,7 @@ const ProjectsPage = () => {
                       {session?.user?.role === "d.c" && (
                         <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Content Status</th>
                       )}
-                      {(session?.user?.role === "d.d" || session?.user?.role === "superadmin") && (
+                      {session?.user?.role === "d.d" && (
                         <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Design Status</th>
                       )}
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Priority</th>
@@ -1531,7 +1527,7 @@ const ProjectsPage = () => {
                           </td>
                         )}
 
-                        {(session?.user?.role === "d.d" || session?.user?.role === "superadmin") && (
+                        {session?.user?.role === "d.d" && (
                           <td className="py-5 px-6">
                             {project.designStatus === 'completed' ? (
                               <Badge color="success" variant="soft" className="dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20">
@@ -1541,18 +1537,12 @@ const ProjectsPage = () => {
                                 </span>
                               </Badge>
                             ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 gap-1.5 text-[10px] font-bold uppercase tracking-wider border-pink-200 text-pink-700 hover:bg-pink-50 hover:text-pink-800"
-                                onClick={() => {
-                                  setSelectedProjectForDesign(project);
-                                  setIsDesignModalOpen(true);
-                                }}
-                              >
-                                <Icon icon="lucide:palette" className="w-3 h-3" />
-                                Confirm Work
-                              </Button>
+                              <Badge color="warning" variant="soft" className="dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">
+                                <span className="inline-flex items-center gap-1">
+                                  <Icon icon="lucide:clock" className="w-3 h-3" />
+                                  Pending
+                                </span>
+                              </Badge>
                             )}
                           </td>
                         )}
@@ -1736,13 +1726,6 @@ const ProjectsPage = () => {
           )}
         </CardContent>
       </Card>
-      <DesignChecklistModal
-        isOpen={isDesignModalOpen}
-        onClose={() => setIsDesignModalOpen(false)}
-        onSuccess={fetchActiveProjects}
-        projectId={selectedProjectForDesign?._id}
-        projectTitle={selectedProjectForDesign?.title}
-      />
     </div>
   )
 }
