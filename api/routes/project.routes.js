@@ -14,7 +14,9 @@ const {
     saveContentDraft,
     completeInfoQuestionnaire,
     validateContentChecklist,
-    completeContentWorkflow
+    completeContentWorkflow,
+    validateITSetupChecklist,
+    completeITIntegration
 } = require("../controllers/projectController");
 const { protect } = require("../middlewares/auth");
 
@@ -51,6 +53,12 @@ router.route("/:id/validate-content-checklist")
 
 router.route("/:id/complete-content-workflow")
     .patch(completeContentWorkflow);
+
+router.route("/:id/validate-it-setup-checklist")
+    .patch(validateITSetupChecklist);
+
+router.route("/:id/complete-integration")
+    .patch(completeITIntegration);
 // Question routes should also come before the general :id route
 router.route("/:id/questions")
     .get(getQuestionsByProject)

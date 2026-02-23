@@ -148,3 +148,21 @@ export const completeContentWorkflow = async (projectId) => {
         return error.response?.data;
     }
 };
+
+export const validateITSetupChecklist = async (projectId) => {
+    try {
+        const response = await api.patch(`/projects/${projectId}/validate-it-setup-checklist`);
+        return response.data;
+    } catch (error) {
+        return error.response?.data;
+    }
+};
+
+export const completeITIntegration = async (projectId) => {
+    try {
+        const response = await api.patch(`/projects/${projectId}/complete-integration`);
+        return response.data;
+    } catch (error) {
+        return error.response?.data;
+    }
+};

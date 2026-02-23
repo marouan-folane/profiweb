@@ -33,7 +33,7 @@ const Overview = () => {
         'superadmin': 'questions',
         'admin': 'questions',
         'd.i': 'questions',
-        'd.it': 'checkboxes',
+        'd.it': 'accesses',
         'd.c': 'folders',
         'd.d': 'checkboxes',
         'd.s': 'questions',
@@ -251,7 +251,7 @@ const Overview = () => {
               )}
 
 
-              {["d.it", "d.d", "d.in"].includes(session?.user?.role) && (
+              {["d.d", "d.in"].includes(session?.user?.role) && (
                 <button
                   onClick={() => handleTabChange("checkboxes")}
                   className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${activeTab === "checkboxes"

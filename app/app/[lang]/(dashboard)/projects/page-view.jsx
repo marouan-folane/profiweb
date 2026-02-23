@@ -179,6 +179,29 @@ const getStatusColor = (status) => {
   }
 };
 
+const getProjectPhase = (project) => {
+  // Logic based on workflow status
+  if (project.infoStatus !== 'completed') {
+    return { label: "Waiting for Content", color: "text-amber-600 bg-amber-50 border-amber-200" };
+  }
+  if (project.itStatus === 'pending') {
+    return { label: "Ready for IT Setup", color: "text-blue-600 bg-blue-50 border-blue-200" };
+  }
+  if (project.itStatus === 'setup_validated' && project.contentStatus === 'pending') {
+    return { label: "Ready for Content Validation", color: "text-purple-600 bg-purple-50 border-purple-200" };
+  }
+  if (project.itStatus === 'setup_validated' && project.contentStatus === 'checklist_validated') {
+    return { label: "Ready for Content Submission", color: "text-indigo-600 bg-indigo-50 border-indigo-200" };
+  }
+  if (project.itStatus === 'setup_validated' && project.contentStatus === 'completed') {
+    return { label: "Ready for Integration", color: "text-indigo-600 bg-indigo-50 border-indigo-200" };
+  }
+  if (project.itStatus === 'integration_completed') {
+    return { label: "✅ Completed", color: "text-green-600 bg-green-50 border-green-200" };
+  }
+  return { label: "Active Phase", color: "text-slate-600 bg-slate-50 border-slate-200" };
+};
+
 const getPriorityColor = (priority) => {
   switch (priority) {
     case 'critical': return 'destructive'
@@ -1319,6 +1342,9 @@ const ProjectsPage = () => {
                   <thead className="bg-slate-50/50 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-white/5">
                     <tr>
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Project</th>
+                      {session?.user?.role === "d.it" && (
+                        <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Phase</th>
+                      )}
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Client</th>
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Category</th>
                       {session?.user?.role === "d.s" && (
@@ -1383,6 +1409,17 @@ const ProjectsPage = () => {
                             )}
                           </div>
                         </td>
+
+                        {session?.user?.role === "d.it" && (
+                          <td className="py-5 px-6">
+                            <div className={cn(
+                              "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider",
+                              getProjectPhase(project).color
+                            )}>
+                              {getProjectPhase(project).label}
+                            </div>
+                          </td>
+                        )}
 
                         <td className="py-5 px-6">
                           <div className="flex items-center gap-3">

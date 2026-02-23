@@ -71,6 +71,21 @@ const contentDepartmentSections = [
   }
 ];
 
+// ── Integration Department checklist sections ──────────────────────
+const integrationChecklistSections = [
+  {
+    id: 'integration_validation',
+    title: "Integration Validation",
+    items: [
+      { id: 'json_integrated', label: 'Structured content correctly integrated', checked: false },
+      { id: 'design_match', label: 'Design matches template and requirements', checked: false },
+      { id: 'interactivity', label: 'Interactive elements tested (forms, buttons)', checked: false },
+      { id: 'mobile_responsive', label: 'Mobile responsiveness verified', checked: false },
+      { id: 'seo_final', label: 'Final SEO checks completed', checked: false },
+    ]
+  }
+];
+
 const FoldersTab = ({ projectId }) => {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
@@ -103,10 +118,51 @@ const FoldersTab = ({ projectId }) => {
   const [isSavingChecklistItem, setIsSavingChecklistItem] = useState(false);
   const [isConfirmingChecklist, setIsConfirmingChecklist] = useState(false);
 
+  // ── Integration Modal State ──────────────────────────────────────
+  const [isIntegrationModalOpen, setIsIntegrationModalOpen] = useState(false);
+  const [integrationSections, setIntegrationSections] = useState(integrationChecklistSections);
+  const [isConfirmingIntegration, setIsConfirmingIntegration] = useState(false);
+
   const userRole = session?.user?.role?.toLowerCase();
   // ALL users can upload files and manage folders
   const canUploadFiles = true; // Everyone can upload
   const canManageFolders = true; // Everyone can manage folders
+
+  // Helper: Get project IT status
+  const itStatus = project?.itStatus || 'pending';
+  const isIntegrationCompleted = itStatus === 'integration_completed';
+
+  const allIntegrationChecked = integrationSections.every(s => s.items.every(i => i.checked));
+
+  const toggleIntegrationItem = (itemId) => {
+    setIntegrationSections(prev => prev.map(section => ({
+      ...section,
+      items: section.items.map(item =>
+        item.id === itemId ? { ...item, checked: !item.checked } : item
+      )
+    })));
+  };
+
+  const handleConfirmIntegration = async () => {
+    setIsConfirmingIntegration(true);
+    try {
+      const { completeITIntegration } = await import("@/config/functions/project");
+      const res = await completeITIntegration(projectId);
+      if (res.status === 'success') {
+        toast.success("Integration finalized and project completed!");
+        setProject(prev => ({ ...prev, itStatus: 'integration_completed' }));
+        setIsIntegrationModalOpen(false);
+        queryClient.invalidateQueries(['project', projectId]);
+      } else {
+        toast.error(res.message || "Failed to finalize integration");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred");
+    } finally {
+      setIsConfirmingIntegration(false);
+    }
+  };
 
   // Check if current folder is "Generated instructions pdf"
   const isGeneratedFolder = selectedFolder?.name?.toLowerCase() === "generated instructions pdf";
@@ -631,17 +687,38 @@ const FoldersTab = ({ projectId }) => {
           </div>
         )}
 
-        {/* Content Submission UI for Content Department */}
-        {userRole === 'd.c' && (
+        {/* Content Submission UI (Edit for Content, View for IT/Integration if validated) */}
+        {(userRole === 'd.c' || (['d.it', 'd.in', 'd.d', 'superadmin'].includes(userRole) && project?.contentStatus === 'checklist_validated')) && (
           <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 shadow-sm mb-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-md">
-                <Icon icon="lucide:file-up" className="w-6 h-6" />
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-md">
+                  <Icon icon="lucide:file-up" className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-indigo-900">Structured Content Submission</h3>
+                  <p className="text-indigo-700 text-sm">Upload JSON and paste formatted text for integration</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-indigo-900">Structured Content Submission</h3>
-                <p className="text-indigo-700 text-sm">Upload JSON and paste formatted text for integration</p>
-              </div>
+
+              {/* Integration Confirmation Button (only for d.in/d.it when everything else is ready) */}
+              {userRole === 'd.in' && project?.contentStatus === 'checklist_validated' && project?.itStatus === 'setup_validated' && (
+                <button
+                  onClick={() => setIsIntegrationModalOpen(true)}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 shadow-lg transition-all active:scale-95 group"
+                >
+                  <Icon icon="lucide:check-circle-2" className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  Finalize Integration
+                </button>
+              )}
+
+              {/* Success state for completed integration */}
+              {project?.itStatus === 'integration_completed' && (
+                <div className="flex items-center gap-2 px-6 py-2.5 bg-green-50 text-green-700 rounded-xl font-bold border border-green-200">
+                  <Icon icon="lucide:party-popper" className="w-5 h-5" />
+                  Integration Completed
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1306,6 +1383,104 @@ const FoldersTab = ({ projectId }) => {
                     <Icon icon="lucide:check-circle-2" className="w-4 h-4" />
                   )}
                   Confirm & Save Content
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Integration Checklist Modal ───────────────────────────────── */}
+      {isIntegrationModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4 backdrop-blur-md">
+          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl border border-green-100 animate-in fade-in zoom-in duration-200">
+
+            {/* Modal Header */}
+            <div className="p-8 border-b border-gray-100 bg-green-50/50">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-green-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-green-200">
+                    <Icon icon="lucide:check-square" className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-green-900 tracking-tight">Final Integration Checklist</h2>
+                    <p className="text-green-700/80 font-medium">Verify execution before project completion</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsIntegrationModalOpen(false)}
+                  className="p-2 hover:bg-white rounded-full transition-colors text-green-900/40 hover:text-green-900"
+                >
+                  <Icon icon="lucide:x" className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-8 space-y-6">
+              {integrationSections.map(section => (
+                <div key={section.id} className="space-y-4">
+                  {section.items.map(item => (
+                    <label
+                      key={item.id}
+                      className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer group ${item.checked
+                        ? 'bg-green-50 border-green-200 shadow-sm'
+                        : 'bg-white border-gray-100 hover:border-green-200 hover:bg-green-50/30'
+                        }`}
+                    >
+                      <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${item.checked
+                        ? 'bg-green-600 border-green-600'
+                        : 'border-gray-300 bg-white group-hover:border-green-400'
+                        }`}>
+                        {item.checked && <Icon icon="lucide:check" className="w-4 h-4 text-white" />}
+                        <input
+                          type="checkbox"
+                          className="sr-only"
+                          checked={item.checked}
+                          onChange={() => toggleIntegrationItem(item.id)}
+                        />
+                      </div>
+                      <span className={`font-bold transition-all ${item.checked ? 'text-green-900' : 'text-gray-600'}`}>
+                        {item.label}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-8 bg-gray-50 border-t flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className={`h-2 w-32 rounded-full bg-gray-200 overflow-hidden`}>
+                  <div
+                    className="h-full bg-green-600 transition-all duration-500"
+                    style={{
+                      width: `${(integrationSections[0].items.filter(i => i.checked).length / integrationSections[0].items.length) * 100}%`
+                    }}
+                  />
+                </div>
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                  {integrationSections[0].items.filter(i => i.checked).length} OF {integrationSections[0].items.length}
+                </span>
+              </div>
+
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setIsIntegrationModalOpen(false)}
+                  className="px-6 py-3 text-gray-500 font-bold hover:text-gray-900 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmIntegration}
+                  disabled={!allIntegrationChecked || isConfirmingIntegration}
+                  className={`px-8 py-3 rounded-2xl font-black text-white shadow-xl transition-all active:scale-95 flex items-center gap-3 ${allIntegrationChecked && !isConfirmingIntegration
+                    ? 'bg-green-600 hover:bg-green-700 shadow-green-200'
+                    : 'bg-gray-300 cursor-not-allowed shadow-none'
+                    }`}
+                >
+                  {isConfirmingIntegration && <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin" />}
+                  Confirm Project Completion
                 </button>
               </div>
             </div>

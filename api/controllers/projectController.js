@@ -1517,6 +1517,72 @@ const completeContentWorkflow = catchAsync(async (req, res, next) => {
   });
 });
 
+// ===============================================================
+// IT DEPARTMENT — PHASE 1: Validate & Lock Setup Checklist
+// ===============================================================
+const validateITSetupChecklist = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  // Permission check
+  if (!['superadmin', 'd.it'].includes(req.user.role)) {
+    return next(new AppError('Only the IT Department or a Super Admin can validate the setup checklist', 403));
+  }
+
+  const project = await Project.findById(id);
+  if (!project) {
+    return next(new AppError('Project not found', 404));
+  }
+
+  if (project.itStatus === 'setup_validated') {
+    return next(new AppError('IT setup checklist is already validated and locked', 400));
+  }
+
+  // Update status
+  project.itStatus = 'setup_validated';
+  project.itSetupValidatedAt = new Date();
+  project.itSetupValidatedBy = req.user.id;
+  project.updatedBy = req.user.id;
+  await project.save();
+
+  res.status(200).json({
+    status: 'success',
+    message: 'IT setup checklist validated and locked successfully',
+    data: { project }
+  });
+});
+
+// ===============================================================
+// IT DEPARTMENT — PHASE 2: Complete Integration
+// ===============================================================
+const completeITIntegration = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  // Permission check: Integration or IT or Admin
+  if (!['superadmin', 'd.in', 'd.it'].includes(req.user.role)) {
+    return next(new AppError('Only the Integration Department or a Super Admin can finalize integration', 403));
+  }
+
+  const project = await Project.findById(id);
+  if (!project) {
+    return next(new AppError('Project not found', 404));
+  }
+
+  if (project.itStatus === 'integration_completed') {
+    return next(new AppError('Integration is already marked as completed', 400));
+  }
+
+  // Update status
+  project.itStatus = 'integration_completed';
+  project.updatedBy = req.user.id;
+  await project.save();
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Integration completed and finalized successfully',
+    data: { project }
+  });
+});
+
 module.exports = {
   createProject,
   getProjectById,
@@ -1532,5 +1598,7 @@ module.exports = {
   saveContentDraft,
   completeInfoQuestionnaire,
   validateContentChecklist,
-  completeContentWorkflow
+  completeContentWorkflow,
+  validateITSetupChecklist,
+  completeITIntegration
 };

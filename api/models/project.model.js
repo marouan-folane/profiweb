@@ -257,7 +257,21 @@ const projectSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
-  contentCompletedAt: Date
+  contentCompletedAt: Date,
+
+  // IT Department Setup Validation
+  // pending → setup_validated → integration_completed
+  itStatus: {
+    type: String,
+    enum: ['pending', 'setup_validated', 'integration_completed'],
+    default: 'pending'
+  },
+  itSetupValidatedAt: Date,
+  itSetupValidatedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }
+
 
 
 }, {
