@@ -286,9 +286,12 @@ const CheckboxesTab = ({ projectId }) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [contentStatus, setContentStatus] = useState('pending');
+  const [designStatus, setDesignStatus] = useState('pending');
   const [isValidating, setIsValidating] = useState(false);
 
-  const isActuallyLocked = (userRole === 'superadmin') && (contentStatus === 'checklist_validated' || contentStatus === 'completed');
+  const isActuallyLocked =
+    (userRole === 'superadmin' && (contentStatus === 'checklist_validated' || contentStatus === 'completed')) ||
+    (userRole === 'd.d' && (designStatus === 'checklist_validated' || designStatus === 'completed'));
 
   // Load checklist data on component mount
   useEffect(() => {
@@ -303,6 +306,7 @@ const CheckboxesTab = ({ projectId }) => {
       const response = await getProject(projectId);
       if (response.status === 'success') {
         setContentStatus(response.data.project.contentStatus || 'pending');
+        setDesignStatus(response.data.project.designStatus || 'pending');
       }
     } catch (error) {
       console.error('Error loading project status:', error);

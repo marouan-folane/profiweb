@@ -166,3 +166,21 @@ export const completeITIntegration = async (projectId) => {
         return error.response?.data;
     }
 };
+
+export const validateDesignChecklist = async (projectId) => {
+    try {
+        const response = await api.patch(`/projects/${projectId}/validate-design-checklist`);
+        return response.data;
+    } catch (error) {
+        return error.response?.data;
+    }
+};
+
+export const completeDesignWorkflow = async (projectId) => {
+    try {
+        const response = await api.patch(`/projects/${projectId}/complete-design-workflow`);
+        return response.data;
+    } catch (error) {
+        return error.response?.data;
+    }
+};

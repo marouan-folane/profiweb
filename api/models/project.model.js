@@ -270,7 +270,25 @@ const projectSchema = new mongoose.Schema({
   itSetupValidatedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
-  }
+  },
+
+  // Design Department Workflow Status
+  // pending → checklist_validated → completed
+  designStatus: {
+    type: String,
+    enum: ['pending', 'checklist_validated', 'completed'],
+    default: 'pending'
+  },
+  designChecklistValidatedAt: Date,
+  designChecklistValidatedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  designCompletedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  designCompletedAt: Date
 
 
 

@@ -1594,6 +1594,86 @@ const completeITIntegration = catchAsync(async (req, res, next) => {
   });
 });
 
+// ===============================================================
+// DESIGN OFFICE — PHASE 1: Validate & Lock Checklist
+// ===============================================================
+const validateDesignChecklist = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  // Permission check
+  if (!['superadmin', 'd.d'].includes(req.user.role)) {
+    return next(new AppError('Only the Design Department or a Super Admin can validate the checklist', 403));
+  }
+
+  const project = await Project.findById(id);
+  if (!project) {
+    return next(new AppError('Project not found', 404));
+  }
+
+  if (project.designStatus === 'checklist_validated' || project.designStatus === 'completed') {
+    return next(new AppError('Checklist is already validated and locked', 400));
+  }
+
+  // Update status
+  project.designStatus = 'checklist_validated';
+  project.designChecklistValidatedAt = new Date();
+  project.designChecklistValidatedBy = req.user.id;
+  project.updatedBy = req.user.id;
+  await project.save();
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Design checklist validated and locked successfully',
+    data: { project }
+  });
+});
+
+// ===============================================================
+// DESIGN OFFICE — PHASE 2: Final Completion Lock
+// ===============================================================
+const completeDesignWorkflow = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  // Permission check
+  if (!['superadmin', 'd.d'].includes(req.user.role)) {
+    return next(new AppError('Only the Design Department or a Super Admin can complete the design workflow', 403));
+  }
+
+  const project = await Project.findById(id);
+  if (!project) {
+    return next(new AppError('Project not found', 404));
+  }
+
+  if (project.designStatus === 'completed') {
+    return next(new AppError('Design workflow is already completed', 400));
+  }
+
+  // Prerequisites: checklist must be validated
+  if (project.designStatus !== 'checklist_validated') {
+    return next(new AppError('Checklist must be validated before completing the design workflow', 400));
+  }
+
+  // Update status
+  project.designStatus = 'completed';
+  project.designCompletedBy = req.user.id;
+  project.designCompletedAt = new Date();
+  project.updatedBy = req.user.id;
+
+  // Department workflow
+  project.activeDepartments = project.activeDepartments.filter(dept => dept !== 'design');
+  if (!project.completedDepartments.includes('design')) {
+    project.completedDepartments.push('design');
+  }
+
+  await project.save();
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Design workflow marked as completed successfully',
+    data: { project }
+  });
+});
+
 module.exports = {
   createProject,
   getProjectById,
@@ -1611,5 +1691,7 @@ module.exports = {
   validateContentChecklist,
   completeContentWorkflow,
   validateITSetupChecklist,
-  completeITIntegration
+  completeITIntegration,
+  validateDesignChecklist,
+  completeDesignWorkflow
 };
