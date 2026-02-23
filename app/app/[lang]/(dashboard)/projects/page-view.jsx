@@ -197,7 +197,7 @@ const getProjectPhase = (project) => {
     return { label: "Ready for Integration", color: "text-indigo-600 bg-indigo-50 border-indigo-200" };
   }
   if (project.itStatus === 'integration_completed') {
-    return { label: "✅ Completed", color: "text-green-600 bg-green-50 border-green-200" };
+    return { label: "Integration Done", color: "text-green-600 bg-green-50 border-green-200" };
   }
   return { label: "Active Phase", color: "text-slate-600 bg-slate-50 border-slate-200" };
 };
@@ -889,7 +889,19 @@ const ProjectsPage = () => {
   }, [countdownInterval]);
 
   // Get current projects based on active tab
-  const currentProjects = activeTab === 'active' ? activeProjects : archivedProjects;
+  const rawProjects = activeTab === 'active' ? activeProjects : archivedProjects;
+  const currentProjects = rawProjects.filter(project => {
+    if (session?.user?.role !== 'd.it') return true;
+
+    // For IT role, hide projects that are in intermediate content phases
+    // (IT setup is done, but content department hasn't finished submission)
+    const isSetupValidated = project.itStatus === 'setup_validated';
+    const isContentInProgress = project.contentStatus === 'pending' || project.contentStatus === 'checklist_validated';
+
+    if (isSetupValidated && isContentInProgress) return false;
+
+    return true;
+  });
   const currentFilters = activeTab === 'active' ? activeFilters : archivedFilters;
   const uniqueCategories = [...new Set(currentProjects.map(project => project.category).filter(Boolean))];
   const uniqueStatuses = [...new Set(currentProjects.map(project => project.status).filter(Boolean))];

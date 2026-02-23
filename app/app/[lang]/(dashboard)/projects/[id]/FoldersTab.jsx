@@ -715,8 +715,8 @@ const FoldersTab = ({ projectId }) => {
               {/* Success state for completed integration */}
               {project?.itStatus === 'integration_completed' && (
                 <div className="flex items-center gap-2 px-6 py-2.5 bg-green-50 text-green-700 rounded-xl font-bold border border-green-200">
-                  <Icon icon="lucide:party-popper" className="w-5 h-5" />
-                  Integration Completed
+                  <Icon icon="lucide:check-circle-2" className="w-5 h-5" />
+                  Integration Done
                 </div>
               )}
             </div>

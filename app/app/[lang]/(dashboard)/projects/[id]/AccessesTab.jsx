@@ -72,6 +72,21 @@ const technicalSetupSections = [
   }
 ];
 
+// ── Integration Department checklist sections (Shared with FoldersTab) ──
+const integrationChecklistSections = [
+  {
+    id: 'integration_validation',
+    title: "Integration Validation",
+    items: [
+      { id: 'json_integrated', label: 'Structured content correctly integrated', checked: false },
+      { id: 'design_match', label: 'Design matches template and requirements', checked: false },
+      { id: 'interactivity', label: 'Interactive elements tested (forms, buttons)', checked: false },
+      { id: 'mobile_responsive', label: 'Mobile responsiveness verified', checked: false },
+      { id: 'seo_final', label: 'Final SEO checks completed', checked: false },
+    ]
+  }
+];
+
 const AccessesTab = ({ projectId }) => {
   const { data: session } = useSession();
   const userRole = session?.user?.role; // Get the user's role
@@ -135,11 +150,21 @@ const AccessesTab = ({ projectId }) => {
 
   // ── IT Setup Validation State ──────────────────────────────────
   const [itStatus, setItStatus] = useState('pending');
+  const [contentStatus, setContentStatus] = useState('pending');
   const [isChecklistModalOpen, setIsChecklistModalOpen] = useState(false);
   const [checklistSections, setChecklistSections] = useState(technicalSetupSections);
   const [isLoadingChecklist, setIsLoadingChecklist] = useState(false);
   const [isSavingChecklistItem, setIsSavingChecklistItem] = useState(false);
   const [isConfirmingChecklist, setIsConfirmingChecklist] = useState(false);
+
+  // ── Integration Modal State ──────────────────────────────────────
+  const [isIntegrationModalOpen, setIsIntegrationModalOpen] = useState(false);
+  const [integrationSections, setIntegrationSections] = useState(integrationChecklistSections);
+  const [isConfirmingIntegration, setIsConfirmingIntegration] = useState(false);
+
+  const allIntegrationChecked = integrationSections.every(s => s.items.every(i => i.checked));
+  const checkedIntegrationCount = integrationSections.reduce((acc, s) => acc + s.items.filter(i => i.checked).length, 0);
+  const totalIntegrationCount = integrationSections.reduce((acc, s) => acc + s.items.length, 0);
 
   // Checklist computed values
   const allItemsChecked = checklistSections.every(s => s.items.every(i => i.checked));
@@ -159,6 +184,7 @@ const AccessesTab = ({ projectId }) => {
       const response = await getProject(projectId);
       if (response.status === 'success') {
         setItStatus(response.data.project.itStatus || 'pending');
+        setContentStatus(response.data.project.contentStatus || 'pending');
       }
     } catch (error) {
       console.error('Error loading project status:', error);
@@ -395,6 +421,35 @@ const AccessesTab = ({ projectId }) => {
     setErrors({});
   };
 
+  const toggleIntegrationItem = (itemId) => {
+    setIntegrationSections(prev => prev.map(section => ({
+      ...section,
+      items: section.items.map(item =>
+        item.id === itemId ? { ...item, checked: !item.checked } : item
+      )
+    })));
+  };
+
+  const handleConfirmIntegration = async () => {
+    setIsConfirmingIntegration(true);
+    try {
+      const { completeITIntegration } = await import("@/config/functions/project");
+      const res = await completeITIntegration(projectId);
+      if (res.status === 'success') {
+        toast.success("Integration finalized and project completed!");
+        setItStatus('integration_completed');
+        setIsIntegrationModalOpen(false);
+      } else {
+        toast.error(res.message || "Failed to finalize integration");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred");
+    } finally {
+      setIsConfirmingIntegration(false);
+    }
+  };
+
   // Helper function to mask passwords for non-d.it users
   const maskPassword = (password) => {
     if (!password) return '';
@@ -455,251 +510,355 @@ const AccessesTab = ({ projectId }) => {
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Two Column Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Hosting Information */}
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-base font-semibold text-gray-900">Hosting Service</h3>
-                <span className="text-xs text-red-500 font-medium">Required</span>
+        {/* ── Dashboard Simplified View for Integration ───────────────── */}
+        {userRole === 'd.it' && itStatus === 'setup_validated' && contentStatus === 'completed' ? (
+          <div className="space-y-6">
+            <div className="bg-indigo-600 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
+              <div className="relative z-10">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-inner">
+                    <Icon icon="lucide:rocket" className="w-8 h-8 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-black tracking-tight">Ready for Final Integration</h2>
+                    <p className="text-indigo-100 font-medium">Content is ready. Complete the final validation to finish the project.</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-4 mt-8">
+                  <button
+                    onClick={() => setIsIntegrationModalOpen(true)}
+                    className="px-10 py-4 bg-white text-indigo-700 rounded-2xl font-black text-lg hover:bg-indigo-50 shadow-xl transition-all active:scale-95 flex items-center gap-3 group"
+                  >
+                    <Icon icon="lucide:check-circle-2" className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+                    Complete Integration Checklist
+                  </button>
+
+                  <div className="flex items-center gap-2 px-6 py-4 bg-indigo-500/30 backdrop-blur-sm rounded-2xl border border-white/10">
+                    <Icon icon="lucide:info" className="w-5 h-5 opacity-60" />
+                    <span className="text-sm font-bold uppercase tracking-wider">Phase: Validation</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Hosting Provider
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.hosting.service || ''}
-                    onChange={(e) => handleChange(e, 'hosting', 'service')}
-                    placeholder="SiteGround, Bluehost, etc."
-                    className={`block w-full px-3 py-1.5 text-sm border ${errors.hostingService ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
-                    readOnly={!canEdit}
-                    disabled={!canEdit}
-                  />
-                  {errors.hostingService && (
-                    <p className="text-red-500 text-xs mt-1">{errors.hostingService}</p>
-                  )}
+              {/* Decorative background element */}
+              <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
+            </div>
+
+            {/* Quick Access Info (Read Only) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-6 bg-white border border-gray-100 rounded-3xl shadow-sm">
+                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Site Domain</h4>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                    <Icon icon="lucide:globe" className="w-5 h-5" />
+                  </div>
+                  <span className="text-xl font-bold text-gray-900">{formData.domain.name || 'N/A'}</span>
+                </div>
+              </div>
+              <div className="p-6 bg-white border border-gray-100 rounded-3xl shadow-sm">
+                <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">WP Admin Access</h4>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600">
+                      <Icon icon="lucide:user" className="w-5 h-5" />
+                    </div>
+                    <span className="font-bold text-gray-900">{formData.wordpress.adminUsername}</span>
+                  </div>
+                  <a
+                    href={formData.wordpress.loginUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <Icon icon="lucide:external-link" className="w-5 h-5" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Two Column Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Hosting Information */}
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-base font-semibold text-gray-900">Hosting Service</h3>
+                  <span className="text-xs text-red-500 font-medium">Required</span>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Login Email
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.hosting.email || ''}
-                    onChange={(e) => handleChange(e, 'hosting', 'email')}
-                    placeholder="email@example.com"
-                    className={`block w-full px-3 py-1.5 text-sm border ${errors.hostingEmail ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
-                    readOnly={!canEdit}
-                    disabled={!canEdit}
-                  />
-                  {errors.hostingEmail && (
-                    <p className="text-red-500 text-xs mt-1">{errors.hostingEmail}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Password
-                  </label>
-                  <div className="relative">
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Hosting Provider
+                    </label>
                     <input
-                      type={showPassword.hosting && canEdit ? "text" : "password"}
-                      value={maskPassword(formData.hosting.password)}
-                      onChange={(e) => handleChange(e, 'hosting', 'password')}
-                      placeholder={canEdit ? "Hosting password" : "••••••••"}
-                      className={`block w-full px-3 py-1.5 pr-9 text-sm border ${errors.hostingPassword ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                      type="text"
+                      value={formData.hosting.service || ''}
+                      onChange={(e) => handleChange(e, 'hosting', 'service')}
+                      placeholder="SiteGround, Bluehost, etc."
+                      className={`block w-full px-3 py-1.5 text-sm border ${errors.hostingService ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                       readOnly={!canEdit}
                       disabled={!canEdit}
                     />
-                    {canEdit && (
-                      <button
-                        type="button"
-                        onClick={() => togglePasswordVisibility('hosting')}
-                        className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-500 hover:text-gray-700"
-                      >
-                        {showPassword.hosting ? (
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.59 6.59m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                          </svg>
-                        ) : (
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        )}
-                      </button>
+                    {errors.hostingService && (
+                      <p className="text-red-500 text-xs mt-1">{errors.hostingService}</p>
                     )}
                   </div>
-                  {errors.hostingPassword && (
-                    <p className="text-red-500 text-xs mt-1">{errors.hostingPassword}</p>
-                  )}
-                </div>
-              </div>
-            </div>
 
-            {/* WordPress Information */}
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-base font-semibold text-gray-900">WordPress Admin</h3>
-                <span className="text-xs text-red-500 font-medium">Required</span>
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Admin Email
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.wordpress.adminEmail || ''}
-                    onChange={(e) => handleChange(e, 'wordpress', 'adminEmail')}
-                    placeholder="admin@example.com"
-                    className={`block w-full px-3 py-1.5 text-sm border ${errors.wordpressEmail ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
-                    readOnly={!canEdit}
-                    disabled={!canEdit}
-                  />
-                  {errors.wordpressEmail && (
-                    <p className="text-red-500 text-xs mt-1">{errors.wordpressEmail}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Admin Password
-                  </label>
-                  <div className="relative">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Login Email
+                    </label>
                     <input
-                      type={showPassword.wordpress && canEdit ? "text" : "password"}
-                      value={maskPassword(formData.wordpress.adminPassword)}
-                      onChange={(e) => handleChange(e, 'wordpress', 'adminPassword')}
-                      placeholder={canEdit ? "WordPress password" : "••••••••"}
-                      className={`block w-full px-3 py-1.5 pr-9 text-sm border ${errors.wordpressPassword ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                      type="email"
+                      value={formData.hosting.email || ''}
+                      onChange={(e) => handleChange(e, 'hosting', 'email')}
+                      placeholder="email@example.com"
+                      className={`block w-full px-3 py-1.5 text-sm border ${errors.hostingEmail ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                       readOnly={!canEdit}
                       disabled={!canEdit}
                     />
-                    {canEdit && (
-                      <button
-                        type="button"
-                        onClick={() => togglePasswordVisibility('wordpress')}
-                        className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-500 hover:text-gray-700"
-                      >
-                        {showPassword.wordpress ? (
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.59 6.59m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                          </svg>
-                        ) : (
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        )}
-                      </button>
+                    {errors.hostingEmail && (
+                      <p className="text-red-500 text-xs mt-1">{errors.hostingEmail}</p>
                     )}
                   </div>
-                  {errors.wordpressPassword && (
-                    <p className="text-red-500 text-xs mt-1">{errors.wordpressPassword}</p>
-                  )}
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword.hosting && canEdit ? "text" : "password"}
+                        value={maskPassword(formData.hosting.password)}
+                        onChange={(e) => handleChange(e, 'hosting', 'password')}
+                        placeholder={canEdit ? "Hosting password" : "••••••••"}
+                        className={`block w-full px-3 py-1.5 pr-9 text-sm border ${errors.hostingPassword ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                        readOnly={!canEdit}
+                        disabled={!canEdit}
+                      />
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={() => togglePasswordVisibility('hosting')}
+                          className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-500 hover:text-gray-700"
+                        >
+                          {showPassword.hosting ? (
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.59 6.59m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                            </svg>
+                          ) : (
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268-2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                    {errors.hostingPassword && (
+                      <p className="text-red-500 text-xs mt-1">{errors.hostingPassword}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* WordPress Information */}
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-base font-semibold text-gray-900">WordPress Admin</h3>
+                  <span className="text-xs text-red-500 font-medium">Required</span>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Admin Email
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.wordpress.adminEmail || ''}
+                      onChange={(e) => handleChange(e, 'wordpress', 'adminEmail')}
+                      placeholder="admin@example.com"
+                      className={`block w-full px-3 py-1.5 text-sm border ${errors.wordpressEmail ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                      readOnly={!canEdit}
+                      disabled={!canEdit}
+                    />
+                    {errors.wordpressEmail && (
+                      <p className="text-red-500 text-xs mt-1">{errors.wordpressEmail}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Admin Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword.wordpress && canEdit ? "text" : "password"}
+                        value={maskPassword(formData.wordpress.adminPassword)}
+                        onChange={(e) => handleChange(e, 'wordpress', 'adminPassword')}
+                        placeholder={canEdit ? "WordPress password" : "••••••••"}
+                        className={`block w-full px-3 py-1.5 pr-9 text-sm border ${errors.wordpressPassword ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                        readOnly={!canEdit}
+                        disabled={!canEdit}
+                      />
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={() => togglePasswordVisibility('wordpress')}
+                          className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-500 hover:text-gray-700"
+                        >
+                          {showPassword.wordpress ? (
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.59 6.59m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                            </svg>
+                          ) : (
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                    {errors.wordpressPassword && (
+                      <p className="text-red-500 text-xs mt-1">{errors.wordpressPassword}</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Domain Information */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-semibold text-gray-900">Website Domain</h3>
-              <span className="text-xs text-red-500 font-medium">Required</span>
-            </div>
+            {/* Domain Information */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-semibold text-gray-900">Website Domain</h3>
+                <span className="text-xs text-red-500 font-medium">Required</span>
+              </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                Domain Name
-              </label>
-              <input
-                type="text"
-                value={formData.domain.name || ''}
-                onChange={(e) => handleChange(e, 'domain', 'name')}
-                placeholder="example.com"
-                className={`block w-full px-3 py-1.5 text-sm border ${errors.domainName ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
-                readOnly={!canEdit}
-                disabled={!canEdit}
-              />
-              {errors.domainName && (
-                <p className="text-red-500 text-xs mt-1">{errors.domainName}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <h3 className="text-base font-semibold text-gray-900 mb-3">Additional Notes</h3>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                Special instructions or notes (optional)
-              </label>
-              <textarea
-                value={formData.notes || ''}
-                onChange={handleChange}
-                name="notes"
-                rows="2"
-                placeholder="Any special requirements, server details, or important notes..."
-                className={`block w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
-                readOnly={!canEdit}
-                disabled={!canEdit}
-              />
-            </div>
-          </div>
-
-          {/* Form Actions - Only show for d.it users */}
-          {canEdit ? (
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={handleClear}
-                className="px-3 py-1.5 text-xs border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors"
-                disabled={saving}
-              >
-                Clear All
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-4 py-1.5 bg-primary text-white text-xs font-medium rounded hover:bg-primary-dark focus:outline-none focus:ring-1 focus:ring-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-              >
-                {saving ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Saving...
-                  </>
-                ) : (
-                  'Save Access Info'
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Domain Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.domain.name || ''}
+                  onChange={(e) => handleChange(e, 'domain', 'name')}
+                  placeholder="example.com"
+                  className={`block w-full px-3 py-1.5 text-sm border ${errors.domainName ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                  readOnly={!canEdit}
+                  disabled={!canEdit}
+                />
+                {errors.domainName && (
+                  <p className="text-red-500 text-xs mt-1">{errors.domainName}</p>
                 )}
-              </button>
-            </div>
-          ) : (
-            <div className="pt-2">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <div className="flex items-center">
-                  <svg className="h-4 w-4 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="text-sm text-blue-700">
-                    This information is view-only. Only the IT Department (d.it) can edit access details.
-                  </p>
-                </div>
               </div>
             </div>
-          )}
-        </form>
+
+            {/* Notes */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <h3 className="text-base font-semibold text-gray-900 mb-3">Additional Notes</h3>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Special instructions or notes (optional)
+                </label>
+                <textarea
+                  value={formData.notes || ''}
+                  onChange={handleChange}
+                  name="notes"
+                  rows="2"
+                  placeholder="Any special requirements, server details, or important notes..."
+                  className={`block w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                  readOnly={!canEdit}
+                  disabled={!canEdit}
+                />
+              </div>
+            </div>
+
+            {/* Form Actions - Only show for d.it users */}
+            {canEdit ? (
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  className="px-3 py-1.5 text-xs border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors"
+                  disabled={saving}
+                >
+                  Clear All
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-4 py-1.5 bg-primary text-white text-xs font-medium rounded hover:bg-primary-dark focus:outline-none focus:ring-1 focus:ring-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                >
+                  {saving ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Access Info'
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div className="pt-2">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-center">
+                    <svg className="h-4 w-4 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-sm text-blue-700">
+                      This information is view-only. Only the IT Department (d.it) can edit access details.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </form>
+        )}
+
+        {/* ── IT Integration Section (Phase 2 - Floating Button for non-ready states) ── */}
+        {userRole === 'd.it' && itStatus === 'setup_validated' && contentStatus !== 'completed' && (
+          <div className="mt-8 bg-indigo-50 border border-indigo-100 rounded-xl p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                  <Icon icon="lucide:check-circle-2" className="w-7 h-7" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-indigo-900">Final Integration Phase</h3>
+                  <p className="text-indigo-700 text-sm">Mark the project integration as completed after technical validation</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsIntegrationModalOpen(true)}
+                className="px-8 py-3 bg-green-600 text-white rounded-2xl font-black hover:bg-green-700 shadow-xl transition-all active:scale-95 flex items-center gap-3 group"
+              >
+                <Icon icon="lucide:party-popper" className="w-5 h-5 group-hover:scale-125 transition-transform" />
+                Finalize Integration
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Success state for completed integration */}
+        {itStatus === 'integration_completed' && (
+          <div className="mt-8 bg-green-50 border border-green-200 rounded-xl p-8 text-center shadow-lg animate-in fade-in zoom-in duration-500">
+            <div className="w-20 h-20 bg-green-600 rounded-full flex items-center justify-center text-white mx-auto mb-4 shadow-xl shadow-green-200">
+              <Icon icon="lucide:check-check" className="w-10 h-10" />
+            </div>
+            <h3 className="text-2xl font-black text-green-900 mb-2">Integration Done!</h3>
+            <p className="text-green-700 font-medium">The technical setup and integration have been fully finalized.</p>
+          </div>
+        )}
       </div>
 
       {/* ── IT Setup Checklist Modal ────────────────────────────────── */}
@@ -804,6 +963,105 @@ const AccessesTab = ({ projectId }) => {
                     <Icon icon="lucide:check-circle-2" className="w-4 h-4" />
                   )}
                   Confirm & Validate Setup
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Integration Checklist Modal (Phase 2) ───────────────────────── */}
+      {isIntegrationModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4 backdrop-blur-md">
+          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl border border-green-100 animate-in fade-in zoom-in duration-200">
+
+            {/* Modal Header */}
+            <div className="p-8 border-b border-gray-100 bg-green-50/50">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-green-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-green-200">
+                    <Icon icon="lucide:check-square" className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-green-900 tracking-tight">Final Integration Checklist</h2>
+                    <p className="text-green-700/80 font-medium">Verify execution before project completion</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsIntegrationModalOpen(false)}
+                  className="p-2 hover:bg-white rounded-full transition-colors text-green-900/40 hover:text-green-900"
+                >
+                  <Icon icon="lucide:x" className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-8 space-y-6">
+              {integrationSections.map(section => (
+                <div key={section.id} className="space-y-4">
+                  {section.items.map(item => (
+                    <label
+                      key={item.id}
+                      className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer group ${item.checked
+                        ? 'bg-green-50 border-green-200 shadow-sm'
+                        : 'bg-white border-gray-100 hover:border-green-200 hover:bg-green-50/30'
+                        }`}
+                    >
+                      <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${item.checked
+                        ? 'bg-green-600 border-green-600'
+                        : 'border-gray-300 bg-white group-hover:border-green-400'
+                        }`}>
+                        {item.checked && <Icon icon="lucide:check" className="w-4 h-4 text-white" />}
+                        <input
+                          type="checkbox"
+                          className="sr-only"
+                          checked={item.checked}
+                          onChange={() => toggleIntegrationItem(item.id)}
+                        />
+                      </div>
+                      <span className={`font-bold transition-all ${item.checked ? 'text-green-900' : 'text-gray-600'}`}>
+                        {item.label}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-8 bg-gray-50 border-t flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className={`h-2 w-32 rounded-full bg-gray-200 overflow-hidden`}>
+                  <div
+                    className="h-full bg-green-600 transition-all duration-500"
+                    style={{
+                      width: `${(checkedIntegrationCount / totalIntegrationCount) * 100}%`
+                    }}
+                  />
+                </div>
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                  {checkedIntegrationCount} OF {totalIntegrationCount}
+                </span>
+              </div>
+
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setIsIntegrationModalOpen(false)}
+                  className="px-6 py-3 text-gray-500 font-bold hover:text-gray-900 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmIntegration}
+                  disabled={!allIntegrationChecked || isConfirmingIntegration}
+                  className={`px-8 py-3 rounded-2xl font-black text-white shadow-xl transition-all active:scale-95 flex items-center gap-3 ${allIntegrationChecked && !isConfirmingIntegration
+                    ? 'bg-green-600 hover:bg-green-700 shadow-green-200'
+                    : 'bg-gray-300 cursor-not-allowed shadow-none'
+                    }`}
+                >
+                  {isConfirmingIntegration && <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin" />}
+                  Confirm Project Completion
                 </button>
               </div>
             </div>
