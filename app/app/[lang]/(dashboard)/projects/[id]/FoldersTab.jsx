@@ -110,6 +110,7 @@ const FoldersTab = ({ projectId }) => {
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isPreviewTextModalOpen, setIsPreviewTextModalOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isContentPanelOpen, setIsContentPanelOpen] = useState(false);
 
   // Checklist Modal State
   const [isChecklistModalOpen, setIsChecklistModalOpen] = useState(false);
@@ -687,12 +688,17 @@ const FoldersTab = ({ projectId }) => {
           </div>
         )}
 
-        {/* Content Submission UI (Edit for Content, View for Integration if validated) */}
-        {(userRole === 'd.c' || (['superadmin'].includes(userRole) && ['checklist_validated', 'completed', 'submission_validated'].includes(project?.contentStatus))) && (
-          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 shadow-sm mb-8">
-            <div className="flex items-center justify-between mb-6">
+        {/* Content Submission UI — D.C only */}
+        {userRole === 'd.c' && (
+          <div className="bg-indigo-50 border border-indigo-100 rounded-xl shadow-sm mb-8 overflow-hidden">
+
+            {/* ── Clickable Header ── */}
+            <div
+              className="flex items-center justify-between p-6 cursor-pointer select-none"
+              onClick={() => setIsContentPanelOpen(prev => !prev)}
+            >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-md">
+                <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-md flex-shrink-0">
                   <Icon icon="lucide:file-up" className="w-6 h-6" />
                 </div>
                 <div>
@@ -701,191 +707,218 @@ const FoldersTab = ({ projectId }) => {
                 </div>
               </div>
 
-              {/* Integration Confirmation Button (only for d.in/d.it when everything else is ready) */}
-              {userRole === 'd.in' && project?.contentStatus === 'checklist_validated' && project?.itStatus === 'setup_validated' && (
-                <button
-                  onClick={() => setIsIntegrationModalOpen(true)}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 shadow-lg transition-all active:scale-95 group"
-                >
-                  <Icon icon="lucide:check-circle-2" className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                  Finalize Integration
-                </button>
-              )}
+              <div className="flex items-center gap-3" onClick={e => e.stopPropagation()}>
+                {/* Integration Confirmation Button */}
+                {userRole === 'd.in' && project?.contentStatus === 'checklist_validated' && project?.itStatus === 'setup_validated' && (
+                  <button
+                    onClick={() => setIsIntegrationModalOpen(true)}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 shadow-lg transition-all active:scale-95 group"
+                  >
+                    <Icon icon="lucide:check-circle-2" className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    Finalize Integration
+                  </button>
+                )}
 
-              {/* Success state for completed integration */}
-              {project?.itStatus === 'integration_completed' && (
-                <div className="flex items-center gap-2 px-6 py-2.5 bg-green-50 text-green-700 rounded-xl font-bold border border-green-200">
-                  <Icon icon="lucide:check-circle-2" className="w-5 h-5" />
-                  Integration Done
-                </div>
-              )}
-            </div>
+                {/* Integration Done badge */}
+                {project?.itStatus === 'integration_completed' && (
+                  <div className="flex items-center gap-2 px-6 py-2.5 bg-green-50 text-green-700 rounded-xl font-bold border border-green-200">
+                    <Icon icon="lucide:check-circle-2" className="w-5 h-5" />
+                    Integration Done
+                  </div>
+                )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* JSON Upload */}
-              <div className="space-y-3">
-                <label className="block text-sm font-semibold text-indigo-900">
-                  1. Upload JSON File
-                </label>
+                {/* Chevron toggle */}
                 <div
-                  className={`border-2 border-dashed rounded-xl p-4 transition-all flex flex-col items-center justify-center gap-2 ${project?.isContentReady || project?.contentStatus === 'completed' ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-75' : contentJson ? 'border-green-300 bg-green-50 cursor-pointer' : 'border-indigo-200 bg-white hover:border-indigo-400 cursor-pointer'}`}
-                  onClick={() => !project?.isContentReady && project?.contentStatus !== 'completed' && document.getElementById('json-submission-upload')?.click()}
+                  onClick={() => setIsContentPanelOpen(prev => !prev)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-indigo-100 transition-colors cursor-pointer"
                 >
                   <Icon
-                    icon={contentJson ? "lucide:check-circle" : "lucide:upload-cloud"}
-                    className={`w-8 h-8 ${contentJson ? 'text-green-600' : 'text-indigo-400'}`}
-                  />
-                  <span className={`text-xs font-medium ${project?.isContentReady || project?.contentStatus === 'completed' ? 'text-gray-500' : contentJson ? 'text-green-700' : 'text-indigo-600'}`}>
-                    {project?.contentStatus === 'completed' ? 'Content Finalized' : project?.isContentReady ? 'Submission Locked' : contentJson ? 'JSON Validated & Ready' : 'Drop JSON file or click to upload'}
-                  </span>
-                  <input
-                    id="json-submission-upload"
-                    type="file"
-                    accept=".json"
-                    className="hidden"
-                    onChange={handleJsonUpload}
+                    icon="lucide:chevron-down"
+                    className="w-5 h-5 text-indigo-500 transition-transform duration-300"
+                    style={{ transform: isContentPanelOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}
                   />
                 </div>
-                {contentJson && (
-                  <div className="space-y-2">
-                    <div className="bg-white border border-green-200 rounded-lg p-2 max-h-32 overflow-y-auto">
-                      <pre className="text-[10px] text-gray-600 font-mono">
-                        {contentJson.substring(0, 300)}{contentJson.length > 300 ? '...' : ''}
-                      </pre>
+              </div>
+            </div>
+
+            {/* ── Collapsible Body ── */}
+            <div
+              style={{
+                maxHeight: isContentPanelOpen ? '2000px' : '0',
+                opacity: isContentPanelOpen ? 1 : 0,
+                overflow: 'hidden',
+                transition: 'max-height 0.4s ease, opacity 0.3s ease'
+              }}
+            >
+              <div className="px-6 pb-6">
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* JSON Upload */}
+                  <div className="space-y-3">
+                    <label className="block text-sm font-semibold text-indigo-900">
+                      1. Upload JSON File
+                    </label>
+                    <div
+                      className={`border-2 border-dashed rounded-xl p-4 transition-all flex flex-col items-center justify-center gap-2 ${project?.isContentReady || project?.contentStatus === 'completed' ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-75' : contentJson ? 'border-green-300 bg-green-50 cursor-pointer' : 'border-indigo-200 bg-white hover:border-indigo-400 cursor-pointer'}`}
+                      onClick={() => !project?.isContentReady && project?.contentStatus !== 'completed' && document.getElementById('json-submission-upload')?.click()}
+                    >
+                      <Icon
+                        icon={contentJson ? "lucide:check-circle" : "lucide:upload-cloud"}
+                        className={`w-8 h-8 ${contentJson ? 'text-green-600' : 'text-indigo-400'}`}
+                      />
+                      <span className={`text-xs font-medium ${project?.isContentReady || project?.contentStatus === 'completed' ? 'text-gray-500' : contentJson ? 'text-green-700' : 'text-indigo-600'}`}>
+                        {project?.contentStatus === 'completed' ? 'Content Finalized' : project?.isContentReady ? 'Submission Locked' : contentJson ? 'JSON Validated & Ready' : 'Drop JSON file or click to upload'}
+                      </span>
+                      <input
+                        id="json-submission-upload"
+                        type="file"
+                        accept=".json"
+                        className="hidden"
+                        onChange={handleJsonUpload}
+                      />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsPreviewModalOpen(true)}
-                      className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
-                    >
-                      <Icon icon="lucide:eye" className="w-3.5 h-3.5" />
-                      Preview Full JSON Content
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-indigo-900">2. Text Content</span>
-                    {isSavingDraft ? (
-                      <span className="text-[10px] text-indigo-400 flex items-center gap-1">
-                        <Icon icon="lucide:loader-2" className="w-3 h-3 animate-spin" />
-                        Saving...
-                      </span>
-                    ) : lastSaved && (
-                      <span className="text-[10px] text-green-500 flex items-center gap-1">
-                        <Icon icon="lucide:check" className="w-3 h-3" />
-                        Saved {lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
+                    {contentJson && (
+                      <div className="space-y-2">
+                        <div className="bg-white border border-green-200 rounded-lg p-2 max-h-32 overflow-y-auto">
+                          <pre className="text-[10px] text-gray-600 font-mono">
+                            {contentJson.substring(0, 300)}{contentJson.length > 300 ? '...' : ''}
+                          </pre>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsPreviewModalOpen(true)}
+                          className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+                        >
+                          <Icon icon="lucide:eye" className="w-3.5 h-3.5" />
+                          Preview Full JSON Content
+                        </button>
+                      </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-3">
-                    {contentText.trim() && (
-                      <button
-                        type="button"
-                        onClick={() => setIsPreviewTextModalOpen(true)}
-                        className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
-                      >
-                        <Icon icon="lucide:eye" className="w-3.5 h-3.5" />
-                        Preview Text
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        if (project?.isContentReady || project?.contentStatus === 'completed') return;
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleFormatText();
-                      }}
-                      className={`text-xs px-2 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${project?.isContentReady || project?.contentStatus === 'completed' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}
-                      disabled={!contentText.trim() || project?.isContentReady || project?.contentStatus === 'completed'}
-                    >
-                      <Icon icon="lucide:wand-2" className="w-3 h-3" />
-                      Auto-format
-                    </button>
-                  </div>
-                </div>
-                <textarea
-                  value={contentText}
-                  onChange={(e) => !project?.isContentReady && project?.contentStatus !== 'completed' && setContentText(e.target.value)}
-                  readOnly={project?.isContentReady || project?.contentStatus === 'completed'}
-                  placeholder={project?.contentStatus === 'completed' ? "Content workflow finalized." : project?.isContentReady ? "Content is locked." : "Paste your content here..."}
-                  className={`w-full h-32 px-3 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition-all ${project?.isContentReady || project?.contentStatus === 'completed' ? 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed' : 'bg-white border-indigo-200'}`}
-                />
-                <p className="text-[10px] text-indigo-500 italic">
-                  * High-quality formatting ensures faster integration.
-                </p>
-              </div>
-            </div>
 
-            <div className="mt-8 flex items-center justify-between border-t border-indigo-100 pt-6">
-              <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${project?.contentStatus === 'completed' ? 'bg-green-600 shadow-[0_0_8px_rgba(22,163,74,0.6)]' : project?.isContentReady ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                <span className="text-sm font-medium text-gray-700">
-                  Status: <span className={project?.contentStatus === 'completed' ? 'text-green-700 font-bold' : project?.isContentReady ? 'text-green-700' : 'text-gray-500 font-bold'}>
-                    {project?.contentStatus === 'completed' ? 'Workflow Completed ✅' : project?.isContentReady ? 'Content Submitted ✔' : 'Pending Submission'}
-                  </span>
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={handleSubmitContent}
-                disabled={!contentJson || !contentText.trim() || project?.isContentReady || project?.contentStatus === 'completed'}
-                className={`px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center gap-2 ${!contentJson || !contentText.trim() || project?.isContentReady || project?.contentStatus === 'completed'
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
-                  : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'
-                  }`}
-              >
-                {project?.contentStatus === 'completed' ? (
-                  <Icon icon="lucide:check-circle-2" className="w-4 h-4 text-green-500" />
-                ) : project?.isContentReady ? (
-                  <Icon icon="lucide:lock" className="w-4 h-4" />
-                ) : (
-                  <Icon icon="lucide:clipboard-check" className="w-4 h-4" />
-                )}
-                {project?.contentStatus === 'completed' ? 'Content Finalized' : project?.isContentReady ? 'Content Submitted' : 'Save Content'}
-              </button>
-            </div>
-
-            {/* Workflow Completion Section */}
-            <div className="mt-8 pt-6 border-t border-indigo-200">
-              {project?.contentStatus === 'completed' ? (
-                <div className="bg-green-600 rounded-xl p-4 flex items-center gap-4 text-white shadow-lg">
-                  <div className="flex-1">
-                    <h4 className="font-bold">All documents and content have been finalized.</h4>
-                  </div>
-                  <Icon icon="lucide:check-circle" className="w-8 h-8 opacity-50" />
-                </div>
-              ) : (
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-bold text-indigo-900">Final Milestone: Complete Phase</h4>
-                    <p className="text-[11px] text-gray-500">
-                      {project?.isContentReady
-                        ? 'Content submitted. Click to mark the phase as complete.'
-                        : 'Save content first to unlock this step.'}
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-indigo-900">2. Text Content</span>
+                        {isSavingDraft ? (
+                          <span className="text-[10px] text-indigo-400 flex items-center gap-1">
+                            <Icon icon="lucide:loader-2" className="w-3 h-3 animate-spin" />
+                            Saving...
+                          </span>
+                        ) : lastSaved && (
+                          <span className="text-[10px] text-green-500 flex items-center gap-1">
+                            <Icon icon="lucide:check" className="w-3 h-3" />
+                            Saved {lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {contentText.trim() && (
+                          <button
+                            type="button"
+                            onClick={() => setIsPreviewTextModalOpen(true)}
+                            className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
+                          >
+                            <Icon icon="lucide:eye" className="w-3.5 h-3.5" />
+                            Preview Text
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            if (project?.isContentReady || project?.contentStatus === 'completed') return;
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleFormatText();
+                          }}
+                          className={`text-xs px-2 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${project?.isContentReady || project?.contentStatus === 'completed' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}
+                          disabled={!contentText.trim() || project?.isContentReady || project?.contentStatus === 'completed'}
+                        >
+                          <Icon icon="lucide:wand-2" className="w-3 h-3" />
+                          Auto-format
+                        </button>
+                      </div>
+                    </div>
+                    <textarea
+                      value={contentText}
+                      onChange={(e) => !project?.isContentReady && project?.contentStatus !== 'completed' && setContentText(e.target.value)}
+                      readOnly={project?.isContentReady || project?.contentStatus === 'completed'}
+                      placeholder={project?.contentStatus === 'completed' ? "Content workflow finalized." : project?.isContentReady ? "Content is locked." : "Paste your content here..."}
+                      className={`w-full h-32 px-3 py-2 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition-all ${project?.isContentReady || project?.contentStatus === 'completed' ? 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed' : 'bg-white border-indigo-200'}`}
+                    />
+                    <p className="text-[10px] text-indigo-500 italic">
+                      * High-quality formatting ensures faster integration.
                     </p>
                   </div>
+                </div>
+
+                <div className="mt-8 flex items-center justify-between border-t border-indigo-100 pt-6">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${project?.contentStatus === 'completed' ? 'bg-green-600 shadow-[0_0_8px_rgba(22,163,74,0.6)]' : project?.isContentReady ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                    <span className="text-sm font-medium text-gray-700">
+                      Status: <span className={project?.contentStatus === 'completed' ? 'text-green-700 font-bold' : project?.isContentReady ? 'text-green-700' : 'text-gray-500 font-bold'}>
+                        {project?.contentStatus === 'completed' ? 'Workflow Completed ✅' : project?.isContentReady ? 'Content Submitted ✔' : 'Pending Submission'}
+                      </span>
+                    </span>
+                  </div>
                   <button
-                    onClick={handleCompleteWorkflow}
-                    disabled={!project?.isContentReady || isCompleting || project?.contentStatus === 'completed'}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 ${project?.isContentReady && !isCompleting && project?.contentStatus !== 'completed'
-                      ? 'bg-green-600 text-white hover:bg-green-700'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                    type="button"
+                    onClick={handleSubmitContent}
+                    disabled={!contentJson || !contentText.trim() || project?.isContentReady || project?.contentStatus === 'completed'}
+                    className={`px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center gap-2 ${!contentJson || !contentText.trim() || project?.isContentReady || project?.contentStatus === 'completed'
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'
                       }`}
                   >
-                    {isCompleting ? (
-                      <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+                    {project?.contentStatus === 'completed' ? (
+                      <Icon icon="lucide:check-circle-2" className="w-4 h-4 text-green-500" />
+                    ) : project?.isContentReady ? (
+                      <Icon icon="lucide:lock" className="w-4 h-4" />
                     ) : (
-                      <Icon icon="lucide:target" className="w-4 h-4" />
+                      <Icon icon="lucide:clipboard-check" className="w-4 h-4" />
                     )}
-                    Mark Content Upload as Complete
+                    {project?.contentStatus === 'completed' ? 'Content Finalized' : project?.isContentReady ? 'Content Submitted' : 'Save Content'}
                   </button>
                 </div>
-              )}
+
+                {/* Workflow Completion Section */}
+                <div className="mt-8 pt-6 border-t border-indigo-200">
+                  {project?.contentStatus === 'completed' ? (
+                    <div className="bg-green-600 rounded-xl p-4 flex items-center gap-4 text-white shadow-lg">
+                      <div className="flex-1">
+                        <h4 className="font-bold">All documents and content have been finalized.</h4>
+                      </div>
+                      <Icon icon="lucide:check-circle" className="w-8 h-8 opacity-50" />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-indigo-900">Final Milestone: Complete Phase</h4>
+                        <p className="text-[11px] text-gray-500">
+                          {project?.isContentReady
+                            ? 'Content submitted. Click to mark the phase as complete.'
+                            : 'Save content first to unlock this step.'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleCompleteWorkflow}
+                        disabled={!project?.isContentReady || isCompleting || project?.contentStatus === 'completed'}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 ${project?.isContentReady && !isCompleting && project?.contentStatus !== 'completed'
+                          ? 'bg-green-600 text-white hover:bg-green-700'
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                          }`}
+                      >
+                        {isCompleting ? (
+                          <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Icon icon="lucide:target" className="w-4 h-4" />
+                        )}
+                        Mark Content Upload as Complete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -1302,218 +1335,222 @@ const FoldersTab = ({ projectId }) => {
             </div>
           </div>
         )}
-      </div>
+      </div >
 
       {/* ── Checklist Validation Modal ──────────────────────────────────── */}
-      {isChecklistModalOpen && (
-        <div className="fixed inset-0 bg-black/60 z-[80] flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-indigo-100">
+      {
+        isChecklistModalOpen && (
+          <div className="fixed inset-0 bg-black/60 z-[80] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-indigo-100">
 
-            {/* Modal Header */}
-            <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-indigo-50/40">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-md">
-                  <Icon icon="lucide:clipboard-list" className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-indigo-900">Content Checklist</h2>
-                  <p className="text-sm text-indigo-600">Check all items to confirm before saving</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className={`text-sm font-semibold px-3 py-1 rounded-full ${allItemsChecked ? 'bg-green-100 text-green-700' : 'bg-indigo-100 text-indigo-700'
-                  }`}>
-                  {checkedCount} / {totalCount}
-                </span>
-                <button
-                  onClick={() => setIsChecklistModalOpen(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
-                >
-                  <Icon icon="lucide:x" className="w-6 h-6" />
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-5">
-              {isLoadingChecklist ? (
-                <div className="flex justify-center items-center py-16">
-                  <Icon icon="lucide:loader-2" className="w-8 h-8 text-indigo-500 animate-spin" />
-                </div>
-              ) : (
-                checklistSections.map(section => {
-                  const sectionChecked = section.items.filter(i => i.checked).length;
-                  const sectionTotal = section.items.length;
-                  const allSection = sectionChecked === sectionTotal;
-                  return (
-                    <div key={section.id} className={`border rounded-xl overflow-hidden transition-all ${allSection ? 'border-green-200 bg-green-50/30' : 'border-gray-200 bg-white'
-                      }`}>
-                      <div className={`px-4 py-3 border-b flex items-center justify-between ${allSection ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'
-                        }`}>
-                        <div className="flex items-center gap-2">
-                          {allSection
-                            ? <Icon icon="lucide:check-circle-2" className="w-4 h-4 text-green-600" />
-                            : <Icon icon="lucide:circle" className="w-4 h-4 text-gray-400" />
-                          }
-                          <h3 className="font-semibold text-gray-900 text-sm">{section.title}</h3>
-                        </div>
-                        <span className="text-xs text-gray-500">{sectionChecked}/{sectionTotal}</span>
-                      </div>
-                      <div className="p-4 space-y-2">
-                        {section.items.map(item => (
-                          <label key={item.id} className="flex items-center gap-3 cursor-pointer group">
-                            <input
-                              type="checkbox"
-                              checked={item.checked}
-                              onChange={() => toggleChecklistItem(item.id)}
-                              disabled={isSavingChecklistItem}
-                              className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                            />
-                            <span className={`text-sm select-none ${item.checked ? 'text-gray-400 line-through' : 'text-gray-700 group-hover:text-gray-900'
-                              }`}>
-                              {item.label}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="border-t p-5 flex items-center justify-between bg-white">
-              <p className="text-xs text-gray-500">
-                {allItemsChecked
-                  ? '✅ All items checked — ready to confirm'
-                  : `${totalCount - checkedCount} item${totalCount - checkedCount !== 1 ? 's' : ''} remaining`}
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setIsChecklistModalOpen(false)}
-                  className="px-5 py-2.5 border border-gray-300 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmChecklist}
-                  disabled={!allItemsChecked || isConfirmingChecklist}
-                  className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all active:scale-95 ${allItemsChecked && !isConfirmingChecklist
-                    ? 'bg-green-600 text-white hover:bg-green-700'
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
-                    }`}
-                >
-                  {isConfirmingChecklist ? (
-                    <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Icon icon="lucide:check-circle-2" className="w-4 h-4" />
-                  )}
-                  Confirm & Save Content
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* ── Integration Checklist Modal ───────────────────────────────── */}
-      {isIntegrationModalOpen && (
-        <div className="fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4 backdrop-blur-md">
-          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl border border-green-100 animate-in fade-in zoom-in duration-200">
-
-            {/* Modal Header */}
-            <div className="p-8 border-b border-gray-100 bg-green-50/50">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-green-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-green-200">
-                    <Icon icon="lucide:check-square" className="w-7 h-7" />
+              {/* Modal Header */}
+              <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-indigo-50/40">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-md">
+                    <Icon icon="lucide:clipboard-list" className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black text-green-900 tracking-tight">Final Integration Checklist</h2>
-                    <p className="text-green-700/80 font-medium">Verify execution before project completion</p>
+                    <h2 className="text-xl font-bold text-indigo-900">Content Checklist</h2>
+                    <p className="text-sm text-indigo-600">Check all items to confirm before saving</p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setIsIntegrationModalOpen(false)}
-                  className="p-2 hover:bg-white rounded-full transition-colors text-green-900/40 hover:text-green-900"
-                >
-                  <Icon icon="lucide:x" className="w-6 h-6" />
-                </button>
+                <div className="flex items-center gap-3">
+                  <span className={`text-sm font-semibold px-3 py-1 rounded-full ${allItemsChecked ? 'bg-green-100 text-green-700' : 'bg-indigo-100 text-indigo-700'
+                    }`}>
+                    {checkedCount} / {totalCount}
+                  </span>
+                  <button
+                    onClick={() => setIsChecklistModalOpen(false)}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
+                  >
+                    <Icon icon="lucide:x" className="w-6 h-6" />
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Modal Body */}
-            <div className="p-8 space-y-6">
-              {integrationSections.map(section => (
-                <div key={section.id} className="space-y-4">
-                  {section.items.map(item => (
-                    <label
-                      key={item.id}
-                      className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer group ${item.checked
-                        ? 'bg-green-50 border-green-200 shadow-sm'
-                        : 'bg-white border-gray-100 hover:border-green-200 hover:bg-green-50/30'
-                        }`}
-                    >
-                      <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${item.checked
-                        ? 'bg-green-600 border-green-600'
-                        : 'border-gray-300 bg-white group-hover:border-green-400'
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                {isLoadingChecklist ? (
+                  <div className="flex justify-center items-center py-16">
+                    <Icon icon="lucide:loader-2" className="w-8 h-8 text-indigo-500 animate-spin" />
+                  </div>
+                ) : (
+                  checklistSections.map(section => {
+                    const sectionChecked = section.items.filter(i => i.checked).length;
+                    const sectionTotal = section.items.length;
+                    const allSection = sectionChecked === sectionTotal;
+                    return (
+                      <div key={section.id} className={`border rounded-xl overflow-hidden transition-all ${allSection ? 'border-green-200 bg-green-50/30' : 'border-gray-200 bg-white'
                         }`}>
-                        {item.checked && <Icon icon="lucide:check" className="w-4 h-4 text-white" />}
-                        <input
-                          type="checkbox"
-                          className="sr-only"
-                          checked={item.checked}
-                          onChange={() => toggleIntegrationItem(item.id)}
-                        />
+                        <div className={`px-4 py-3 border-b flex items-center justify-between ${allSection ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'
+                          }`}>
+                          <div className="flex items-center gap-2">
+                            {allSection
+                              ? <Icon icon="lucide:check-circle-2" className="w-4 h-4 text-green-600" />
+                              : <Icon icon="lucide:circle" className="w-4 h-4 text-gray-400" />
+                            }
+                            <h3 className="font-semibold text-gray-900 text-sm">{section.title}</h3>
+                          </div>
+                          <span className="text-xs text-gray-500">{sectionChecked}/{sectionTotal}</span>
+                        </div>
+                        <div className="p-4 space-y-2">
+                          {section.items.map(item => (
+                            <label key={item.id} className="flex items-center gap-3 cursor-pointer group">
+                              <input
+                                type="checkbox"
+                                checked={item.checked}
+                                onChange={() => toggleChecklistItem(item.id)}
+                                disabled={isSavingChecklistItem}
+                                className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                              />
+                              <span className={`text-sm select-none ${item.checked ? 'text-gray-400 line-through' : 'text-gray-700 group-hover:text-gray-900'
+                                }`}>
+                                {item.label}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
                       </div>
-                      <span className={`font-bold transition-all ${item.checked ? 'text-green-900' : 'text-gray-600'}`}>
-                        {item.label}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              ))}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-8 bg-gray-50 border-t flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className={`h-2 w-32 rounded-full bg-gray-200 overflow-hidden`}>
-                  <div
-                    className="h-full bg-green-600 transition-all duration-500"
-                    style={{
-                      width: `${(integrationSections[0].items.filter(i => i.checked).length / integrationSections[0].items.length) * 100}%`
-                    }}
-                  />
-                </div>
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                  {integrationSections[0].items.filter(i => i.checked).length} OF {integrationSections[0].items.length}
-                </span>
+                    );
+                  })
+                )}
               </div>
 
-              <div className="flex gap-4">
-                <button
-                  onClick={() => setIsIntegrationModalOpen(false)}
-                  className="px-6 py-3 text-gray-500 font-bold hover:text-gray-900 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmIntegration}
-                  disabled={!allIntegrationChecked || isConfirmingIntegration}
-                  className={`px-8 py-3 rounded-2xl font-black text-white shadow-xl transition-all active:scale-95 flex items-center gap-3 ${allIntegrationChecked && !isConfirmingIntegration
-                    ? 'bg-green-600 hover:bg-green-700 shadow-green-200'
-                    : 'bg-gray-300 cursor-not-allowed shadow-none'
-                    }`}
-                >
-                  {isConfirmingIntegration && <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin" />}
-                  Confirm Project Completion
-                </button>
+              {/* Modal Footer */}
+              <div className="border-t p-5 flex items-center justify-between bg-white">
+                <p className="text-xs text-gray-500">
+                  {allItemsChecked
+                    ? '✅ All items checked — ready to confirm'
+                    : `${totalCount - checkedCount} item${totalCount - checkedCount !== 1 ? 's' : ''} remaining`}
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setIsChecklistModalOpen(false)}
+                    className="px-5 py-2.5 border border-gray-300 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmChecklist}
+                    disabled={!allItemsChecked || isConfirmingChecklist}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all active:scale-95 ${allItemsChecked && !isConfirmingChecklist
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                      }`}
+                  >
+                    {isConfirmingChecklist ? (
+                      <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Icon icon="lucide:check-circle-2" className="w-4 h-4" />
+                    )}
+                    Confirm & Save Content
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
+      {/* ── Integration Checklist Modal ───────────────────────────────── */}
+      {
+        isIntegrationModalOpen && (
+          <div className="fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4 backdrop-blur-md">
+            <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl border border-green-100 animate-in fade-in zoom-in duration-200">
+
+              {/* Modal Header */}
+              <div className="p-8 border-b border-gray-100 bg-green-50/50">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-green-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-green-200">
+                      <Icon icon="lucide:check-square" className="w-7 h-7" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-black text-green-900 tracking-tight">Final Integration Checklist</h2>
+                      <p className="text-green-700/80 font-medium">Verify execution before project completion</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsIntegrationModalOpen(false)}
+                    className="p-2 hover:bg-white rounded-full transition-colors text-green-900/40 hover:text-green-900"
+                  >
+                    <Icon icon="lucide:x" className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-8 space-y-6">
+                {integrationSections.map(section => (
+                  <div key={section.id} className="space-y-4">
+                    {section.items.map(item => (
+                      <label
+                        key={item.id}
+                        className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer group ${item.checked
+                          ? 'bg-green-50 border-green-200 shadow-sm'
+                          : 'bg-white border-gray-100 hover:border-green-200 hover:bg-green-50/30'
+                          }`}
+                      >
+                        <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${item.checked
+                          ? 'bg-green-600 border-green-600'
+                          : 'border-gray-300 bg-white group-hover:border-green-400'
+                          }`}>
+                          {item.checked && <Icon icon="lucide:check" className="w-4 h-4 text-white" />}
+                          <input
+                            type="checkbox"
+                            className="sr-only"
+                            checked={item.checked}
+                            onChange={() => toggleIntegrationItem(item.id)}
+                          />
+                        </div>
+                        <span className={`font-bold transition-all ${item.checked ? 'text-green-900' : 'text-gray-600'}`}>
+                          {item.label}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                ))}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-8 bg-gray-50 border-t flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`h-2 w-32 rounded-full bg-gray-200 overflow-hidden`}>
+                    <div
+                      className="h-full bg-green-600 transition-all duration-500"
+                      style={{
+                        width: `${(integrationSections[0].items.filter(i => i.checked).length / integrationSections[0].items.length) * 100}%`
+                      }}
+                    />
+                  </div>
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                    {integrationSections[0].items.filter(i => i.checked).length} OF {integrationSections[0].items.length}
+                  </span>
+                </div>
+
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => setIsIntegrationModalOpen(false)}
+                    className="px-6 py-3 text-gray-500 font-bold hover:text-gray-900 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmIntegration}
+                    disabled={!allIntegrationChecked || isConfirmingIntegration}
+                    className={`px-8 py-3 rounded-2xl font-black text-white shadow-xl transition-all active:scale-95 flex items-center gap-3 ${allIntegrationChecked && !isConfirmingIntegration
+                      ? 'bg-green-600 hover:bg-green-700 shadow-green-200'
+                      : 'bg-gray-300 cursor-not-allowed shadow-none'
+                      }`}
+                  >
+                    {isConfirmingIntegration && <Icon icon="lucide:loader-2" className="w-5 h-5 animate-spin" />}
+                    Confirm Project Completion
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      }
     </>
   );
 };
