@@ -288,8 +288,20 @@ const projectSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
-  designCompletedAt: Date
+  designCompletedAt: Date,
 
+  // Control Manager Workflow Status
+  // pending → confirmed
+  controlStatus: {
+    type: String,
+    enum: ['pending', 'confirmed'],
+    default: 'pending'
+  },
+  controlConfirmedAt: Date,
+  controlConfirmedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }
 
 
 }, {

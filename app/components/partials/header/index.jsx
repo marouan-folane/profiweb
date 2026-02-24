@@ -22,7 +22,9 @@ export const USER_ROLES = [
   'd.inf',
   'd.c',
   'd.d',
-  'd.it'
+  'd.it',
+  'd.in',
+  'c.m'
 ];
 
 // Helper function to check if user has required role
@@ -37,6 +39,8 @@ export const hasRequiredRole = (userRole, requiredRole) => {
     'd.c': 4,
     'd.d': 3,
     'd.it': 2,
+    'd.in': 2,
+    'c.m': 2,
     'user': 1
   };
 
@@ -58,6 +62,8 @@ export const RoleBadge = ({ role }) => {
       case 'd.c': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'd.d': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'd.it': return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+      case 'd.in': return 'bg-teal-100 text-teal-800 border-teal-200';
+      case 'c.m': return 'bg-violet-100 text-violet-800 border-violet-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -66,12 +72,14 @@ export const RoleBadge = ({ role }) => {
     const displayNames = {
       'superadmin': 'Super Admin',
       'admin': 'Admin',
-      'd.s': 'Data Supervisor',
-      'd.i': 'Data Inspector',
-      'd.inf': 'Data Information',
-      'd.c': 'Data Controller',
-      'd.d': 'Data Director',
-      'd.it': 'Data IT',
+      'd.s': 'D. Sales',
+      'd.i': 'D. Information',
+      'd.inf': 'D. Info',
+      'd.c': 'D. Content',
+      'd.d': 'D. Design',
+      'd.it': 'D. IT',
+      'd.in': 'D. Integration',
+      'c.m': 'Control Manager',
       'user': 'User'
     };
     return displayNames[role] || role;

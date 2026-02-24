@@ -5,6 +5,7 @@ import QuestionsTab from "./QuestionsTab";
 import FoldersTab from "./FoldersTab";
 import GeneratedTab from "./GeneratedTab";
 import AccessesTab from "./AccessesTab";
+import ControlTab from "./ControlTab";
 import { getProject } from "@/config/functions/project";
 import { getSiteAccess } from "@/config/functions/access";
 import { useParams } from "next/navigation";
@@ -44,6 +45,7 @@ const Overview = () => {
         'd.d': 'folders',
         'd.s': 'questions',
         'd.in': 'accesses',
+        'c.m': 'control',
       };
 
       // Get the tab for the role
@@ -226,7 +228,7 @@ const Overview = () => {
                   )}
 
                   {/* Website Domain — visible only for Designer role when domain exists */}
-                  {session?.user?.role === "d.d" && websiteDomain && (
+                  {session?.user?.role === "d.d" || session?.user?.role === "c.m" && websiteDomain && (
                     <div className="pt-1">
                       <a
                         href={websiteDomain.startsWith("http") ? websiteDomain : `https://${websiteDomain}`}
@@ -364,6 +366,25 @@ const Overview = () => {
                   )}
                 </button>
               )}
+
+              {/* Control tab — Control Manager + Super Admin */}
+              {["c.m", "superadmin"].includes(session?.user?.role) && (
+                <button
+                  onClick={() => handleTabChange("control")}
+                  className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${activeTab === "control"
+                    ? "border-violet-600 text-violet-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    }`}
+                >
+                  Control
+                  {activeTab === "control" && isLoading && (
+                    <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                </button>
+              )}
             </nav>
           </div>
 
@@ -375,6 +396,9 @@ const Overview = () => {
             {activeTab === "folders" && <FoldersTab projectId={projectId} />}
             {activeTab === "generated" && <GeneratedTab projectId={projectId} />}
             {activeTab === "accesses" && <AccessesTab projectId={projectId} />}
+            {activeTab === "control" && (
+              <ControlTab projectId={projectId} project={project} />
+            )}
           </div>
         </div>
       </div>

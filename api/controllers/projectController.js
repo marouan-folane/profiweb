@@ -133,9 +133,13 @@ const getProjectById = catchAsync(async (req, res, next) => {
   }
 
   // Role-based access control for Designers (d.d)
-  // Designers can access once: Content is completed AND IT Setup is validated (integration phase not required)
   if (req.user.role === 'd.d' && (project.contentStatus !== 'completed' || project.itStatus === 'pending')) {
     return next(new AppError('Not authorized to access this project yet. Designers can only access projects after Content is completed and IT Setup is validated.', 403));
+  }
+
+  // Role-based access control for Control Managers (c.m)
+  if (req.user.role === 'c.m' && project.itStatus !== 'integration_completed') {
+    return next(new AppError('Not authorized to access this project yet. Control Managers can only access projects after IT Integration is completed.', 403));
   }
 
   // Calculate additional project metrics
@@ -703,9 +707,14 @@ const getAllProjects = catchAsync(async (req, res, next) => {
 
     // Special rule for Designers (d.d):
     // They can see projects once Content is completed AND IT Setup is validated.
-    // IT Integration phase is NOT required for Designer visibility.
     if (userRole === 'd.d' && (project.contentStatus !== 'completed' || project.itStatus === 'pending')) {
       return false;
+    }
+
+    // Special rule for Control Managers (c.m):
+    // They can only see projects where IT Integration is fully completed.
+    if (userRole === 'c.m') {
+      return project.itStatus === 'integration_completed';
     }
 
     // If user role doesn't map to a department or is not in the map, show all projects

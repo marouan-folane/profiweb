@@ -71,7 +71,7 @@ const userSchema = new mongoose.Schema({
   // ROLE SYSTEM
   role: {
     type: String,
-    enum: ['superadmin', 'admin', 'd.s', 'd.i', 'd.c', 'd.d', 'd.it', 'd.in'],
+    enum: ['superadmin', 'admin', 'd.s', 'd.i', 'd.c', 'd.d', 'd.it', 'd.in', 'c.m'],
     default: null
   },
 

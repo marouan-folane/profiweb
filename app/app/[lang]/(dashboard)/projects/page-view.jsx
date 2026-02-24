@@ -1385,7 +1385,7 @@ const ProjectsPage = () => {
                         </th>
                       )}
 
-                      {["superadmin", "d.i", "d.c", "d.d", "d.it", "d.in"].includes(session?.user?.role) && (
+                      {["superadmin", "d.i", "d.c", "d.d", "d.it", "d.in", "c.m"].includes(session?.user?.role) && (
                         <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                           Actions
                         </th>
@@ -1612,7 +1612,7 @@ const ProjectsPage = () => {
                         )}
 
 
-                        {["superadmin", "d.i", "d.c", "d.d", "d.it", "d.in"].includes(session?.user?.role) && (
+                        {["superadmin", "d.i", "d.c", "d.d", "d.it", "d.in", "c.m"].includes(session?.user?.role) && (
                           <td className="py-5 px-6">
                             <div className="flex items-center gap-1">
                               {activeTab === 'active' ? (

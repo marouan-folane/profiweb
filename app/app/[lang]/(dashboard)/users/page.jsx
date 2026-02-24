@@ -123,7 +123,8 @@ export function UserManagementTable() {
             'd.in': 'D.Integration',
             'd.c': 'D.Content',
             'admin': 'D.Administration',
-            'manager': 'D.Management'
+            'manager': 'D.Management',
+            'c.m': 'Control Manager',
         };
 
         return usersData.data.map(user => {

@@ -96,7 +96,14 @@ const LogInForm = () => {
 
           if (userRole === "superadmin") {
             router.push("/dashboard");
-          } else if (userRole === "d.s" || userRole === "d.i" || userRole === "d.it" || userRole === "d.c" || userRole === "d.in" || userRole === "d.d") {
+          } else if (
+            userRole === "d.s" || userRole === "d.i" || userRole === "d.it" ||
+            userRole === "d.c" || userRole === "d.in" || userRole === "d.d" ||
+            userRole === "c.m"
+          ) {
+            router.push("/projects");
+          } else {
+            // Fallback for any other authenticated role — redirect to projects
             router.push("/projects");
           }
 
@@ -124,7 +131,7 @@ const LogInForm = () => {
         />
       </Link>
       <div className="2xl:mt-8 mt-6 2xl:text-3xl text-2xl font-bold text-default-900">
-        Hey, Hello 👋
+        Hey, Hello
       </div>
       <div className="2xl:text-lg text-base text-default-600 mt-2 leading-6">
 

@@ -239,6 +239,7 @@ const CreateUserForm = () => {
                 <SelectItem value="d.d">Department Design</SelectItem>
                 <SelectItem value="d.it">Department IT</SelectItem>
                 <SelectItem value="d.in">Department Integration</SelectItem>
+                <SelectItem value="c.m">Control Manager</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -326,14 +327,13 @@ const CreateUserForm = () => {
                 <div className="text-sm font-medium text-gray-700">Password strength:</div>
                 <div className="flex-1">
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full transition-all duration-300 ${
-                        formData.password.length < 6 ? 'bg-red-500 w-1/4' :
-                        formData.password.length < 8 ? 'bg-yellow-500 w-1/2' :
-                        /[A-Z]/.test(formData.password) && /[a-z]/.test(formData.password) && /[0-9]/.test(formData.password) 
-                          ? 'bg-green-500 w-full' 
-                          : 'bg-orange-500 w-3/4'
-                      }`}
+                    <div
+                      className={`h-full transition-all duration-300 ${formData.password.length < 6 ? 'bg-red-500 w-1/4' :
+                          formData.password.length < 8 ? 'bg-yellow-500 w-1/2' :
+                            /[A-Z]/.test(formData.password) && /[a-z]/.test(formData.password) && /[0-9]/.test(formData.password)
+                              ? 'bg-green-500 w-full'
+                              : 'bg-orange-500 w-3/4'
+                        }`}
                     />
                   </div>
                 </div>

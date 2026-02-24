@@ -20,6 +20,11 @@ const {
     validateDesignChecklist,
     completeDesignWorkflow
 } = require("../controllers/projectController");
+const {
+    getControlChecklist,
+    toggleControlChecklistItem,
+    confirmProjectFinished,
+} = require("../controllers/controlChecklistController");
 const { protect } = require("../middlewares/auth");
 
 const router = express.Router({ mergeParams: true });
@@ -67,6 +72,17 @@ router.route("/:id/validate-design-checklist")
 
 router.route("/:id/complete-design-workflow")
     .patch(completeDesignWorkflow);
+
+// Control Manager routes
+router.route("/:id/control-checklist")
+    .get(getControlChecklist);
+
+router.route("/:id/control-checklist/toggle")
+    .patch(toggleControlChecklistItem);
+
+router.route("/:id/confirm-finished")
+    .patch(confirmProjectFinished);
+
 // Question routes should also come before the general :id route
 router.route("/:id/questions")
     .get(getQuestionsByProject)

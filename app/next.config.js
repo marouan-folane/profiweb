@@ -5,6 +5,11 @@ const withNextra = require("nextra")({
   themeConfig: "./theme.config.jsx",
 });
 const nextConfig = {
+    compiler: {
+      removeConsole: {
+        exclude: ["error"],
+      },
+    },
   webpack(config) {
     // Grab the existing rule that handles SVG imports
     const fileLoaderRule = config.module.rules.find((rule) =>
