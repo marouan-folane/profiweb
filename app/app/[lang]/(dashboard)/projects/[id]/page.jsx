@@ -368,7 +368,7 @@ const Overview = () => {
               )}
 
               {/* Control tab — Control Manager + Super Admin */}
-              {["c.m", "superadmin"].includes(session?.user?.role) && (
+              {(session?.user?.role === "superadmin" || (session?.user?.role === "c.m" && project.designStatus === 'completed')) && (
                 <button
                   onClick={() => handleTabChange("control")}
                   className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${activeTab === "control"

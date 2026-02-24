@@ -53,8 +53,13 @@ const getControlChecklist = catchAsync(async (req, res, next) => {
         return next(new AppError('You are not authorized to access the control checklist.', 403));
     }
 
-    const project = await Project.findById(projectId).select('title controlStatus');
+    const project = await Project.findById(projectId).select('title controlStatus designStatus itStatus');
     if (!project) return next(new AppError('Project not found', 404));
+
+    // Secondary check for c.m role
+    if (userRole === 'c.m' && (project.itStatus !== 'integration_completed' || project.designStatus !== 'completed')) {
+        return next(new AppError('The control checklist is not yet available. Both IT integration and Design must be completed first.', 403));
+    }
 
     // Fetch saved items
     const savedItems = await ControlChecklistItem.find({ projectId })

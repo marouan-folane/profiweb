@@ -138,8 +138,8 @@ const getProjectById = catchAsync(async (req, res, next) => {
   }
 
   // Role-based access control for Control Managers (c.m)
-  if (req.user.role === 'c.m' && project.itStatus !== 'integration_completed') {
-    return next(new AppError('Not authorized to access this project yet. Control Managers can only access projects after IT Integration is completed.', 403));
+  if (req.user.role === 'c.m' && (project.itStatus !== 'integration_completed' || project.designStatus !== 'completed')) {
+    return next(new AppError('Not authorized to access this project yet. Control Managers can only access projects after IT Integration and Design are both completed.', 403));
   }
 
   // Calculate additional project metrics
@@ -712,9 +712,9 @@ const getAllProjects = catchAsync(async (req, res, next) => {
     }
 
     // Special rule for Control Managers (c.m):
-    // They can only see projects where IT Integration is fully completed.
+    // They can only see projects where IT Integration AND Design are fully completed.
     if (userRole === 'c.m') {
-      return project.itStatus === 'integration_completed';
+      return project.itStatus === 'integration_completed' && project.designStatus === 'completed';
     }
 
     // If user role doesn't map to a department or is not in the map, show all projects
