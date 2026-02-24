@@ -228,7 +228,7 @@ const Overview = () => {
                   )}
 
                   {/* Website Domain — visible only for Designer role when domain exists */}
-                  {session?.user?.role === "d.d" || session?.user?.role === "c.m" && websiteDomain && (
+                  {session?.user?.role === "d.d" && websiteDomain && (
                     <div className="pt-1">
                       <a
                         href={websiteDomain.startsWith("http") ? websiteDomain : `https://${websiteDomain}`}

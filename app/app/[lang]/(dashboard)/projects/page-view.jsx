@@ -1378,6 +1378,11 @@ const ProjectsPage = () => {
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                         {activeTab === 'active' ? 'Due Date' : 'Archived Date'}
                       </th>
+                      {["superadmin", "c.m"].includes(session?.user?.role) && (
+                        <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                          Final Project
+                        </th>
+                      )}
 
                       {["superadmin"].includes(session?.user?.role) && (
                         <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
@@ -1586,6 +1591,21 @@ const ProjectsPage = () => {
                             )}
                           </div>
                         </td>
+                        {["superadmin", "c.m"].includes(session?.user?.role) && (
+                          <td className="py-5 px-6">
+                            {project.controlStatus === 'confirmed' ? (
+                              <Badge color="success" variant="soft" className="font-bold flex items-center w-fit gap-1">
+                                <Icon icon="lucide:check-circle" className="w-3 h-3" />
+                                <span>Finalized</span>
+                              </Badge>
+                            ) : (
+                              <Badge color="secondary" variant="soft" className="font-bold flex items-center w-fit gap-1 opacity-60">
+                                <Icon icon="lucide:clock" className="w-3 h-3" />
+                                <span>Pending</span>
+                              </Badge>
+                            )}
+                          </td>
+                        )}
 
                         {["superadmin"].includes(session?.user?.role) && (
                           <td className="py-5 px-6">
