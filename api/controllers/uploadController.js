@@ -31,6 +31,11 @@ const uploadFiles = catchAsync(async (req, res, next) => {
         if (!project) {
             return next(new AppError('Project not found', 404));
         }
+
+        // Lock guard: uploads blocked once content is finalized (SuperAdmin exempt)
+        if (project.contentStatus === 'completed' && req.user.role !== 'superadmin') {
+            return next(new AppError('File uploads are locked \u2014 Content Department has finalized this project.', 403));
+        }
     }
 
     let projectFolder;

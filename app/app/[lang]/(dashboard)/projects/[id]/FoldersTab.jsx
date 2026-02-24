@@ -124,9 +124,9 @@ const FoldersTab = ({ projectId }) => {
   const [isConfirmingIntegration, setIsConfirmingIntegration] = useState(false);
 
   const userRole = session?.user?.role?.toLowerCase();
-  // ALL users can upload files and manage folders
-  const canUploadFiles = true; // Everyone can upload
-  const canManageFolders = true; // Everyone can manage folders
+  // Folders are locked once D.C marks content as completed — SuperAdmin is exempt
+  const contentStatus = project?.contentStatus;
+  const foldersLocked = contentStatus === 'completed' && userRole !== 'superadmin';
 
   // Helper: Get project IT status
   const itStatus = project?.itStatus || 'pending';
@@ -892,6 +892,7 @@ const FoldersTab = ({ projectId }) => {
 
         {/* Project Folders Section */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
+          {/* Header: title, count, and Add Folder */}
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center gap-4">
               <h3 className="text-lg font-semibold text-gray-900">Project Folders</h3>
@@ -902,9 +903,15 @@ const FoldersTab = ({ projectId }) => {
                       userRole === 'd.d' ? allProjectFolders.filter(f => f.name !== "Structured content json").length :
                         allProjectFolders.length) !== 1 ? 's' : ''}
               </span>
+              {foldersLocked && (
+                <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full font-medium">
+                  <Icon icon="lucide:lock" className="w-3 h-3" />
+                  Locked — Content Finalized
+                </span>
+              )}
             </div>
-            {/* Show Add Folder button for ALL users except IT */}
-            {userRole !== 'd.it' && (
+            {/* Add Folder — hidden when locked or IT dept */}
+            {userRole !== 'd.it' && !foldersLocked && (
               <button
                 onClick={() => setIsCreateModalOpen(true)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -920,12 +927,14 @@ const FoldersTab = ({ projectId }) => {
               <Icon icon="carbon:folder-add" className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No Folders Found</h3>
               <p className="text-gray-500 mb-4">This project doesn't have any folders yet. Create one to organize files.</p>
-              <button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Create First Folder
-              </button>
+              {!foldersLocked && (
+                <button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Create First Folder
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -948,8 +957,8 @@ const FoldersTab = ({ projectId }) => {
                             {folder.name || 'Untitled Folder'}
                           </h4>
 
-                          {/* Show delete folder button for users (but not IT) */}
-                          {userRole !== 'd.it' && folder.name?.toLowerCase() !== "generated instructions pdf" &&
+                          {/* Delete folder — hidden when folders locked or IT dept */}
+                          {userRole !== 'd.it' && !foldersLocked && folder.name?.toLowerCase() !== "generated instructions pdf" &&
                             (folder.user === session?.user?.id || folder.user?._id === session?.user?.id) && (
                               <button
                                 onClick={(e) => handleDeleteFolder(e, folder)}
@@ -1055,7 +1064,7 @@ const FoldersTab = ({ projectId }) => {
                     onChange={handleFileChange}
                     className="hidden"
                   />
-                  {userRole !== 'd.it' && !isGeneratedFolder && (
+                  {userRole !== 'd.it' && !isGeneratedFolder && !foldersLocked && (
                     <button
                       onClick={() => fileInputRef.current.click()}
                       disabled={uploadMutation.isPending}
@@ -1068,6 +1077,12 @@ const FoldersTab = ({ projectId }) => {
                       )}
                       {uploadMutation.isPending ? 'Uploading...' : 'Upload Files'}
                     </button>
+                  )}
+                  {foldersLocked && userRole !== 'd.it' && !isGeneratedFolder && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-sm font-medium">
+                      <Icon icon="lucide:lock" className="w-3.5 h-3.5" />
+                      Upload locked
+                    </span>
                   )}
                   <button
                     onClick={closeModal}

@@ -1,4 +1,5 @@
 // controllers/folderController.js
+const Project = require('../models/project.model');
 const Folder = require('../models/folder.model');
 const File = require('../models/file.model');
 const catchAsync = require('../utils/catchAsync');
@@ -23,6 +24,17 @@ const createFolder = catchAsync(async (req, res) => {
                 status: 'error',
                 message: 'You already have a folder with this name'
             });
+        }
+
+        // Lock guard: folders cannot be created once content is finalized (SuperAdmin exempt)
+        if (projectId && req.user.role !== 'superadmin') {
+            const project = await Project.findById(projectId).select('contentStatus');
+            if (project && project.contentStatus === 'completed') {
+                return res.status(403).json({
+                    status: 'error',
+                    message: 'Folder creation is locked — Content Department has finalized this project.'
+                });
+            }
         }
 
         const folder = await Folder.create({
