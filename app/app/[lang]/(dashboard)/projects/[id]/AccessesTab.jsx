@@ -416,6 +416,49 @@ const AccessesTab = ({ projectId }) => {
     setErrors({});
   };
 
+  // ── Save + Validate Setup (merged single action) ─────────────────────
+  const handleSaveAndValidate = async () => {
+    if (!canEdit) {
+      toast.error("You don't have permission to update access information");
+      return;
+    }
+
+    // Validation
+    const newErrors = {};
+    if (!formData.hosting.service?.trim()) newErrors.hostingService = 'Hosting service is required';
+    if (!formData.hosting.email?.trim()) newErrors.hostingEmail = 'Hosting email is required';
+    if (!formData.hosting.password?.trim()) newErrors.hostingPassword = 'Hosting password is required';
+    if (!formData.wordpress.adminEmail?.trim()) newErrors.wordpressEmail = 'WordPress admin email is required';
+    if (!formData.wordpress.adminPassword?.trim()) newErrors.wordpressPassword = 'WordPress admin password is required';
+    if (!formData.domain.name?.trim()) newErrors.domainName = 'Domain name is required';
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      toast.error('Please fill in all required fields before validating.');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const dataToSend = {
+        hosting: formData.hosting,
+        wordpress: formData.wordpress,
+        domain: formData.domain,
+        notes: formData.notes
+      };
+      if (formData.ftp.host || formData.ftp.username) dataToSend.ftp = formData.ftp;
+      if (formData.database.host || formData.database.name) dataToSend.database = formData.database;
+
+      await createOrUpdateSiteAccess(projectId, dataToSend);
+      toast.success('Access info saved! Opening setup checklist...');
+      // Open the checklist modal to confirm & lock the phase
+      await openITChecklistModal();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error saving access information');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const toggleIntegrationItem = (itemId) => {
     setIntegrationSections(prev => prev.map(section => ({
       ...section,
@@ -489,7 +532,7 @@ const AccessesTab = ({ projectId }) => {
             </div>
           </div>
 
-          {/* Phase 1: Setup Banner (Pending) */}
+          {/* Phase 1: Setup Banner (Pending) — merged Save + Validate button */}
           {userRole === 'd.it' && itStatus === 'pending' && (
             <div className="mt-4 bg-white border border-blue-100 rounded-[32px] p-6 shadow-sm flex items-center justify-between">
               <div className="flex items-center gap-5">
@@ -498,15 +541,20 @@ const AccessesTab = ({ projectId }) => {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-gray-900">Phase 1: Technical Setup</h3>
-                  <p className="text-gray-400 text-sm">Fill in the access details above, then validate the checklist to finish setup.</p>
+                  <p className="text-gray-400 text-sm">Fill in the access details above, then click the button to save and validate the setup.</p>
                 </div>
               </div>
               <button
-                onClick={() => openITChecklistModal()}
-                className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95 flex items-center gap-2"
+                onClick={handleSaveAndValidate}
+                disabled={saving}
+                className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <Icon icon="lucide:check-circle" className="w-4 h-4" />
-                Start Setup Validation
+                {saving ? (
+                  <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Icon icon="lucide:save" className="w-4 h-4" />
+                )}
+                {saving ? 'Saving...' : 'Save & Complete Setup'}
               </button>
             </div>
           )}
@@ -526,8 +574,8 @@ const AccessesTab = ({ projectId }) => {
             </div>
           )}
 
-          {/* Phase 2: Final Integration Banner (for IT only) */}
-          {userRole === 'd.it' && itStatus === 'setup_validated' && (
+          {/* Phase 2: Final Integration Banner — only shown when Content is also completed */}
+          {userRole === 'd.it' && itStatus === 'setup_validated' && contentStatus === 'completed' && (
             <div className="mt-8 bg-white border border-indigo-50 rounded-[32px] p-6 shadow-sm flex items-center justify-between">
               <div className="flex items-center gap-5">
                 <div className="w-14 h-14 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600">
@@ -545,6 +593,19 @@ const AccessesTab = ({ projectId }) => {
                 <Icon icon="lucide:check-circle" className="w-4 h-4" />
                 Finalize Integration
               </button>
+            </div>
+          )}
+
+          {/* Waiting for Content — shown when IT Setup done but Content not yet completed */}
+          {userRole === 'd.it' && itStatus === 'setup_validated' && contentStatus !== 'completed' && (
+            <div className="mt-8 bg-white border border-amber-100 rounded-[32px] p-6 flex items-center gap-5">
+              <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center text-amber-500 flex-shrink-0">
+                <Icon icon="lucide:clock" className="w-7 h-7" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Waiting for Content Department</h3>
+                <p className="text-gray-400 text-sm">Phase 2 — Final Integration will be available once the Content department completes their work.</p>
+              </div>
             </div>
           )}
         </div>
@@ -808,33 +869,15 @@ const AccessesTab = ({ projectId }) => {
               </div>
             </div>
 
-            {/* Form Actions - Only show for d.it users */}
+            {/* Form Actions - Only Clear is available; Save+Validate is handled by the Phase 1 banner button */}
             {canEdit ? (
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={handleClear}
                   className="px-3 py-1.5 text-xs border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors"
-                  disabled={saving}
                 >
                   Clear All
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-4 py-1.5 bg-primary text-white text-xs font-medium rounded hover:bg-primary-dark focus:outline-none focus:ring-1 focus:ring-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                >
-                  {saving ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Saving...
-                    </>
-                  ) : (
-                    'Save Access Info'
-                  )}
                 </button>
               </div>
             ) : (

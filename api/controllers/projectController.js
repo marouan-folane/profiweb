@@ -1584,6 +1584,11 @@ const completeITIntegration = catchAsync(async (req, res, next) => {
     return next(new AppError('Integration is already marked as completed', 400));
   }
 
+  // Guard: Content department must be completed before IT can finalize integration
+  if (project.contentStatus !== 'completed') {
+    return next(new AppError('Cannot finalize integration until the Content Department has completed their work.', 403));
+  }
+
   // Update status
   project.itStatus = 'integration_completed';
   project.updatedBy = req.user.id;
