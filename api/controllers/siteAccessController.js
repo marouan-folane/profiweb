@@ -64,10 +64,6 @@ const createOrUpdateSiteAccess = catchAsync(async (req, res, next) => {
     projectData: project.toObject ? project.toObject() : project
   });
 
-  // Check for required fields
-  if (!hosting || !hosting.service || !hosting.email || !hosting.password) {
-    return next(new AppError('Hosting information is required', 400));
-  }
 
   if (!wordpress || !wordpress.adminEmail || !wordpress.adminPassword) {
     return next(new AppError('WordPress information is required', 400));

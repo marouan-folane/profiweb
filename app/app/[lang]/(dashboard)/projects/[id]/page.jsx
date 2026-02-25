@@ -66,7 +66,8 @@ const Overview = () => {
   // Fetch site access domain for Designer role
   useEffect(() => {
     const fetchDomainForDesigner = async () => {
-      if (session?.user?.role === "d.d" && projectId) {
+      const allowedRoles = ["d.d", "c.m", "superadmin"];
+      if (allowedRoles.includes(session?.user?.role) && projectId) {
         try {
           const response = await getSiteAccess(projectId);
           if (response?.data?.domain?.name) {
@@ -227,8 +228,8 @@ const Overview = () => {
                     </div>
                   )}
 
-                  {/* Website Domain — visible only for Designer role when domain exists */}
-                  {session?.user?.role === "d.d" && websiteDomain && (
+                  {/* Website Domain — visible for Designer, Control Manager, and Super Admin roles when domain exists */}
+                  {["d.d", "c.m", "superadmin"].includes(session?.user?.role) && websiteDomain && (
                     <div className="pt-1">
                       <a
                         href={websiteDomain.startsWith("http") ? websiteDomain : `https://${websiteDomain}`}

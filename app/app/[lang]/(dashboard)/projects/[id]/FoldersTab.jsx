@@ -366,13 +366,22 @@ const FoldersTab = ({ projectId }) => {
     toast.success('Text formatted successfully');
   };
 
-  // Opens the checklist modal after validating both fields are present
-  const handleSubmitContent = () => {
+  // Saves content data only — does NOT open checklist
+  const handleSubmitContent = async () => {
     if (!contentJson || !contentText.trim()) {
       toast.error('Both JSON and Text content are required');
       return;
     }
-    openChecklistModal();
+    try {
+      setIsSubmitting(true);
+      await doSubmitContent();
+      toast.success('Content saved successfully!');
+    } catch (error) {
+      console.error('Error saving content:', error);
+      toast.error(error.message || 'Failed to save content');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Internal function that actually POSTs the content (called from checklist confirm)
@@ -446,18 +455,22 @@ const FoldersTab = ({ projectId }) => {
     if (!allItemsChecked) return;
     try {
       setIsConfirmingChecklist(true);
-      // 1. Mark checklist as validated (no PDF)
+      // 1. Mark checklist as validated
       const validateRes = await validateContentChecklist(projectId);
       if (validateRes.status !== 'success') {
         toast.error(validateRes.message || 'Failed to validate checklist');
         return;
       }
-      // 2. Submit content JSON + text
-      await doSubmitContent();
-      toast.success('Content saved & checklist validated!');
-      setIsChecklistModalOpen(false);
-      // Reload project data
-      loadProject();
+      // 2. Complete the content workflow (mark phase as done)
+      const response = await completeContentWorkflow(projectId);
+      if (response.status === 'success') {
+        toast.success('Content checklist validated and phase completed!');
+        setProject(response.data.project);
+        setIsChecklistModalOpen(false);
+        queryClient.invalidateQueries(['folders', projectId]);
+      } else {
+        toast.error(response.message || 'Failed to complete content phase');
+      }
     } catch (error) {
       console.error('Error confirming checklist:', error);
       toast.error(error.message || 'An error occurred');
@@ -466,26 +479,13 @@ const FoldersTab = ({ projectId }) => {
     }
   };
 
-  const handleCompleteWorkflow = async () => {
-    if (!window.confirm("Are you sure you want to mark the Content Department workflow as complete? This will finalize the phase and you won't be able to modify content anymore.")) return;
-
-    try {
-      setIsCompleting(true);
-      const response = await completeContentWorkflow(projectId);
-      if (response.status === 'success') {
-        toast.success("Content Department workflow marked as complete!");
-        setProject(response.data.project);
-        // Refresh folders to show any new PDFs generated during workflow
-        queryClient.invalidateQueries(['folders', projectId]);
-      } else {
-        toast.error(response.message || "Failed to complete workflow");
-      }
-    } catch (error) {
-      console.error("Error completing content workflow:", error);
-      toast.error("An error occurred during workflow completion");
-    } finally {
-      setIsCompleting(false);
+  // Opens checklist modal — only called from "Mark Content Upload as Complete"
+  const handleCompleteWorkflow = () => {
+    if (!project?.isContentReady) {
+      toast.error('Please save content first before completing.');
+      return;
     }
+    openChecklistModal();
   };
 
   // Update files list when filesRes changes
@@ -864,20 +864,22 @@ const FoldersTab = ({ projectId }) => {
                   <button
                     type="button"
                     onClick={handleSubmitContent}
-                    disabled={!contentJson || !contentText.trim() || project?.isContentReady || project?.contentStatus === 'completed'}
-                    className={`px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center gap-2 ${!contentJson || !contentText.trim() || project?.isContentReady || project?.contentStatus === 'completed'
+                    disabled={!contentJson || !contentText.trim() || project?.isContentReady || project?.contentStatus === 'completed' || isSubmitting}
+                    className={`px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center gap-2 ${!contentJson || !contentText.trim() || project?.isContentReady || project?.contentStatus === 'completed' || isSubmitting
                       ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
                       : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'
                       }`}
                   >
-                    {project?.contentStatus === 'completed' ? (
+                    {isSubmitting ? (
+                      <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
+                    ) : project?.contentStatus === 'completed' ? (
                       <Icon icon="lucide:check-circle-2" className="w-4 h-4 text-green-500" />
                     ) : project?.isContentReady ? (
                       <Icon icon="lucide:lock" className="w-4 h-4" />
                     ) : (
-                      <Icon icon="lucide:clipboard-check" className="w-4 h-4" />
+                      <Icon icon="lucide:save" className="w-4 h-4" />
                     )}
-                    {project?.contentStatus === 'completed' ? 'Content Finalized' : project?.isContentReady ? 'Content Submitted' : 'Save Content'}
+                    {isSubmitting ? 'Saving...' : project?.contentStatus === 'completed' ? 'Content Finalized' : project?.isContentReady ? 'Content Saved' : 'Save Content'}
                   </button>
                 </div>
 
@@ -902,17 +904,13 @@ const FoldersTab = ({ projectId }) => {
                       </div>
                       <button
                         onClick={handleCompleteWorkflow}
-                        disabled={!project?.isContentReady || isCompleting || project?.contentStatus === 'completed'}
-                        className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 ${project?.isContentReady && !isCompleting && project?.contentStatus !== 'completed'
+                        disabled={!project?.isContentReady || project?.contentStatus === 'completed'}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95 ${project?.isContentReady && project?.contentStatus !== 'completed'
                           ? 'bg-green-600 text-white hover:bg-green-700'
                           : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                           }`}
                       >
-                        {isCompleting ? (
-                          <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Icon icon="lucide:target" className="w-4 h-4" />
-                        )}
+                        <Icon icon="lucide:target" className="w-4 h-4" />
                         Mark Content Upload as Complete
                       </button>
                     </div>
@@ -1351,7 +1349,7 @@ const FoldersTab = ({ projectId }) => {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-indigo-900">Content Checklist</h2>
-                    <p className="text-sm text-indigo-600">Check all items to confirm before saving</p>
+                    <p className="text-sm text-indigo-600">Check all items to confirm content completion</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -1443,7 +1441,7 @@ const FoldersTab = ({ projectId }) => {
                     ) : (
                       <Icon icon="lucide:check-circle-2" className="w-4 h-4" />
                     )}
-                    Confirm & Save Content
+                    Confirm & Complete Phase
                   </button>
                 </div>
               </div>

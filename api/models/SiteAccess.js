@@ -28,7 +28,6 @@ const siteAccessSchema = new mongoose.Schema({
   hosting: {
     service: {
       type: String,
-      required: [true, 'Hosting service is required'],
       trim: true
     },
     provider: {
@@ -38,13 +37,11 @@ const siteAccessSchema = new mongoose.Schema({
     },
     email: {
       type: String,
-      required: [true, 'Hosting email is required'],
       trim: true,
       lowercase: true
     },
     password: {
-      type: String,
-      required: [true, 'Hosting password is required']
+      type: String
     },
     username: {
       type: String,
@@ -203,9 +200,9 @@ const siteAccessSchema = new mongoose.Schema({
 
 }, {
   timestamps: true,
-  toJSON: { 
+  toJSON: {
     virtuals: true,
-    transform: function(doc, ret) {
+    transform: function (doc, ret) {
       // Remove passwords from JSON output by default
       delete ret.hosting.password;
       delete ret.wordpress.adminPassword;
@@ -227,12 +224,12 @@ siteAccessSchema.index({ createdBy: 1 });
 siteAccessSchema.index({ createdAt: -1 });
 
 // Virtual for formatted domain
-siteAccessSchema.virtual('domain.fullUrl').get(function() {
+siteAccessSchema.virtual('domain.fullUrl').get(function () {
   return `https://${this.domain.name}`;
 });
 
 // Virtual for days until domain expiry
-siteAccessSchema.virtual('domain.daysUntilExpiry').get(function() {
+siteAccessSchema.virtual('domain.daysUntilExpiry').get(function () {
   if (!this.domain.expiryDate) return null;
   const now = new Date();
   const expiry = new Date(this.domain.expiryDate);
@@ -241,14 +238,14 @@ siteAccessSchema.virtual('domain.daysUntilExpiry').get(function() {
 });
 
 // Pre-save middleware to encrypt passwords (optional - you can use bcrypt)
-siteAccessSchema.pre('save', async function(next) {
+siteAccessSchema.pre('save', async function (next) {
   // Track password changes in history
   if (this.isModified('hosting.password')) {
     this.hosting.hostingPasswordHistory.push({
       password: this.hosting.password,
       changedBy: this.updatedBy || this.createdBy
     });
-    
+
     // Keep only last 10 password changes
     if (this.hosting.hostingPasswordHistory.length > 10) {
       this.hosting.hostingPasswordHistory = this.hosting.hostingPasswordHistory.slice(-10);
@@ -260,7 +257,7 @@ siteAccessSchema.pre('save', async function(next) {
       password: this.wordpress.adminPassword,
       changedBy: this.updatedBy || this.createdBy
     });
-    
+
     // Keep only last 10 password changes
     if (this.wordpress.wordpressPasswordHistory.length > 10) {
       this.wordpress.wordpressPasswordHistory = this.wordpress.wordpressPasswordHistory.slice(-10);
@@ -271,7 +268,7 @@ siteAccessSchema.pre('save', async function(next) {
 });
 
 // Instance method to get credentials (with passwords)
-siteAccessSchema.methods.getCredentials = function() {
+siteAccessSchema.methods.getCredentials = function () {
   return {
     hosting: {
       service: this.hosting.service,
@@ -294,14 +291,14 @@ siteAccessSchema.methods.getCredentials = function() {
 };
 
 // Instance method to update access count
-siteAccessSchema.methods.incrementAccessCount = function() {
+siteAccessSchema.methods.incrementAccessCount = function () {
   this.accessCount += 1;
   this.lastAccessed = new Date();
   return this.save();
 };
 
 // Static method to find by project
-siteAccessSchema.statics.findByProject = function(projectId) {
+siteAccessSchema.statics.findByProject = function (projectId) {
   return this.findOne({ project: projectId });
 };
 
