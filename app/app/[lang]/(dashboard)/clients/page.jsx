@@ -51,6 +51,7 @@ export default function ClientManagementPage() {
     const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
     const [isViewProjectsOpen, setIsViewProjectsOpen] = React.useState(false);
     const [selectedClient, setSelectedClient] = React.useState(null);
+    const [formError, setFormError] = React.useState(""); // server-side error shown inside dialog
     const [formData, setFormData] = React.useState({
         name: "",
         email: "",
@@ -71,9 +72,16 @@ export default function ClientManagementPage() {
             queryClient.invalidateQueries({ queryKey: ['clients'] });
             toast.success("Client created successfully");
             setIsAddDialogOpen(false);
+            setFormError("");
             resetForm();
         },
-        onError: (err) => toast.error(err?.message || "Failed to create client")
+        onError: (err) => {
+            // err.message comes from a thrown JS error; for API 4xx the helper
+            // doesn't throw, so we handle that case in handleSubmit instead
+            const msg = err?.message || "Failed to create client";
+            setFormError(msg);
+            toast.error(msg);
+        }
     });
 
     const updateMutation = useMutation({
@@ -83,9 +91,14 @@ export default function ClientManagementPage() {
             toast.success("Client updated successfully");
             setIsEditDialogOpen(false);
             setSelectedClient(null);
+            setFormError("");
             resetForm();
         },
-        onError: (err) => toast.error(err?.message || "Failed to update client")
+        onError: (err) => {
+            const msg = err?.message || "Failed to update client";
+            setFormError(msg);
+            toast.error(msg);
+        }
     });
 
     const deleteMutation = useMutation({
@@ -135,12 +148,33 @@ export default function ClientManagementPage() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        setFormError("");
+
+        // Basic client-side guard
+        if (!formData.name.trim()) { setFormError("Client name is required"); return; }
+        if (!formData.email.trim()) { setFormError("Email address is required"); return; }
+        if (!/\S+@\S+\.\S+/.test(formData.email)) { setFormError("Please enter a valid email address"); return; }
+
         if (isEditDialogOpen) {
             updateMutation.mutate({ id: selectedClient._id, data: formData });
         } else {
-            createMutation.mutate(formData);
+            // createNewClient helper returns the response data instead of throwing on 4xx
+            const response = await createNewClient(formData);
+            if (response?.status === 'fail' || response?.status === 'error') {
+                const msg = response.message || 'Failed to create client';
+                setFormError(msg);
+                toast.error(msg);
+                return; // keep dialog open with form data preserved
+            }
+            if (response?.status === 'success') {
+                queryClient.invalidateQueries({ queryKey: ['clients'] });
+                toast.success('Client created successfully');
+                setIsAddDialogOpen(false);
+                setFormError("");
+                resetForm();
+            }
         }
     };
 
@@ -341,6 +375,7 @@ export default function ClientManagementPage() {
                     setIsAddDialogOpen(false);
                     setIsEditDialogOpen(false);
                     setSelectedClient(null);
+                    setFormError("");
                 }
             }}>
                 <DialogContent className="sm:max-w-[500px]">
@@ -351,6 +386,14 @@ export default function ClientManagementPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-4 py-4">
+                        {formError && (
+                            <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 flex items-center gap-2">
+                                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {formError}
+                            </div>
+                        )}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="name">Name</Label>

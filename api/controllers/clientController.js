@@ -17,29 +17,45 @@ const createClient = catchAsync(async (req, res, next) => {
     source = "other"
   } = req.body;
 
-  // Validate required fields
-  if (!name) {
+  // ── Required field validation ────────────────────────────────────────────
+  if (!name || !name.trim()) {
     return next(new AppError("Client name is required", 400));
   }
 
-  if (!email) {
+  if (!email || !email.trim()) {
     return next(new AppError("Client email is required", 400));
   }
 
-  // Validate email format
+  // ── Email format validation ──────────────────────────────────────────────
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
+  if (!emailRegex.test(email.trim())) {
     return next(new AppError("Please provide a valid email address", 400));
   }
 
-  // Check if client with email already exists
-  const existingClient = await Client.findOne({ email });
-
-  if (existingClient) {
-    return next(new AppError("A client with this email already exists", 409));
+  // ── Phone format validation (if provided) ────────────────────────────────
+  const normalizedPhone = phone ? phone.replace(/\s+/g, '') : '';
+  if (normalizedPhone && !/^[+]?[\d\s\-().]{7,20}$/.test(normalizedPhone)) {
+    return next(new AppError("Please provide a valid phone number", 400));
   }
 
-  // Prepare address object
+  // ── Duplicate checks ─────────────────────────────────────────────────────
+  // Build OR query so we only hit the DB once
+  const orConditions = [{ email: email.trim().toLowerCase() }];
+  if (normalizedPhone) orConditions.push({ phone: normalizedPhone });
+
+  const existingClient = await Client.findOne({ $or: orConditions });
+
+  if (existingClient) {
+    if (existingClient.email === email.trim().toLowerCase()) {
+      return next(new AppError("A client with this email already exists", 409));
+    }
+    if (normalizedPhone && existingClient.phone === normalizedPhone) {
+      return next(new AppError("A client with this phone number already exists", 409));
+    }
+    return next(new AppError("A client with these details already exists", 409));
+  }
+
+  // ── Build sub-documents ──────────────────────────────────────────────────
   const clientAddress = address || {
     street: "",
     city: "",
@@ -48,34 +64,32 @@ const createClient = catchAsync(async (req, res, next) => {
     postalCode: ""
   };
 
-  // Prepare contact person object
   const clientContactPerson = contactPerson || {
-    name: name,
+    name: name.trim(),
     position: "Contact",
-    email: email,
-    phone: phone || ""
+    email: email.trim().toLowerCase(),
+    phone: normalizedPhone
   };
 
-  // Create client (only fields that exist in schema)
+  // ── Create ───────────────────────────────────────────────────────────────
   const client = await Client.create({
-    name,
-    email,
-    phone: phone || "",
-    company: company || "",
+    name: name.trim(),
+    email: email.trim().toLowerCase(),
+    phone: normalizedPhone,
+    company: company ? company.trim() : "",
     industry: industry || "Other",
     address: clientAddress,
     contactPerson: clientContactPerson,
     notes: notes || "",
     status,
-    source
+    source,
+    createdBy: req.user?.id
   });
 
   res.status(201).json({
     status: 'success',
     message: 'Client created successfully',
-    data: {
-      client
-    }
+    data: { client }
   });
 });
 

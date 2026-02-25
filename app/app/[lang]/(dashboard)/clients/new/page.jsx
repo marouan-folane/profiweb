@@ -95,6 +95,13 @@ const CreateClientPage = () => {
       newErrors.email = 'Please provide a valid email address';
     }
 
+    if (formData.phone && formData.phone.trim()) {
+      const normalizedPhone = formData.phone.replace(/\s+/g, '');
+      if (!/^[+]?[\d\s\-().]{7,20}$/.test(normalizedPhone)) {
+        newErrors.phone = 'Please provide a valid phone number';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -105,14 +112,25 @@ const CreateClientPage = () => {
     if (!validateForm()) return;
 
     setLoading(true);
+    // Clear previous submit error but keep form data intact
+    setErrors(prev => ({ ...prev, submit: '' }));
+
     try {
-      // Make API call to create client
       const response = await createNewClient(formData);
 
-      if (response.data || response) {
+      // The axios helper returns error responses as data (doesn't throw)
+      // so we need to check response.status explicitly
+      if (response?.status === 'fail' || response?.status === 'error') {
+        setErrors({ submit: response.message || 'Failed to create client. Please try again.' });
+        toast.error(response.message || 'Failed to create client');
+        return; // Form data is preserved — user can fix and retry
+      }
+
+      if (response?.status === 'success') {
         setSuccess(true);
-        toast.success("Client created successfully!")
-        // Reset form
+        toast.success('Client created successfully!');
+        setErrors({});
+        // Reset form only on success
         setFormData({
           name: '',
           email: '',
@@ -142,13 +160,15 @@ const CreateClientPage = () => {
             phone: ''
           }
         });
-
-        // Hide success message after 3 seconds
         setTimeout(() => setSuccess(false), 3000);
+      } else {
+        // Unexpected response shape
+        setErrors({ submit: 'Unexpected server response. Please try again.' });
       }
     } catch (error) {
       console.error('Error creating client:', error);
       setErrors({ submit: error.message || 'Failed to create client. Please try again.' });
+      toast.error(error.message || 'Failed to create client');
     } finally {
       setLoading(false);
     }

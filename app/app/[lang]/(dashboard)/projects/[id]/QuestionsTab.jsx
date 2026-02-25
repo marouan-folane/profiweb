@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { createOrUpdateQuestions, getQuestionsForProject, updateProject, getProject, completeInfoQuestionnaire } from "@/config/functions/project";
@@ -42,6 +42,10 @@ const QuestionsTab = ({ setFormSubmitted }) => {
   const [showAddCustomField, setShowAddCustomField] = useState(false);
   const [hasLoadedQuestions, setHasLoadedQuestions] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Auto-save: 'idle' | 'saving' | 'saved' | 'error'
+  const [saveStatus, setSaveStatus] = useState('idle');
+  const autoSaveTimerRef = useRef(null);
 
   const [newCustomField, setNewCustomField] = useState({
     questionKey: "",
@@ -875,6 +879,110 @@ const QuestionsTab = ({ setFormSubmitted }) => {
     }
   };
 
+  // ─── Auto-save: builds payload and saves silently with 800ms debounce ───
+  useEffect(() => {
+    // Guards: skip if form not ready or questionnaire is locked
+    if (!isInitialized || !hasLoadedQuestions || isLockedForEdit) return;
+
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+
+    autoSaveTimerRef.current = setTimeout(async () => {
+      try {
+        setSaveStatus('saving');
+
+        // Build payload inline (mirrors handleSubmit logic)
+        const allQuestions = [];
+        let order = 1;
+        const addQ = (key, question, type, answer, section, sectionName, required, opts = []) => {
+          let ans = answer;
+          if ((type === 'checkbox' || type === 'multiselect') && Array.isArray(answer)) {
+            ans = answer.filter(i => i && i.trim() !== '').join(', ');
+          } else if (ans === null || ans === undefined) ans = '';
+          allQuestions.push({
+            questionKey: key, question, type, answer: ans || '', section,
+            sectionName, order: order++, isRequired: required || false, projectType: 'wordpress',
+            options: opts, isCustom: false
+          });
+        };
+
+        const f = formData;
+        addQ('caseWorkerName', 'Case worker', 'text', f.caseWorkerName, 'preliminary', 'Preliminary Information', false);
+        addQ('caseWorkerLanguage', 'Language of case worker', 'text', f.caseWorkerLanguage, 'preliminary', 'Preliminary Information', false);
+        addQ('communicationLanguage', 'Communication language', 'select', f.communicationLanguage, 'preliminary', 'Preliminary Information', false);
+        addQ('companyName', 'Company Name', 'text', f.companyName, 'business', 'Business Information', true);
+        addQ('legalForm', 'Legal Form', 'text', f.legalForm, 'business', 'Business Information', false);
+        addQ('businessAddress', 'Business Address', 'textarea', f.businessAddress, 'business', 'Business Information', true);
+        addQ('companyTelephone', 'Company Telephone', 'tel', f.companyTelephone, 'business', 'Business Information', true);
+        addQ('companyEmail', 'Company Email Address', 'email', f.companyEmail, 'business', 'Business Information', true);
+        addQ('companyDescription', 'Detailed Company Description', 'textarea', f.companyDescription, 'business', 'Business Information', false);
+        addQ('briefCompanyDescription', 'Brief Company Description', 'textarea', f.briefCompanyDescription, 'business', 'Business Information', false);
+        addQ('managingDirector', 'Managing Director', 'text', f.managingDirector, 'legal', 'Company Legal & Background', false);
+        addQ('iceNumber', 'ICE Number', 'text', f.iceNumber, 'legal', 'Company Legal & Background', false);
+        addQ('yearOfFoundation', 'Year of Foundation', 'number', f.yearOfFoundation, 'legal', 'Company Legal & Background', false);
+        addQ('industry', 'Industry', 'text', f.industry, 'business', 'Business Information', false);
+        addQ('servicesOffered', 'Services Offered', 'textarea', f.servicesOffered, 'business', 'Business Information', true);
+        addQ('uniqueSellingPoints', 'What Makes You Unique?', 'textarea', f.uniqueSellingPoints, 'business', 'Business Information', false);
+        addQ('callToAction', 'Call to Action', 'textarea', f.callToAction, 'business', 'Business Information', false);
+        addQ('websitePurpose', 'Website Goals', 'textarea', f.websitePurpose, 'goals', 'Website Goals & Target Audience', false);
+        addQ('targetCustomers', 'Target Audience', 'textarea', f.targetCustomers, 'goals', 'Website Goals & Target Audience', false);
+        addQ('businessType', 'Business Type', 'select', f.businessType, 'goals', 'Website Goals & Target Audience', false);
+        addQ('websiteObjective', 'Website Objective', 'textarea', f.websiteObjective, 'goals', 'Website Goals & Target Audience', false);
+        addQ('likedCompetitors', 'Competitors You Like', 'textarea', f.likedCompetitors, 'market', 'Market Analysis', false);
+        addQ('marketSize', 'Market Size', 'text', f.marketSize, 'market', 'Market Analysis', false);
+        addQ('marketGrowthRate', 'Market Growth Rate', 'text', f.marketGrowthRate, 'market', 'Market Analysis', false);
+        addQ('marketShare', 'Market Share', 'text', f.marketShare, 'market', 'Market Analysis', false);
+        addQ('differentiationCompetitors', 'Competitors to Differentiate From', 'textarea', f.differentiationCompetitors, 'market', 'Market Analysis', false);
+        addQ('competitiveEnvironment', 'Competitive environment', 'textarea', f.competitiveEnvironment, 'market', 'Market Analysis', false);
+        addQ('specialFeaturesCompared', 'Special features', 'textarea', f.specialFeaturesCompared, 'market', 'Market Analysis', false);
+        addQ('contentRestrictions', 'Content Restrictions', 'textarea', f.contentRestrictions, 'market', 'Market Analysis', false);
+        addQ('websitePages', 'Required Website Pages', 'checkbox', f.websitePages, 'structure', 'Website Structure & Pages', false);
+        addQ('highlightedService', 'Service to Highlight', 'text', f.highlightedService, 'structure', 'Website Structure & Pages', false);
+        addQ('lowPriorityServices', 'Services Not to Feature', 'textarea', f.lowPriorityServices, 'structure', 'Website Structure & Pages', false);
+        addQ('mandatoryHomepageContent', 'Mandatory Homepage Content', 'textarea', f.mandatoryHomepageContent, 'structure', 'Website Structure & Pages', false);
+        addQ('websiteLanguages', 'Website Languages', 'checkbox', f.websiteLanguages, 'structure', 'Website Structure & Pages', false);
+        addQ('outputLanguages', 'Output languages', 'checkbox', f.outputLanguages, 'structure', 'Website Structure & Pages', false);
+        addQ('revenueStreams', 'Revenue Streams', 'text', f.revenueStreams, 'revenue', 'Revenue Streams', false);
+        addQ('subscriptionModel', 'Subscription Model', 'text', f.subscriptionModel, 'revenue', 'Revenue Streams', false);
+        addQ('subscriptionFee', 'Subscription Fee', 'text', f.subscriptionFee, 'revenue', 'Revenue Streams', false);
+        addQ('subscriptionDuration', 'Subscription Duration', 'text', f.subscriptionDuration, 'revenue', 'Revenue Streams', false);
+        addQ('subscriptionFrequency', 'Subscription Frequency', 'text', f.subscriptionFrequency, 'revenue', 'Revenue Streams', false);
+        addQ('socialMediaStrategy', 'Social Media Strategy', 'textarea', f.socialMediaStrategy, 'social', 'Social Media Strategy', false);
+        addQ('logoAvailability', 'Logo availability', 'select', f.logoAvailability, 'design', 'Design Requirements', false);
+        addQ('corporateDesignAvailability', 'Corporate design', 'select', f.corporateDesignAvailability, 'design', 'Design Requirements', false);
+        addQ('imageAvailability', 'Images for website', 'select', f.imageAvailability, 'design', 'Design Requirements', false);
+        if (f.imageAvailability !== 'No - Please use stock images') {
+          addQ('imageNotes', 'Image Preferences', 'textarea', f.imageNotes, 'design', 'Design Requirements', false);
+        }
+        addQ('colorScheme', 'Brand Colors', 'text', f.colorScheme, 'design', 'Design Requirements', false);
+        addQ('tonality', 'Design Style & Tone', 'checkbox', f.tonality, 'design', 'Design Requirements', false);
+        allQuestions.push({
+          questionKey: 'selectedTemplateId', question: 'Selected Template', type: 'select',
+          answer: selectedTemplate || '', section: 'template', sectionName: 'Template Selection',
+          order: order++, isRequired: false, projectType: 'wordpress', options: [], isCustom: false
+        });
+        customQuestions.forEach(cq => {
+          allQuestions.push({
+            questionKey: cq.questionKey, question: cq.label, type: cq.type,
+            answer: cq.answer || '', section: cq.section || 'custom', sectionName: cq.sectionName || 'Custom Fields',
+            order: order++, isRequired: cq.isRequired || false, projectType: 'wordpress',
+            options: cq.options || [], placeholder: cq.placeholder || '', isCustom: true
+          });
+        });
+
+        await createOrUpdateQuestions(projectId, { questions: allQuestions, projectType: 'wordpress' });
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 3000);
+      } catch (err) {
+        console.error('Auto-save failed:', err);
+        setSaveStatus('error');
+        setTimeout(() => setSaveStatus('idle'), 4000);
+      }
+    }, 800); // 800ms debounce
+
+    return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData, customQuestions, selectedTemplate, isInitialized, hasLoadedQuestions, isLockedForEdit, projectId]);
+
   // Helper function to add a question to the array
   const addQuestion = (questionsArray, questionKey, question, type, answer, section, sectionName, order, isRequired, options = []) => {
     let processedAnswer = answer;
@@ -984,6 +1092,32 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         </div>
 
         <div className="flex items-center gap-3">
+
+          {/* Auto-save status pill */}
+          {saveStatus === 'saving' && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-100 select-none">
+              <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Saving…
+            </span>
+          )}
+          {saveStatus === 'saved' && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-green-50 text-green-600 border border-green-100 select-none">
+              <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+              </svg>
+              Saved
+            </span>
+          )}
+          {saveStatus === 'error' && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-red-50 text-red-600 border border-red-100 select-none">
+              <span className="h-2 w-2 rounded-full bg-red-500"></span>
+              Save failed
+            </span>
+          )}
+
           <button
             onClick={handleRefreshQuestions}
             className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-2 transition-colors"
