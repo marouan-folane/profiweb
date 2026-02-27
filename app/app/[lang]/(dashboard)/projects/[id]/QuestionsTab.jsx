@@ -704,33 +704,35 @@ const QuestionsTab = ({ setFormSubmitted }) => {
   }, [projectId]);
 
   // Main submit function
-  const handleSubmit = async (shouldRedirect = true) => {
+  const handleSubmit = async (shouldRedirect = true, skipValidation = false) => {
     // HARD LOCK: client-side guard (backend also enforces this)
     if (infoStatus === 'completed') {
       toast.error('Questionnaire is locked and cannot be modified.');
       return;
     }
 
-    // First validate the form and highlight errors
-    const isValid = validateForm();
+    // First validate the form and highlight errors if NOT skipping validation
+    if (!skipValidation) {
+      const isValid = validateForm();
 
-    if (!selectedTemplate) {
-      toast.error("Please select a WordPress website template.");
-      return;
-    }
-
-    if (!isValid) {
-      toast.error("Please fill in all required fields.");
-      // Scroll to first error
-      const firstErrorField = Object.keys(validationErrors)[0];
-      if (firstErrorField) {
-        const element = document.querySelector(`[data-field="${firstErrorField}"]`);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          element.focus();
-        }
+      if (!selectedTemplate) {
+        toast.error("Please select a WordPress website template.");
+        return;
       }
-      return;
+
+      if (!isValid) {
+        toast.error("Please fill in all required fields.");
+        // Scroll to first error
+        const firstErrorField = Object.keys(validationErrors)[0];
+        if (firstErrorField) {
+          const element = document.querySelector(`[data-field="${firstErrorField}"]`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.focus();
+          }
+        }
+        return;
+      }
     }
 
     try {
@@ -849,14 +851,19 @@ const QuestionsTab = ({ setFormSubmitted }) => {
       // Prepare payload for backend
       const questionsPayload = {
         questions: allQuestions,
-        projectType: 'wordpress'
+        projectType: 'wordpress',
+        generatePDFs: !skipValidation
       };
 
       // Call the API to save questions
       const response = await createOrUpdateQuestions(projectId, questionsPayload);
 
       if (response.status === "success") {
-        toast.success(response.message);
+        if (!skipValidation) {
+          toast.success(response.message);
+        } else {
+          toast.success("Draft saved successfully");
+        }
 
         if (setFormSubmitted) {
           setFormSubmitted(true);
@@ -876,6 +883,14 @@ const QuestionsTab = ({ setFormSubmitted }) => {
       console.error('Submit error:', error);
       toast.error(error.message || "Failed to save questions. Please try again.");
       throw error; // Re-throw so callers can handle it
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    try {
+      await handleSubmit(false, true);
+    } catch (error) {
+      // Error already handled in handleSubmit
     }
   };
 
@@ -1311,6 +1326,7 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         getOverallCompletionPercentage={getOverallCompletionPercentage}
         areAllRequiredFieldsFilled={areAllRequiredFieldsFilled}
         handleSubmit={handleSubmit}
+        handleSaveDraft={handleSaveDraft}
         updateProjectMutation={updateProjectMutation}
         isLoading={isLoading}
         infoStatus={infoStatus}

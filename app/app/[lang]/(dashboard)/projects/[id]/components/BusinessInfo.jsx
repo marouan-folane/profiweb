@@ -236,9 +236,31 @@ const BusinessInfo = ({
 
         {/* Industry */}
         <div className="space-y-2">
+           <div className="flex items-center gap-2 relative">
           <label className="block text-sm font-medium text-gray-700">
             Industry / Field of activity
           </label>
+
+
+         {questionTranslations.industry && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenField(openField === 'industry' ? null : 'industry')}
+                  className={`p-0.5 rounded-full transition-colors ${openField === 'industry' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+                >
+                  <Icon icon="lucide:help-circle" className="w-4 h-4" />
+                </button>
+                {openField === 'industry' && (
+                  <FieldDescriptionPopout
+                    translations={questionTranslations.industry}
+                    onClose={() => setOpenField(null)}
+                  />
+                )}
+              </div>
+            )}
+            </div>
+
           <input
             type="text"
             value={formData.industry || ""}

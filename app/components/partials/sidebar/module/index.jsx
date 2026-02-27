@@ -16,9 +16,17 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import MenuOverlayPortal from "./MenuOverlayPortal";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
 
 const ModuleSidebar = ({ trans }) => {
-  const menus = menusConfig?.mainMenu || [];
+  const { data: session } = useSession();
+  const userRole = session?.user?.role;
+  const menus = (menusConfig?.mainMenu || [])
+    .filter(item => !item.roles || item.roles.includes(userRole))
+    .map(item => ({
+      ...item,
+      child: item.child?.filter(childItem => !childItem.roles || childItem.roles.includes(userRole))
+    }));
   const { subMenu, setSubmenu, collapsed, setCollapsed, sidebarBg } =
     useSidebar();
   const { isRtl } = useThemeStore();
@@ -77,7 +85,8 @@ const ModuleSidebar = ({ trans }) => {
 
   function setActiveMenu(menuIndex, childMenu) {
     setActiveIndex(menuIndex);
-    setCurrentSubMenu(childMenu);
+    const filteredChildMenu = childMenu?.filter(item => !item.roles || item.roles.includes(userRole));
+    setCurrentSubMenu(filteredChildMenu);
     setSubmenu(false);
     setCollapsed(false);
   }

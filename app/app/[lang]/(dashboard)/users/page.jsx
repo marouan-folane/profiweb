@@ -30,29 +30,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getAllUsers, deactivateUserById, activateUserById, deleteUserPermanently } from "@/config/functions/admin";
 
-// Sample data
-const sampleData = [
-    {
-        id: "1",
-        firstName: "John",
-        lastName: "Doe",
-        email: "john@example.com",
-        role: "D.I",
-        status: "active",
-        department: "Data Inspection",
-        lastLogin: "2024-01-15T14:30:00Z"
-    },
-    {
-        id: "2",
-        firstName: "Jane",
-        lastName: "Smith",
-        email: "jane@example.com",
-        role: "D.T",
-        status: "inactive",
-        department: "Data Technology",
-        lastLogin: "2024-01-10T09:15:00Z"
-    },
-];
+// Sample data removed
 
 export function UserManagementTable() {
     const queryClient = useQueryClient();
@@ -113,7 +91,7 @@ export function UserManagementTable() {
 
     // Process data
     const processedData = React.useMemo(() => {
-        if (!usersData?.data) return sampleData;
+        if (!usersData?.data) return [];
 
         const roleDeptMapping = {
             'd.s': 'D.Sales',

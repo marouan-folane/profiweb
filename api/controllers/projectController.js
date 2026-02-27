@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 const catchAsync = require("../utils/catchAsync");
 const Project = require("../models/project.model");
 const Client = require("../models/client.model");
@@ -7,9 +7,6 @@ const Question = require("../models/question.model");
 const User = require("../models/user.model");
 const AppError = require("../utils/AppError");
 const Template = require("../models/template.model");
-
-
-
 
 const createProject = catchAsync(async (req, res, next) => {
   const {
@@ -23,11 +20,19 @@ const createProject = catchAsync(async (req, res, next) => {
     cost,
     priority = "standard",
     tags,
-    note
+    note,
   } = req.body;
 
   // Validate required fields
-  if (!title || !description || !clientId || !category || !startDate || !endDate || !budget) {
+  if (
+    !title ||
+    !description ||
+    !clientId ||
+    !category ||
+    !startDate ||
+    !endDate ||
+    !budget
+  ) {
     return next(new AppError("Please provide all required fields", 400));
   }
 
@@ -59,87 +64,101 @@ const createProject = catchAsync(async (req, res, next) => {
     client: {
       name: client.name,
       id: client._id,
-      contactPerson: client.contactPerson
+      contactPerson: client.contactPerson,
     },
     category,
-    status: 'planning',
+    status: "planning",
     priority,
     startDate: start,
     endDate: end,
     budget,
-    currency: 'MAD',
+    currency: "MAD",
     projectManager: req.user.id,
     progress: 0,
     cost: cost || {
       estimated: budget,
       actual: 0,
-      expenses: []
+      expenses: [],
     },
     createdBy: req.user.id,
     isActive: true,
     tags,
     note,
 
-    activeDepartments: ['info'],
+    activeDepartments: ["info"],
     // Sales department is completed when project is created
-    completedDepartments: ['sales'],
+    completedDepartments: ["sales"],
 
-    infoStatus: 'pending'
+    infoStatus: "pending",
   });
 
   // Add project to client's projects list
   await Client.findByIdAndUpdate(clientId, {
-    $push: { projects: project._id }
+    $push: { projects: project._id },
   });
 
   // Get populated project for response
   const populatedProject = await Project.findById(project._id)
-    .populate('projectManager', 'name email')
-    .populate('client.id', 'name email');
+    .populate("projectManager", "name email")
+    .populate("client.id", "name email");
 
   res.status(201).json({
-    status: 'success',
-    message: 'Project created successfully',
+    status: "success",
+    message: "Project created successfully",
     data: {
-      project: populatedProject
-    }
+      project: populatedProject,
+    },
   });
 });
-
-
-
 
 const getProjectById = catchAsync(async (req, res, next) => {
   const { id } = req.params;
 
   // Find project by ID with selective population
   const project = await Project.findById(id)
-    .select('-__v')
+    .select("-__v")
     .populate({
-      path: 'projectManager',
-      select: 'name email role avatar'
+      path: "projectManager",
+      select: "name email role avatar",
     })
     .populate({
-      path: 'client.id',
-      select: 'name email company phone address contactPerson'
+      path: "client.id",
+      select: "name email company phone address contactPerson",
     })
     .populate({
-      path: 'documents'
-    })
+      path: "documents",
+    });
 
   // Check if project exists
   if (!project) {
-    return next(new AppError('Project not found', 404));
+    return next(new AppError("Project not found", 404));
   }
 
   // Role-based access control for Designers (d.d)
-  if (req.user.role === 'd.d' && (project.contentStatus !== 'completed' || project.itStatus === 'pending')) {
-    return next(new AppError('Not authorized to access this project yet. Designers can only access projects after Content is completed and IT Setup is validated.', 403));
+  if (
+    req.user.role === "d.d" &&
+    (project.contentStatus !== "completed" || project.itStatus === "pending")
+  ) {
+    return next(
+      new AppError(
+        "Not authorized to access this project yet. Designers can only access projects after Content is completed and IT Setup is validated.",
+        403,
+      ),
+    );
   }
 
   // Role-based access control for Control Managers (c.m)
-  if (req.user.role === 'c.m' && (project.itStatus !== 'integration_completed' || project.designStatus !== 'completed')) {
-    return next(new AppError('Not authorized to access this project yet. Control Managers can only access projects after IT Integration and Design are both completed.', 403));
+  if (
+    req.user.role === "c.m" &&
+    (project.itStatus !== "integration_completed" ||
+      project.designStatus !== "completed")
+  ) {
+    return next(
+      new AppError(
+        "Not authorized to access this project yet. Control Managers can only access projects after IT Integration and Design are both completed.",
+        403,
+      ),
+    );
   }
 
   // Calculate additional project metrics
@@ -152,21 +171,21 @@ const getProjectById = catchAsync(async (req, res, next) => {
 
   // Calculate completion rate of milestones
   if (projectData.milestones && projectData.milestones.length > 0) {
-    const completedMilestones = projectData.milestones.filter(m => m.status === 'completed').length;
-    projectData.milestoneCompletionRate = Math.round((completedMilestones / projectData.milestones.length) * 100);
+    const completedMilestones = projectData.milestones.filter(
+      (m) => m.status === "completed",
+    ).length;
+    projectData.milestoneCompletionRate = Math.round(
+      (completedMilestones / projectData.milestones.length) * 100,
+    );
   }
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
-      project: projectData
-    }
+      project: projectData,
+    },
   });
 });
-
-
-
-
 
 const archiveProject = catchAsync(async (req, res, next) => {
   const { id } = req.params;
@@ -176,31 +195,27 @@ const archiveProject = catchAsync(async (req, res, next) => {
 
   // Check if project exists
   if (!project) {
-    return next(new AppError('Project not found', 404));
+    return next(new AppError("Project not found", 404));
   }
 
   // Check if already archived
-  if (project.status === 'archived') {
-    return next(new AppError('Project is already archived', 400));
+  if (project.status === "archived") {
+    return next(new AppError("Project is already archived", 400));
   }
 
   // Archive the project by changing status to 'archived'
-  project.status = 'archived';
+  project.status = "archived";
   project.updatedBy = req.user.id;
   await project.save();
 
   res.status(200).json({
-    status: 'success',
-    message: 'Project archived successfully',
+    status: "success",
+    message: "Project archived successfully",
     data: {
-      project
-    }
+      project,
+    },
   });
 });
-
-
-
-
 
 const getArchivedProjects = catchAsync(async (req, res, next) => {
   const {
@@ -209,35 +224,35 @@ const getArchivedProjects = catchAsync(async (req, res, next) => {
     category,
     client,
     search,
-    sortBy = 'createdAt',
-    sortOrder = 'desc'
+    sortBy = "createdAt",
+    sortOrder = "desc",
   } = req.query;
 
   // Build query for archived projects
   const query = {
-    status: 'archived',
+    status: "archived",
   };
 
   if (category) query.category = category;
-  if (client) query['client.id'] = client;
+  if (client) query["client.id"] = client;
 
   // Search functionality
   if (search) {
     query.$or = [
-      { title: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } },
-      { tags: { $regex: search, $options: 'i' } }
+      { title: { $regex: search, $options: "i" } },
+      { description: { $regex: search, $options: "i" } },
+      { tags: { $regex: search, $options: "i" } },
     ];
   }
 
   // Sorting
   const sort = {};
-  sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+  sort[sortBy] = sortOrder === "desc" ? -1 : 1;
 
   // Execute query with pagination
   const projects = await Project.find(query)
-    .populate('projectManager', 'name email')
-    .populate('client.id', 'name company')
+    .populate("projectManager", "name email")
+    .populate("client.id", "name company")
     .sort(sort)
     .limit(limit * 1)
     .skip((page - 1) * limit);
@@ -245,7 +260,7 @@ const getArchivedProjects = catchAsync(async (req, res, next) => {
   const total = await Project.countDocuments(query);
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     results: projects.length,
     data: {
       projects,
@@ -253,40 +268,41 @@ const getArchivedProjects = catchAsync(async (req, res, next) => {
         currentPage: page * 1,
         totalPages: Math.ceil(total / limit),
         totalItems: total,
-        itemsPerPage: limit * 1
-      }
-    }
+        itemsPerPage: limit * 1,
+      },
+    },
   });
 });
 
-
-
-
-
-
 const restoreProject = catchAsync(async (req, res, next) => {
   const { id } = req.params; // Get project ID from URL parameter
-  const { status = 'planning' } = req.body; // Default status after restore
+  const { status = "planning" } = req.body; // Default status after restore
 
   // Validate status (cannot restore to archived status)
-  const validStatuses = ['planning', 'active', 'on-hold', 'completed', 'cancelled'];
+  const validStatuses = [
+    "planning",
+    "active",
+    "on-hold",
+    "completed",
+    "cancelled",
+  ];
   if (!validStatuses.includes(status)) {
     return res.status(400).json({
-      status: 'fail',
-      message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
+      status: "fail",
+      message: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
     });
   }
 
   // Check if project exists and is archived
   const project = await Project.findOne({
     _id: id,
-    status: 'archived'
+    status: "archived",
   });
 
   if (!project) {
     return res.status(404).json({
-      status: 'fail',
-      message: 'Project not found or not archived'
+      status: "fail",
+      message: "Project not found or not archived",
     });
   }
 
@@ -298,28 +314,23 @@ const restoreProject = catchAsync(async (req, res, next) => {
         status: status,
         isActive: true,
         updatedAt: Date.now(),
-        updatedBy: req.user.id
-      }
+        updatedBy: req.user.id,
+      },
     },
-    { new: true, runValidators: true }
+    { new: true, runValidators: true },
   )
-    .populate('projectManager', 'name email')
-    .populate('client.id', 'name company')
-    .populate('createdBy', 'name email');
+    .populate("projectManager", "name email")
+    .populate("client.id", "name company")
+    .populate("createdBy", "name email");
 
   res.status(200).json({
-    status: 'success',
-    message: 'Project restored successfully',
+    status: "success",
+    message: "Project restored successfully",
     data: {
-      project: restoredProject
-    }
+      project: restoredProject,
+    },
   });
 });
-
-
-
-
-
 
 const getQuestionsByProject = catchAsync(async (req, res, next) => {
   const { id: projectId } = req.params;
@@ -327,39 +338,39 @@ const getQuestionsByProject = catchAsync(async (req, res, next) => {
   // Check if project exists
   const project = await Project.findById(projectId);
   if (!project) {
-    return next(new AppError('Project not found', 404));
+    return next(new AppError("Project not found", 404));
   }
 
   // Get all questions for this project
   const questions = await Question.find({ project: projectId })
     .sort({ order: 1, createdAt: 1 }) // Sort by order then by creation date
-    .select('-__v'); // Exclude version key
+    .select("-__v"); // Exclude version key
 
   // If no questions found, return empty array
   if (!questions || questions.length === 0) {
     return res.status(200).json({
-      status: 'success',
-      message: 'No questions found for this project',
+      status: "success",
+      message: "No questions found for this project",
       data: {
         questions: [],
         project: {
           id: project._id,
           title: project.title,
-          questionsStatus: project.questionsStatus || 'pending'
-        }
-      }
+          questionsStatus: project.questionsStatus || "pending",
+        },
+      },
     });
   }
 
   // Group questions by section for better organization
   const groupedQuestions = questions.reduce((acc, question) => {
-    const section = question.section || 'general';
-    const sectionName = question.sectionName || 'General Information';
+    const section = question.section || "general";
+    const sectionName = question.sectionName || "General Information";
 
     if (!acc[section]) {
       acc[section] = {
         sectionName,
-        questions: []
+        questions: [],
       };
     }
 
@@ -368,29 +379,37 @@ const getQuestionsByProject = catchAsync(async (req, res, next) => {
   }, {});
 
   // Convert to array for easier frontend consumption
-  const sections = Object.keys(groupedQuestions).map(section => ({
+  const sections = Object.keys(groupedQuestions).map((section) => ({
     section,
     sectionName: groupedQuestions[section].sectionName,
-    questions: groupedQuestions[section].questions
+    questions: groupedQuestions[section].questions,
   }));
 
   // Calculate completion statistics
   const totalQuestions = questions.length;
-  const answeredQuestions = questions.filter(q => q.status === 'answered').length;
-  const pendingQuestions = questions.filter(q => q.status === 'pending').length;
-  const completionPercentage = totalQuestions > 0
-    ? Math.round((answeredQuestions / totalQuestions) * 100)
-    : 0;
+  const answeredQuestions = questions.filter(
+    (q) => q.status === "answered",
+  ).length;
+  const pendingQuestions = questions.filter(
+    (q) => q.status === "pending",
+  ).length;
+  const completionPercentage =
+    totalQuestions > 0
+      ? Math.round((answeredQuestions / totalQuestions) * 100)
+      : 0;
 
   // Get required questions statistics
-  const requiredQuestions = questions.filter(q => q.isRequired);
-  const requiredAnswered = requiredQuestions.filter(q => q.status === 'answered').length;
-  const requiredCompletion = requiredQuestions.length > 0
-    ? Math.round((requiredAnswered / requiredQuestions.length) * 100)
-    : 100;
+  const requiredQuestions = questions.filter((q) => q.isRequired);
+  const requiredAnswered = requiredQuestions.filter(
+    (q) => q.status === "answered",
+  ).length;
+  const requiredCompletion =
+    requiredQuestions.length > 0
+      ? Math.round((requiredAnswered / requiredQuestions.length) * 100)
+      : 100;
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
       questions,
       sections,
@@ -402,29 +421,26 @@ const getQuestionsByProject = catchAsync(async (req, res, next) => {
         required: {
           total: requiredQuestions.length,
           answered: requiredAnswered,
-          completionPercentage: requiredCompletion
-        }
+          completionPercentage: requiredCompletion,
+        },
       },
       project: {
         id: project._id,
         title: project.title,
         description: project.description,
-        questionsStatus: project.questionsStatus || 'pending',
+        questionsStatus: project.questionsStatus || "pending",
         questionsCompletedAt: project.questionsCompletedAt,
-        projectType: project.projectType || 'wordpress'
+        projectType: project.projectType || "wordpress",
       },
       metadata: {
         lastUpdated: new Date(),
         count: questions.length,
-        customFieldsCount: questions.filter(q => q.isCustom).length,
-        standardFieldsCount: questions.filter(q => !q.isCustom).length
-      }
-    }
+        customFieldsCount: questions.filter((q) => q.isCustom).length,
+        standardFieldsCount: questions.filter((q) => !q.isCustom).length,
+      },
+    },
   });
 });
-
-
-
 
 const deleteProject = catchAsync(async (req, res, next) => {
   const { id } = req.params;
@@ -433,37 +449,33 @@ const deleteProject = catchAsync(async (req, res, next) => {
     { _id: id }, // Wrap id in a query object
     {
       isDeleted: true,
-      isActive: false
+      isActive: false,
     },
-    { new: true }
+    { new: true },
   );
 
   if (!project) {
-    return next(new AppError('Project not found', 404));
+    return next(new AppError("Project not found", 404));
   }
 
   // Optional: Check if project was already deleted
   if (project.isDeleted) {
     return res.status(200).json({
-      status: 'success',
-      message: 'Project was already deleted',
+      status: "success",
+      message: "Project was already deleted",
       data: {
-        project
-      }
+        project,
+      },
     });
   }
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: {
-      project
-    }
+      project,
+    },
   });
 });
-
-
-
-
 
 const updateProject = catchAsync(async (req, res, next) => {
   const { id } = req.params;
@@ -485,7 +497,7 @@ const updateProject = catchAsync(async (req, res, next) => {
     actualStartDate,
     actualEndDate,
     currency,
-    isPublic
+    isPublic,
   } = req.body;
 
   // // console.log("note ===> ", req.body);
@@ -493,50 +505,63 @@ const updateProject = catchAsync(async (req, res, next) => {
   // Find project
   const project = await Project.findById(id);
   if (!project) {
-    return next(new AppError('Project not found', 404));
+    return next(new AppError("Project not found", 404));
   }
 
   // HARD LOCK: Block questionnaire-related field updates when questionnaire is locked
   const QUESTIONNAIRE_FIELDS = [
-    'title', 'description', 'shortDescription', 'client',
-    'category', 'tags', 'selectedTemplateId', 'templateName',
-    'questionsStatus', 'clientId'
+    "title",
+    "description",
+    "shortDescription",
+    "client",
+    "category",
+    "tags",
+    "selectedTemplateId",
+    "templateName",
+    "questionsStatus",
+    "clientId",
   ];
-  const isQuestionnaireUpdate = QUESTIONNAIRE_FIELDS.some(f => req.body[f] !== undefined);
-  if (project.infoStatus === 'completed' && isQuestionnaireUpdate) {
-    return next(new AppError('Questionnaire is locked and cannot be modified.', 403));
+  const isQuestionnaireUpdate = QUESTIONNAIRE_FIELDS.some(
+    (f) => req.body[f] !== undefined,
+  );
+  if (project.infoStatus === "completed" && isQuestionnaireUpdate) {
+    return next(
+      new AppError("Questionnaire is locked and cannot be modified.", 403),
+    );
   }
 
   // Check if client exists if clientId is being updated
   if (clientId && clientId !== project.client.id.toString()) {
     const client = await Client.findById(clientId);
     if (!client) {
-      return next(new AppError('Client not found', 404));
+      return next(new AppError("Client not found", 404));
     }
 
     // Remove project from old client's projects list
     await Client.findByIdAndUpdate(project.client.id, {
-      $pull: { projects: project._id }
+      $pull: { projects: project._id },
     });
 
     // Add project to new client's projects list
     await Client.findByIdAndUpdate(clientId, {
-      $push: { projects: project._id }
+      $push: { projects: project._id },
     });
 
     // Update project's client info
     project.client = {
       name: client.name,
       id: client._id,
-      contactPerson: client.contactPerson
+      contactPerson: client.contactPerson,
     };
   }
 
   // Handle date validation and updates
   if (startDate !== undefined || endDate !== undefined) {
     // Permission check: only superadmin and d.s can update dates
-    if (!['superadmin', 'd.s'].includes(req.user.role)) {
-      return next(new AppError('You do not have permission to update project dates', 403));
+    if (!["superadmin", "d.s"].includes(req.user.role)) {
+      return next(
+        new AppError("You do not have permission to update project dates", 403),
+      );
     }
 
     if (startDate !== undefined) {
@@ -560,8 +585,12 @@ const updateProject = catchAsync(async (req, res, next) => {
     }
 
     // Validate dates if both exist
-    if (project.startDate && project.endDate && project.startDate >= project.endDate) {
-      return next(new AppError('End date must be after start date', 400));
+    if (
+      project.startDate &&
+      project.endDate &&
+      project.startDate >= project.endDate
+    ) {
+      return next(new AppError("End date must be after start date", 400));
     }
   }
 
@@ -585,7 +614,7 @@ const updateProject = catchAsync(async (req, res, next) => {
   if (cost) {
     project.cost = {
       ...project.cost,
-      ...cost
+      ...cost,
     };
   }
 
@@ -597,24 +626,19 @@ const updateProject = catchAsync(async (req, res, next) => {
 
   // Get populated project for response
   const populatedProject = await Project.findById(project._id)
-    .populate('projectManager', 'name email')
-    .populate('client.id', 'name email company')
-    .populate('createdBy', 'name email')
-    .populate('updatedBy', 'name email');
+    .populate("projectManager", "name email")
+    .populate("client.id", "name email company")
+    .populate("createdBy", "name email")
+    .populate("updatedBy", "name email");
 
   res.status(200).json({
-    status: 'success',
-    message: 'Project updated successfully',
+    status: "success",
+    message: "Project updated successfully",
     data: {
-      project: populatedProject
-    }
+      project: populatedProject,
+    },
   });
 });
-
-
-
-
-
 
 const getAllProjects = catchAsync(async (req, res, next) => {
   const {
@@ -624,9 +648,9 @@ const getAllProjects = catchAsync(async (req, res, next) => {
     category,
     client,
     search,
-    sortBy = 'createdAt',
-    sortOrder = 'desc',
-    includeArchived = false
+    sortBy = "createdAt",
+    sortOrder = "desc",
+    includeArchived = false,
   } = req.query;
 
   // Get current user from request (assuming user is attached to req by auth middleware)
@@ -638,42 +662,42 @@ const getAllProjects = catchAsync(async (req, res, next) => {
 
   // Handle status and archived logic
   if (status) {
-    if (status === 'archived') {
-      query.status = 'archived';
+    if (status === "archived") {
+      query.status = "archived";
     } else {
       query.status = status;
       // Exclude archived for non-archived status queries unless explicitly included
       if (!includeArchived) {
-        query.status = { $eq: status, $ne: 'archived' };
+        query.status = { $eq: status, $ne: "archived" };
       }
     }
   } else {
     // Default: exclude archived if not explicitly included
     if (!includeArchived) {
-      query.status = { $ne: 'archived' };
+      query.status = { $ne: "archived" };
     }
   }
 
   if (category) query.category = category;
-  if (client) query['client.id'] = client;
+  if (client) query["client.id"] = client;
 
   // Search functionality
   if (search) {
     query.$or = [
-      { title: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } },
-      { tags: { $regex: search, $options: 'i' } }
+      { title: { $regex: search, $options: "i" } },
+      { description: { $regex: search, $options: "i" } },
+      { tags: { $regex: search, $options: "i" } },
     ];
   }
 
   // Sorting
   const sort = {};
-  sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+  sort[sortBy] = sortOrder === "desc" ? -1 : 1;
 
   // Execute query with pagination
   let projects = await Project.find(query)
-    .populate('projectManager', 'name email')
-    .populate('client.id', 'name company')
+    .populate("projectManager", "name email")
+    .populate("client.id", "name company")
     .sort(sort)
     .limit(limit * 1)
     .skip((page - 1) * limit);
@@ -683,23 +707,23 @@ const getAllProjects = catchAsync(async (req, res, next) => {
     const { activeDepartments = [], completedDepartments = [] } = project;
 
     // Superadmin can see all projects
-    if (userRole === 'superadmin') {
+    if (userRole === "superadmin") {
       return true;
     }
 
     // Admin can see all projects
-    if (userRole === 'admin') {
+    if (userRole === "admin") {
       return true;
     }
 
     // Map user roles to department codes
     const roleToDepartmentMap = {
-      'd.s': 'sales',
-      'd.i': 'info',
-      'd.c': 'content',
-      'd.d': 'design',
-      'd.it': 'it',
-      'd.in': 'integration'
+      "d.s": "sales",
+      "d.i": "info",
+      "d.c": "content",
+      "d.d": "design",
+      "d.it": "it",
+      "d.in": "integration",
     };
 
     // Get user's department from role
@@ -707,14 +731,20 @@ const getAllProjects = catchAsync(async (req, res, next) => {
 
     // Special rule for Designers (d.d):
     // They can see projects once Content is completed AND IT Setup is validated.
-    if (userRole === 'd.d' && (project.contentStatus !== 'completed' || project.itStatus === 'pending')) {
+    if (
+      userRole === "d.d" &&
+      (project.contentStatus !== "completed" || project.itStatus === "pending")
+    ) {
       return false;
     }
 
     // Special rule for Control Managers (c.m):
     // They can only see projects where IT Integration AND Design are fully completed.
-    if (userRole === 'c.m') {
-      return project.itStatus === 'integration_completed' && project.designStatus === 'completed';
+    if (userRole === "c.m") {
+      return (
+        project.itStatus === "integration_completed" &&
+        project.designStatus === "completed"
+      );
     }
 
     // If user role doesn't map to a department or is not in the map, show all projects
@@ -731,7 +761,8 @@ const getAllProjects = catchAsync(async (req, res, next) => {
     }
 
     // If user's department is not in activeDepartments, check completedDepartments
-    const isInCompletedDepartments = completedDepartments.includes(userDepartment);
+    const isInCompletedDepartments =
+      completedDepartments.includes(userDepartment);
 
     // If user's department is in completedDepartments, display the project
     if (isInCompletedDepartments) {
@@ -759,15 +790,15 @@ const getAllProjects = catchAsync(async (req, res, next) => {
     { $match: query },
     {
       $group: {
-        _id: '$status',
+        _id: "$status",
         count: { $sum: 1 },
-        totalBudget: { $sum: '$budget' }
-      }
-    }
+        totalBudget: { $sum: "$budget" },
+      },
+    },
   ]);
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     results: filteredProjects.length,
     data: {
       projects: filteredProjects,
@@ -775,44 +806,40 @@ const getAllProjects = catchAsync(async (req, res, next) => {
         currentPage: page * 1,
         totalPages: Math.ceil(total / limit),
         totalItems: total,
-        itemsPerPage: limit * 1
+        itemsPerPage: limit * 1,
       },
-      stats
-    }
+      stats,
+    },
   });
 });
 
-
-
-
-
-
-
 const createOrUpdateQuestions = catchAsync(async (req, res, next) => {
   const { id: projectId } = req.params;
-  const { questions, projectType, generatePDFs = true } = req.body;
+  const { questions, projectType, generatePDFs = false } = req.body;
 
   // Check if project exists
   const project = await Project.findById(projectId);
   if (!project) {
-    return next(new AppError('Project not found', 404));
+    return next(new AppError("Project not found", 404));
   }
 
   // HARD LOCK: Reject all writes once questionnaire is completed
-  if (project.infoStatus === 'completed') {
-    return next(new AppError('Questionnaire is locked and cannot be modified.', 403));
+  if (project.infoStatus === "completed") {
+    return next(
+      new AppError("Questionnaire is locked and cannot be modified.", 403),
+    );
   }
 
   // Validate that questions array exists
   if (!questions || !Array.isArray(questions)) {
-    return next(new AppError('Questions array is required', 400));
+    return next(new AppError("Questions array is required", 400));
   }
 
   // Process each question
   const savedQuestions = [];
   let templateStructure;
-  const Template = require('../models/template.model');
-  const Question = require('../models/question.model');
+  const Template = require("../models/template.model");
+  const Question = require("../models/question.model");
 
   for (const questionData of questions) {
     const {
@@ -827,13 +854,17 @@ const createOrUpdateQuestions = catchAsync(async (req, res, next) => {
       options,
       placeholder,
       settings,
-      isCustom
+      isCustom,
     } = questionData;
 
     if (question === "Selected Template") {
       // Robust lookup: try ID first, then title
       let template = null;
-      if (answer && typeof answer === 'string' && answer.match(/^[0-9a-fA-F]{24}$/)) {
+      if (
+        answer &&
+        typeof answer === "string" &&
+        answer.match(/^[0-9a-fA-F]{24}$/)
+      ) {
         template = await Template.findById(answer);
       }
       if (!template && answer) {
@@ -848,43 +879,57 @@ const createOrUpdateQuestions = catchAsync(async (req, res, next) => {
 
     // Handle array answers for multiselect/checkbox types
     let processedAnswer = answer;
-    if ((type === 'multiselect' || type === 'checkbox') && Array.isArray(answer)) {
-      processedAnswer = answer.join(', ');
+    if (
+      (type === "multiselect" || type === "checkbox") &&
+      Array.isArray(answer)
+    ) {
+      processedAnswer = answer.join(", ");
     }
 
     // Determine status based on whether answer exists
-    const status = processedAnswer && processedAnswer.toString().trim() !== ''
-      ? 'answered'
-      : 'pending';
+    const status =
+      processedAnswer && processedAnswer.toString().trim() !== ""
+        ? "answered"
+        : "pending";
 
     // Process options
     let processedOptions = [];
     if (options && Array.isArray(options)) {
-      processedOptions = options.map(option => {
-        if (typeof option === 'string') {
-          return { value: option, label: option };
-        } else if (option && typeof option === 'object') {
-          let value = option.value;
-          let label = option.label || option.value;
+      processedOptions = options
+        .map((option) => {
+          if (typeof option === "string") {
+            return { value: option, label: option };
+          } else if (option && typeof option === "object") {
+            let value = option.value;
+            let label = option.label || option.value;
 
-          if (value && typeof value === 'object' && value.value !== undefined) {
-            value = value.value;
-          }
-          if (label && typeof label === 'object' && label.label !== undefined) {
-            label = label.label;
-          }
+            if (
+              value &&
+              typeof value === "object" &&
+              value.value !== undefined
+            ) {
+              value = value.value;
+            }
+            if (
+              label &&
+              typeof label === "object" &&
+              label.label !== undefined
+            ) {
+              label = label.label;
+            }
 
-          if (value !== null && value !== undefined) {
-            value = String(value);
-          }
-          if (label !== null && label !== undefined) {
-            label = String(label);
-          }
+            if (value !== null && value !== undefined) {
+              value = String(value);
+            }
+            if (label !== null && label !== undefined) {
+              label = String(label);
+            }
 
-          return { value: value || '', label: label || '' };
-        }
-        return { value: '', label: '' };
-      }).filter(opt => opt.value !== undefined && opt.value !== null);
+            return { value: value || "", label: label || "" };
+          }
+          return { value: "", label: "" };
+        })
+        .filter((opt) => opt.value !== undefined && opt.value !== null);
     }
 
     // Use findOneAndUpdate with upsert to create or update
@@ -896,53 +941,41 @@ const createOrUpdateQuestions = catchAsync(async (req, res, next) => {
         question,
         type,
         answer: processedAnswer,
-        section: section || 'general',
-        sectionName: sectionName || 'General',
+        section: section || "general",
+        sectionName: sectionName || "General",
         order: order || 0,
         isRequired: isRequired || false,
-        projectType: projectType || 'wordpress',
+        projectType: projectType || "wordpress",
         status,
         ...(options && { options: processedOptions }),
         ...(placeholder && { placeholder }),
         ...(settings && { settings }),
-        ...(isCustom !== undefined && { isCustom: Boolean(isCustom) })
+        ...(isCustom !== undefined && { isCustom: Boolean(isCustom) }),
       },
       {
         new: true,
         upsert: true,
-        runValidators: true
-      }
+        runValidators: true,
+      },
     );
 
     savedQuestions.push(savedQuestion);
   }
 
   // Update project's questionsStatus
-  const allAnswered = savedQuestions.every(q => q.status === 'answered');
-  const anyAnswered = savedQuestions.some(q => q.status === 'answered');
+  const allAnswered = savedQuestions.every((q) => q.status === "answered");
+  const anyAnswered = savedQuestions.some((q) => q.status === "answered");
 
-  let questionsStatus = 'pending';
+  let questionsStatus = "pending";
   if (allAnswered) {
-    questionsStatus = 'completed';
+    questionsStatus = "completed";
   } else if (anyAnswered) {
-    questionsStatus = 'in-progress';
+    questionsStatus = "in-progress";
   }
-
-  // Get existing departments
-  const existingActiveDepartments = project.activeDepartments || [];
-  const existingCompletedDepartments = project.completedDepartments || [];
-
-  // Define new departments to add
-  const newActiveDepartments = ["design", "content", "it"];
-  const newCompletedDepartments = ["info"];
-
-  console.log("completedDepartments: ", [...new Set([...existingCompletedDepartments, ...newCompletedDepartments])]);
 
   // Create the update object correctly
   const updateObj = {
     questionsStatus,
-    activeDepartments: newActiveDepartments,
-    completedDepartments: [...new Set([...existingCompletedDepartments, ...newCompletedDepartments])]
   };
 
   // Add questionsCompletedAt if all answered
@@ -950,14 +983,13 @@ const createOrUpdateQuestions = catchAsync(async (req, res, next) => {
     updateObj.questionsCompletedAt = new Date();
   }
 
-  // Update the project with new departments
-  await Project.findByIdAndUpdate(
-    projectId,
-    updateObj,
-    { new: true, runValidators: true }
-  );
+  // Update the project with questions status
+  await Project.findByIdAndUpdate(projectId, updateObj, {
+    new: true,
+    runValidators: true,
+  });
 
-  // ===== PDF GENERATION ===== 
+  // ===== PDF GENERATION =====
   let pdfResult = null;
   let createdFile = null;
   let createdFolder = null;
@@ -966,24 +998,28 @@ const createOrUpdateQuestions = catchAsync(async (req, res, next) => {
 
   if (generatePDFs && savedQuestions.length > 0) {
     try {
-      const AIStructorPDFGenerator = require('../utils/aistructorpdfgenerator');
+      const AIStructorPDFGenerator = require("../utils/aistructorpdfgenerator");
       const File = require("../models/file.model");
       const Folder = require("../models/folder.model");
 
-      console.log('🔍 Starting PDF generation process...');
+      console.log("🔍 Starting PDF generation process...");
 
       // 1. Fetch ALL questions for this project to ensure a complete PDF
-      const allProjectQuestions = await Question.find({ project: projectId }).sort({ order: 1 });
+      const allProjectQuestions = await Question.find({
+        project: projectId,
+      }).sort({ order: 1 });
 
       // 2. Find template structure from ALL questions if not already set in this request
       if (!templateStructure) {
-        const templateQuestion = allProjectQuestions.find(q => q.question === "Selected Template");
+        const templateQuestion = allProjectQuestions.find(
+          (q) => q.question === "Selected Template",
+        );
         if (templateQuestion && templateQuestion.answer) {
           const answer = templateQuestion.answer;
           let template = null;
 
           // Robust lookup: try ID first, then title
-          if (typeof answer === 'string' && answer.match(/^[0-9a-fA-F]{24}$/)) {
+          if (typeof answer === "string" && answer.match(/^[0-9a-fA-F]{24}$/)) {
             template = await Template.findById(answer);
           }
           if (!template) {
@@ -1001,10 +1037,10 @@ const createOrUpdateQuestions = catchAsync(async (req, res, next) => {
       const aiPdf = await AIStructorPDFGenerator.generateAiInstructions(
         project,
         allProjectQuestions,
-        templateStructure
+        templateStructure,
       );
 
-      console.log('✅ PDF generated:', aiPdf.filename);
+      console.log("✅ PDF generated:", aiPdf.filename);
 
       // Get all existing file IDs from the project to delete them
       const existingFileIds = project.documents || [];
@@ -1013,14 +1049,16 @@ const createOrUpdateQuestions = catchAsync(async (req, res, next) => {
       if (existingFileIds.length > 0) {
         console.log(`🗑️ Deleting ${existingFileIds.length} old files...`);
         await File.deleteMany({ _id: { $in: existingFileIds } });
-        console.log('✅ Old files deleted');
+        console.log("✅ Old files deleted");
       }
 
       // ===== FOLDER MANAGEMENT =====
       const folderName = "Generated instructions pdf";
       const userId = req.user.id;
 
-      console.log(`🔍 Looking for folder: "${folderName}" for project ${projectId}`);
+      console.log(
+        `🔍 Looking for folder: "${folderName}" for project ${projectId}`,
+      );
 
       // Try to find existing folder with same name and project
       let pdfFolder = await Folder.findOne({
@@ -1030,12 +1068,12 @@ const createOrUpdateQuestions = catchAsync(async (req, res, next) => {
 
       // If folder doesn't exist, create it
       if (!pdfFolder) {
-        console.log('📁 Creating new folder...');
+        console.log("📁 Creating new folder...");
         pdfFolder = await Folder.create({
           name: folderName,
           user: userId,
           project: projectId,
-          description: "Folder for generated PDF instructions"
+          description: "Folder for generated PDF instructions",
         });
         console.log(`✅ Created new folder with ID: ${pdfFolder._id}`);
         folderExisted = false;
@@ -1058,12 +1096,12 @@ const createOrUpdateQuestions = catchAsync(async (req, res, next) => {
 
       // Create or update file
       if (!existingFile) {
-        console.log('📄 Creating new file...');
+        console.log("📄 Creating new file...");
         createdFile = await File.create({
           filename: aiPdf.filename,
           originalName: aiPdf.filename,
           path: aiPdf.path || `uploads/pdfs/${aiPdf.filename}`,
-          size: aiPdf.size || '0',
+          size: aiPdf.size || "0",
           project: projectId,
           user: userId,
           folder: pdfFolder._id,
@@ -1071,7 +1109,7 @@ const createOrUpdateQuestions = catchAsync(async (req, res, next) => {
         console.log(`✅ Created new file with ID: ${createdFile._id}`);
         fileExisted = false;
       } else {
-        console.log('📝 Updating existing file...');
+        console.log("📝 Updating existing file...");
         existingFile.filename = aiPdf.filename;
         existingFile.originalName = aiPdf.filename;
         existingFile.path = aiPdf.path || `uploads/pdfs/${aiPdf.filename}`;
@@ -1082,25 +1120,27 @@ const createOrUpdateQuestions = catchAsync(async (req, res, next) => {
       }
 
       // ===== UPDATE PROJECT DOCUMENTS =====
-      console.log('📋 Updating project documents array...');
+      console.log("📋 Updating project documents array...");
       await Project.findByIdAndUpdate(
         projectId,
         {
           $set: {
-            documents: [createdFile._id] // ONLY the new file, remove ALL others
-          }
+            documents: [createdFile._id], // ONLY the new file, remove ALL others
+          },
         },
-        { new: true }
+        { new: true },
       );
-      console.log('✅ Project documents updated');
+      console.log("✅ Project documents updated");
 
       // Simple document object for response
       const document = {
         filename: aiPdf.filename,
         url: aiPdf.url || `/uploads/pdfs/${aiPdf.filename}`,
-        type: 'ai-structured',
+        type: "ai-structured",
         generatedAt: new Date(),
-        documentId: aiPdf.documentId || `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        documentId:
+          aiPdf.documentId ||
+          `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       };
 
       pdfResult = {
@@ -1111,79 +1151,80 @@ const createOrUpdateQuestions = catchAsync(async (req, res, next) => {
           filename: createdFile.filename,
           path: createdFile.path,
           folder: createdFile.folder,
-          existed: fileExisted
+          existed: fileExisted,
         },
         folder: {
           id: createdFolder._id,
           name: createdFolder.name,
-          existed: folderExisted
+          existed: folderExisted,
         },
         removedFiles: existingFileIds.length,
-        message: `PDF generated successfully. ${fileExisted ? 'Updated' : 'Created'} file in ${folderExisted ? 'existing' : 'new'} folder. Removed ${existingFileIds.length} old files.`
+        message: `PDF generated successfully. ${fileExisted ? "Updated" : "Created"} file in ${folderExisted ? "existing" : "new"} folder. Removed ${existingFileIds.length} old files.`,
       };
 
-      console.log('✅ PDF generation process completed successfully');
-
+      console.log("✅ PDF generation process completed successfully");
     } catch (pdfError) {
-      console.error('❌ Error generating PDF or creating file:', pdfError);
+      console.error("❌ Error generating PDF or creating file:", pdfError);
       pdfResult = {
         success: false,
         error: pdfError.message,
-        stack: process.env.NODE_ENV === 'development' ? pdfError.stack : undefined
+        stack:
+          process.env.NODE_ENV === "development" ? pdfError.stack : undefined,
       };
     }
   }
 
   // Prepare response
   const response = {
-    status: 'success',
-    message: 'Project questions updated successfully',
+    status: "success",
+    message: "Project questions updated successfully",
     data: {
       questions: savedQuestions,
       questionsStatus,
       count: savedQuestions.length,
-      customFieldsCount: savedQuestions.filter(q => q.isCustom).length,
-      standardFieldsCount: savedQuestions.filter(q => !q.isCustom).length,
+      customFieldsCount: savedQuestions.filter((q) => q.isCustom).length,
+      standardFieldsCount: savedQuestions.filter((q) => !q.isCustom).length,
       projectInfo: {
         id: project._id,
         title: project.title,
         clientName: project.client?.name,
         questionsCompletedAt: allAnswered ? new Date() : null,
         pdfsGenerated: pdfResult ? pdfResult.success : false,
-        documentsCount: pdfResult && pdfResult.success ? 1 : (project.documents?.length || 0),
-        activeDepartments: newActiveDepartments,
-        completedDepartments: [...new Set([...existingCompletedDepartments, ...newCompletedDepartments])]
-      }
-    }
+        documentsCount:
+          pdfResult && pdfResult.success ? 1 : project.documents?.length || 0,
+      },
+    },
   };
 
   // Add PDF info if generated
   if (pdfResult) {
-    response.data.pdf = pdfResult.success ? {
-      success: true,
-      document: pdfResult.document,
-      file: pdfResult.file,
-      folder: pdfResult.folder,
-      removedFiles: pdfResult.removedFiles,
-      message: pdfResult.message,
-      debugging: {
-        folderExisted,
-        fileExisted,
-        folderId: createdFolder?._id?.toString(),
-        fileId: createdFile?._id?.toString(),
-        linkedCorrectly: createdFile?.folder?.toString() === createdFolder?._id?.toString()
-      }
-    } : {
-      success: false,
-      error: pdfResult.error,
-      stack: pdfResult.stack
-    };
+    response.data.pdf = pdfResult.success
+      ? {
+          success: true,
+          document: pdfResult.document,
+          file: pdfResult.file,
+          folder: pdfResult.folder,
+          removedFiles: pdfResult.removedFiles,
+          message: pdfResult.message,
+          debugging: {
+            folderExisted,
+            fileExisted,
+            folderId: createdFolder?._id?.toString(),
+            fileId: createdFile?._id?.toString(),
+            linkedCorrectly:
+              createdFile?.folder?.toString() ===
+              createdFolder?._id?.toString(),
+          },
+        }
+      : {
+          success: false,
+          error: pdfResult.error,
+          stack: pdfResult.stack,
+        };
   }
 
   res.status(200).json(response);
 });
-
-
 
 const saveContentDraft = catchAsync(async (req, res, next) => {
   const { id } = req.params;
@@ -1191,12 +1232,12 @@ const saveContentDraft = catchAsync(async (req, res, next) => {
 
   const project = await Project.findById(id);
   if (!project) {
-    return next(new AppError('Project not found', 404));
+    return next(new AppError("Project not found", 404));
   }
 
   // HARD LOCK: reject writes once content workflow is completed
-  if (project.contentStatus === 'completed') {
-    return next(new AppError('Content workflow is completed and locked.', 403));
+  if (project.contentStatus === "completed") {
+    return next(new AppError("Content workflow is completed and locked.", 403));
   }
 
   project.contentDraftText = contentDraftText || "";
@@ -1204,9 +1245,9 @@ const saveContentDraft = catchAsync(async (req, res, next) => {
   await project.save();
 
   res.status(200).json({
-    status: 'success',
-    message: 'Draft saved successfully',
-    data: { project }
+    status: "success",
+    message: "Draft saved successfully",
+    data: { project },
   });
 });
 
@@ -1216,12 +1257,12 @@ const submitContent = catchAsync(async (req, res, next) => {
 
   const project = await Project.findById(id);
   if (!project) {
-    return next(new AppError('Project not found', 404));
+    return next(new AppError("Project not found", 404));
   }
 
   // HARD LOCK: reject writes once content workflow is completed
-  if (project.contentStatus === 'completed') {
-    return next(new AppError('Content workflow is completed and locked.', 403));
+  if (project.contentStatus === "completed") {
+    return next(new AppError("Content workflow is completed and locked.", 403));
   }
 
   // Use draft if contentText is not provided
@@ -1230,30 +1271,30 @@ const submitContent = catchAsync(async (req, res, next) => {
   }
 
   if (!contentJson) {
-    return next(new AppError('JSON content is required', 400));
+    return next(new AppError("JSON content is required", 400));
   }
 
-  if (!contentText || contentText.trim() === '') {
-    return next(new AppError('Text content is required', 400));
+  if (!contentText || contentText.trim() === "") {
+    return next(new AppError("Text content is required", 400));
   }
 
   // Validate JSON if it's a string
   try {
-    if (typeof contentJson === 'string') {
+    if (typeof contentJson === "string") {
       JSON.parse(contentJson);
     }
   } catch (e) {
-    return next(new AppError('Invalid JSON content', 400));
+    return next(new AppError("Invalid JSON content", 400));
   }
 
   // Format text content
   const formattedText = contentText
-    .replace(/\r\n/g, '\n')
-    .replace(/[ \t]+/g, ' ')
-    .split('\n')
-    .map(line => line.trim())
-    .filter(line => line !== '')
-    .join('\n\n');
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line !== "")
+    .join("\n\n");
 
   project.contentJson = contentJson;
   project.contentText = formattedText;
@@ -1262,12 +1303,12 @@ const submitContent = catchAsync(async (req, res, next) => {
   project.contentDraftText = ""; // Clear draft upon success
 
   // Workflow transition
-  if (!project.completedDepartments.includes('content')) {
-    project.completedDepartments.push('content');
+  if (!project.completedDepartments.includes("content")) {
+    project.completedDepartments.push("content");
   }
 
-  if (!project.activeDepartments.includes('integration')) {
-    project.activeDepartments.push('integration');
+  if (!project.activeDepartments.includes("integration")) {
+    project.activeDepartments.push("integration");
   }
 
   project.updatedBy = req.user.id;
@@ -1275,16 +1316,16 @@ const submitContent = catchAsync(async (req, res, next) => {
 
   // ===== PDF GENERATION FOR CONTENT =====
   try {
-    const AIStructorPDFGenerator = require('../utils/aistructorpdfgenerator');
+    const AIStructorPDFGenerator = require("../utils/aistructorpdfgenerator");
     const File = require("../models/file.model");
     const Folder = require("../models/folder.model");
 
-    console.log('🔍 Starting Content PDF generation...');
+    console.log("🔍 Starting Content PDF generation...");
 
     // Generate the PDF
     const contentPdf = await AIStructorPDFGenerator.generateFormattedContentPdf(
       project,
-      formattedText
+      formattedText,
     );
 
     // FOLDER MANAGEMENT
@@ -1299,7 +1340,7 @@ const submitContent = catchAsync(async (req, res, next) => {
         name: folderName,
         user: req.user.id,
         project: project._id,
-        description: "Folder for formatted content PDFs"
+        description: "Folder for formatted content PDFs",
       });
     }
 
@@ -1315,7 +1356,7 @@ const submitContent = catchAsync(async (req, res, next) => {
         filename: contentPdf.filename,
         originalName: contentPdf.filename,
         path: contentPdf.path || `uploads/pdfs/${contentPdf.filename}`,
-        size: contentPdf.size || '0',
+        size: contentPdf.size || "0",
         project: project._id,
         user: req.user.id,
         folder: pdfFolder._id,
@@ -1323,7 +1364,8 @@ const submitContent = catchAsync(async (req, res, next) => {
     } else {
       existingFile.filename = contentPdf.filename;
       existingFile.originalName = contentPdf.filename;
-      existingFile.path = contentPdf.path || `uploads/pdfs/${contentPdf.filename}`;
+      existingFile.path =
+        contentPdf.path || `uploads/pdfs/${contentPdf.filename}`;
       existingFile.updatedAt = new Date();
       createdFile = await existingFile.save();
     }
@@ -1331,17 +1373,17 @@ const submitContent = catchAsync(async (req, res, next) => {
     // Add to project documents if not already there
     const ProjectModel = require("../models/project.model");
     await ProjectModel.findByIdAndUpdate(id, {
-      $addToSet: { documents: createdFile._id }
+      $addToSet: { documents: createdFile._id },
     });
 
-    console.log('✅ Content PDF generated and saved');
+    console.log("✅ Content PDF generated and saved");
 
     // ===== JSON FILE PERSISTENCE FOR CONTENT =====
     try {
-      console.log('🔍 Starting Content JSON persistence...');
+      console.log("🔍 Starting Content JSON persistence...");
 
       const jsonFilename = `content-${project._id}-${Date.now()}.json`;
-      const jsonDir = path.join(__dirname, '../uploads/others');
+      const jsonDir = path.join(__dirname, "../uploads/others");
       if (!fs.existsSync(jsonDir)) {
         fs.mkdirSync(jsonDir, { recursive: true });
       }
@@ -1363,7 +1405,7 @@ const submitContent = catchAsync(async (req, res, next) => {
           name: jsonFolderName,
           user: req.user.id,
           project: project._id,
-          description: "Folder for structured content JSON files"
+          description: "Folder for structured content JSON files",
         });
       }
 
@@ -1399,21 +1441,21 @@ const submitContent = catchAsync(async (req, res, next) => {
       // Add to project documents if not already there
       const ProjectModel = require("../models/project.model");
       await ProjectModel.findByIdAndUpdate(id, {
-        $addToSet: { documents: createdJsonFile._id }
+        $addToSet: { documents: createdJsonFile._id },
       });
 
-      console.log('✅ Content JSON persisted and saved');
+      console.log("✅ Content JSON persisted and saved");
     } catch (jsonError) {
-      console.error('❌ Error persisting content JSON:', jsonError);
+      console.error("❌ Error persisting content JSON:", jsonError);
     }
   } catch (pdfError) {
-    console.error('❌ Error generating content PDF:', pdfError);
+    console.error("❌ Error generating content PDF:", pdfError);
   }
 
   res.status(200).json({
-    status: 'success',
-    message: 'Content submitted successfully and ready for integration',
-    data: { project }
+    status: "success",
+    message: "Content submitted successfully and ready for integration",
+    data: { project },
   });
 });
 
@@ -1421,37 +1463,129 @@ const completeInfoQuestionnaire = catchAsync(async (req, res, next) => {
   const { id } = req.params;
 
   // Check permissions: only d.i or superadmin can complete the questionnaire
-  if (!['superadmin', 'd.i'].includes(req.user.role)) {
-    return next(new AppError('Only the Info Department or a Super Admin can complete this questionnaire', 403));
+  if (!["superadmin", "d.i"].includes(req.user.role)) {
+    return next(
+      new AppError(
+        "Only the Info Department or a Super Admin can complete this questionnaire",
+        403,
+      ),
+    );
   }
 
   const project = await Project.findById(id);
 
   if (!project) {
-    return next(new AppError('Project not found', 404));
+    return next(new AppError("Project not found", 404));
   }
 
-  if (project.infoStatus === 'completed') {
-    return next(new AppError('Questionnaire is already completed', 400));
+  if (project.infoStatus === "completed") {
+    return next(new AppError("Questionnaire is already completed", 400));
   }
 
-  project.infoStatus = 'completed';
+  project.infoStatus = "completed";
   project.infoCompletedBy = req.user.id;
   project.infoCompletedAt = Date.now();
   project.updatedBy = req.user.id;
 
   // Update department workflow
-  project.activeDepartments = project.activeDepartments.filter(dept => dept !== 'info');
-  if (!project.completedDepartments.includes('info')) {
-    project.completedDepartments.push('info');
+  const existingCompletedDepartments = project.completedDepartments || [];
+  project.activeDepartments = project.activeDepartments.filter(
+    (dept) => dept !== "info",
+  );
+
+  // Add new departments if they are not already active
+  const nextDepartments = ["design", "content", "it"];
+  nextDepartments.forEach((dept) => {
+    if (!project.activeDepartments.includes(dept)) {
+      project.activeDepartments.push(dept);
+    }
+  });
+
+  if (!existingCompletedDepartments.includes("info")) {
+    project.completedDepartments = [
+      ...new Set([...existingCompletedDepartments, "info"]),
+    ];
   }
 
   await project.save();
 
+  // Trigger PDF Generation upon completion
+  try {
+    const questions = await Question.find({ project: id }).sort({ order: 1 });
+    const AIStructorPDFGenerator = require("../utils/aistructorpdfgenerator");
+    const File = require("../models/file.model");
+    const Folder = require("../models/folder.model");
+    const Template = require("../models/template.model");
+
+    let templateStructure;
+    const templateQuestion = questions.find(
+      (q) => q.question === "Selected Template",
+    );
+    if (templateQuestion && templateQuestion.answer) {
+      const answer = templateQuestion.answer;
+      let template = null;
+      if (typeof answer === "string" && answer.match(/^[0-9a-fA-F]{24}$/)) {
+        template = await Template.findById(answer);
+      }
+      if (!template) {
+        template = await Template.findOne({ title: answer });
+      }
+      if (template) {
+        templateStructure = template.structure;
+      }
+    }
+
+    const aiPdf = await AIStructorPDFGenerator.generateAiInstructions(
+      project,
+      questions,
+      templateStructure,
+    );
+
+    const folderName = "Generated instructions pdf";
+    let pdfFolder = await Folder.findOne({ name: folderName, project: id });
+    if (!pdfFolder) {
+      pdfFolder = await Folder.create({
+        name: folderName,
+        user: req.user.id,
+        project: id,
+        description: "Folder for generated PDF instructions",
+      });
+    }
+
+    let existingFile = await File.findOne({
+      project: id,
+      folder: pdfFolder._id,
+    });
+    let createdFile;
+    if (!existingFile) {
+      createdFile = await File.create({
+        filename: aiPdf.filename,
+        originalName: aiPdf.filename,
+        path: aiPdf.path || `uploads/pdfs/${aiPdf.filename}`,
+        size: aiPdf.size || "0",
+        project: id,
+        user: req.user.id,
+        folder: pdfFolder._id,
+      });
+    } else {
+      existingFile.filename = aiPdf.filename;
+      existingFile.originalName = aiPdf.filename;
+      existingFile.path = aiPdf.path || `uploads/pdfs/${aiPdf.filename}`;
+      existingFile.updatedAt = new Date();
+      createdFile = await existingFile.save();
+    }
+
+    await Project.findByIdAndUpdate(id, {
+      $set: { documents: [createdFile._id] },
+    });
+  } catch (pdfError) {
+    console.error("Error generating PDF during completion:", pdfError);
+  }
+
   res.status(200).json({
-    status: 'success',
-    message: 'Questionnaire marked as completed successfully',
-    data: { project }
+    status: "success",
+    message: "Questionnaire marked as completed successfully",
+    data: { project },
   });
 });
 
@@ -1462,30 +1596,38 @@ const validateContentChecklist = catchAsync(async (req, res, next) => {
   const { id } = req.params;
 
   // Permission check
-  if (!['superadmin', 'd.c'].includes(req.user.role)) {
-    return next(new AppError('Only the Content Department or a Super Admin can validate the checklist', 403));
+  if (!["superadmin", "d.c"].includes(req.user.role)) {
+    return next(
+      new AppError(
+        "Only the Content Department or a Super Admin can validate the checklist",
+        403,
+      ),
+    );
   }
 
   const project = await Project.findById(id);
   if (!project) {
-    return next(new AppError('Project not found', 404));
+    return next(new AppError("Project not found", 404));
   }
 
-  if (project.contentStatus === 'checklist_validated' || project.contentStatus === 'completed') {
-    return next(new AppError('Checklist is already validated and locked', 400));
+  if (
+    project.contentStatus === "checklist_validated" ||
+    project.contentStatus === "completed"
+  ) {
+    return next(new AppError("Checklist is already validated and locked", 400));
   }
 
   // Update status
-  project.contentStatus = 'checklist_validated';
+  project.contentStatus = "checklist_validated";
   project.contentChecklistValidatedAt = new Date();
   project.contentChecklistValidatedBy = req.user.id;
   project.updatedBy = req.user.id;
   await project.save();
 
   res.status(200).json({
-    status: 'success',
-    message: 'Checklist validated and locked successfully',
-    data: { project }
+    status: "success",
+    message: "Checklist validated and locked successfully",
+    data: { project },
   });
 });
 
@@ -1496,46 +1638,63 @@ const completeContentWorkflow = catchAsync(async (req, res, next) => {
   const { id } = req.params;
 
   // Permission check
-  if (!['superadmin', 'd.c'].includes(req.user.role)) {
-    return next(new AppError('Only the Content Department or a Super Admin can complete the content workflow', 403));
+  if (!["superadmin", "d.c"].includes(req.user.role)) {
+    return next(
+      new AppError(
+        "Only the Content Department or a Super Admin can complete the content workflow",
+        403,
+      ),
+    );
   }
 
   const project = await Project.findById(id);
   if (!project) {
-    return next(new AppError('Project not found', 404));
+    return next(new AppError("Project not found", 404));
   }
 
-  if (project.contentStatus === 'completed') {
-    return next(new AppError('Content workflow is already completed', 400));
+  if (project.contentStatus === "completed") {
+    return next(new AppError("Content workflow is already completed", 400));
   }
 
   // Prerequisites: checklist must be validated AND content must be submitted
-  if (project.contentStatus !== 'checklist_validated') {
-    return next(new AppError('Checklist must be validated before completing the content workflow', 400));
+  if (project.contentStatus !== "checklist_validated") {
+    return next(
+      new AppError(
+        "Checklist must be validated before completing the content workflow",
+        400,
+      ),
+    );
   }
 
   if (!project.isContentReady) {
-    return next(new AppError('Structured content (JSON + text) must be submitted before completing the content workflow', 400));
+    return next(
+      new AppError(
+        "Structured content (JSON + text) must be submitted before completing the content workflow",
+        400,
+      ),
+    );
   }
 
   // Update status
-  project.contentStatus = 'completed';
+  project.contentStatus = "completed";
   project.contentCompletedBy = req.user.id;
   project.contentCompletedAt = new Date();
   project.updatedBy = req.user.id;
 
   // Department workflow — ensure content is in completedDepartments
-  project.activeDepartments = project.activeDepartments.filter(dept => dept !== 'content');
-  if (!project.completedDepartments.includes('content')) {
-    project.completedDepartments.push('content');
+  project.activeDepartments = project.activeDepartments.filter(
+    (dept) => dept !== "content",
+  );
+  if (!project.completedDepartments.includes("content")) {
+    project.completedDepartments.push("content");
   }
 
   await project.save();
 
   res.status(200).json({
-    status: 'success',
-    message: 'Content workflow marked as completed successfully',
-    data: { project }
+    status: "success",
+    message: "Content workflow marked as completed successfully",
+    data: { project },
   });
 });
 
@@ -1546,30 +1705,37 @@ const validateITSetupChecklist = catchAsync(async (req, res, next) => {
   const { id } = req.params;
 
   // Permission check
-  if (!['superadmin', 'd.it'].includes(req.user.role)) {
-    return next(new AppError('Only the IT Department or a Super Admin can validate the setup checklist', 403));
+  if (!["superadmin", "d.it"].includes(req.user.role)) {
+    return next(
+      new AppError(
+        "Only the IT Department or a Super Admin can validate the setup checklist",
+        403,
+      ),
+    );
   }
 
   const project = await Project.findById(id);
   if (!project) {
-    return next(new AppError('Project not found', 404));
+    return next(new AppError("Project not found", 404));
   }
 
-  if (project.itStatus === 'setup_validated') {
-    return next(new AppError('IT setup checklist is already validated and locked', 400));
+  if (project.itStatus === "setup_validated") {
+    return next(
+      new AppError("IT setup checklist is already validated and locked", 400),
+    );
   }
 
   // Update status
-  project.itStatus = 'setup_validated';
+  project.itStatus = "setup_validated";
   project.itSetupValidatedAt = new Date();
   project.itSetupValidatedBy = req.user.id;
   project.updatedBy = req.user.id;
   await project.save();
 
   res.status(200).json({
-    status: 'success',
-    message: 'IT setup checklist validated and locked successfully',
-    data: { project }
+    status: "success",
+    message: "IT setup checklist validated and locked successfully",
+    data: { project },
   });
 });
 
@@ -1580,33 +1746,45 @@ const completeITIntegration = catchAsync(async (req, res, next) => {
   const { id } = req.params;
 
   // Permission check: Integration or IT or Admin
-  if (!['superadmin', 'd.in', 'd.it'].includes(req.user.role)) {
-    return next(new AppError('Only the Integration Department or a Super Admin can finalize integration', 403));
+  if (!["superadmin", "d.in", "d.it"].includes(req.user.role)) {
+    return next(
+      new AppError(
+        "Only the Integration Department or a Super Admin can finalize integration",
+        403,
+      ),
+    );
   }
 
   const project = await Project.findById(id);
   if (!project) {
-    return next(new AppError('Project not found', 404));
+    return next(new AppError("Project not found", 404));
   }
 
-  if (project.itStatus === 'integration_completed') {
-    return next(new AppError('Integration is already marked as completed', 400));
+  if (project.itStatus === "integration_completed") {
+    return next(
+      new AppError("Integration is already marked as completed", 400),
+    );
   }
 
   // Guard: Content department must be completed before IT can finalize integration
-  if (project.contentStatus !== 'completed') {
-    return next(new AppError('Cannot finalize integration until the Content Department has completed their work.', 403));
+  if (project.contentStatus !== "completed") {
+    return next(
+      new AppError(
+        "Cannot finalize integration until the Content Department has completed their work.",
+        403,
+      ),
+    );
   }
 
   // Update status
-  project.itStatus = 'integration_completed';
+  project.itStatus = "integration_completed";
   project.updatedBy = req.user.id;
   await project.save();
 
   res.status(200).json({
-    status: 'success',
-    message: 'Integration completed and finalized successfully',
-    data: { project }
+    status: "success",
+    message: "Integration completed and finalized successfully",
+    data: { project },
   });
 });
 
@@ -1617,30 +1795,38 @@ const validateDesignChecklist = catchAsync(async (req, res, next) => {
   const { id } = req.params;
 
   // Permission check
-  if (!['superadmin', 'd.d'].includes(req.user.role)) {
-    return next(new AppError('Only the Design Department or a Super Admin can validate the checklist', 403));
+  if (!["superadmin", "d.d"].includes(req.user.role)) {
+    return next(
+      new AppError(
+        "Only the Design Department or a Super Admin can validate the checklist",
+        403,
+      ),
+    );
   }
 
   const project = await Project.findById(id);
   if (!project) {
-    return next(new AppError('Project not found', 404));
+    return next(new AppError("Project not found", 404));
   }
 
-  if (project.designStatus === 'checklist_validated' || project.designStatus === 'completed') {
-    return next(new AppError('Checklist is already validated and locked', 400));
+  if (
+    project.designStatus === "checklist_validated" ||
+    project.designStatus === "completed"
+  ) {
+    return next(new AppError("Checklist is already validated and locked", 400));
   }
 
   // Update status
-  project.designStatus = 'checklist_validated';
+  project.designStatus = "checklist_validated";
   project.designChecklistValidatedAt = new Date();
   project.designChecklistValidatedBy = req.user.id;
   project.updatedBy = req.user.id;
   await project.save();
 
   res.status(200).json({
-    status: 'success',
-    message: 'Design checklist validated and locked successfully',
-    data: { project }
+    status: "success",
+    message: "Design checklist validated and locked successfully",
+    data: { project },
   });
 });
 
@@ -1651,42 +1837,54 @@ const completeDesignWorkflow = catchAsync(async (req, res, next) => {
   const { id } = req.params;
 
   // Permission check
-  if (!['superadmin', 'd.d'].includes(req.user.role)) {
-    return next(new AppError('Only the Design Department or a Super Admin can complete the design workflow', 403));
+  if (!["superadmin", "d.d"].includes(req.user.role)) {
+    return next(
+      new AppError(
+        "Only the Design Department or a Super Admin can complete the design workflow",
+        403,
+      ),
+    );
   }
 
   const project = await Project.findById(id);
   if (!project) {
-    return next(new AppError('Project not found', 404));
+    return next(new AppError("Project not found", 404));
   }
 
-  if (project.designStatus === 'completed') {
-    return next(new AppError('Design workflow is already completed', 400));
+  if (project.designStatus === "completed") {
+    return next(new AppError("Design workflow is already completed", 400));
   }
 
   // Prerequisites: checklist must be validated
-  if (project.designStatus !== 'checklist_validated') {
-    return next(new AppError('Checklist must be validated before completing the design workflow', 400));
+  if (project.designStatus !== "checklist_validated") {
+    return next(
+      new AppError(
+        "Checklist must be validated before completing the design workflow",
+        400,
+      ),
+    );
   }
 
   // Update status
-  project.designStatus = 'completed';
+  project.designStatus = "completed";
   project.designCompletedBy = req.user.id;
   project.designCompletedAt = new Date();
   project.updatedBy = req.user.id;
 
   // Department workflow
-  project.activeDepartments = project.activeDepartments.filter(dept => dept !== 'design');
-  if (!project.completedDepartments.includes('design')) {
-    project.completedDepartments.push('design');
+  project.activeDepartments = project.activeDepartments.filter(
+    (dept) => dept !== "design",
+  );
+  if (!project.completedDepartments.includes("design")) {
+    project.completedDepartments.push("design");
   }
 
   await project.save();
 
   res.status(200).json({
-    status: 'success',
-    message: 'Design workflow marked as completed successfully',
-    data: { project }
+    status: "success",
+    message: "Design workflow marked as completed successfully",
+    data: { project },
   });
 });
 
@@ -1709,5 +1907,5 @@ module.exports = {
   validateITSetupChecklist,
   completeITIntegration,
   validateDesignChecklist,
-  completeDesignWorkflow
+  completeDesignWorkflow,
 };

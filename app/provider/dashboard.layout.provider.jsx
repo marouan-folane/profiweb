@@ -12,6 +12,7 @@ import MobileSidebar from "@/components/partials/sidebar/mobile-sidebar";
 import HeaderSearch from "@/components/header-search";
 import { useMounted } from "@/hooks/use-mounted";
 import LayoutLoader from "@/components/layout-loader";
+import RoleGuard from "@/components/RoleGuard";
 
 const DashBoardLayoutProvider = ({ children, trans }) => {
   const { collapsed, sidebarType, setCollapsed, subMenu } = useSidebar();
@@ -185,7 +186,9 @@ const LayoutWrapper = ({ children, isMobile, setOpen, open, location }) => {
           duration: 0.5,
         }}
       >
-        <main>{children}</main>
+        <main>
+          <RoleGuard>{children}</RoleGuard>
+        </main>
       </motion.div>
 
       <MobileSidebar className="left-[300px]" />

@@ -58,5 +58,14 @@ export const questionTranslations = {
         fr: "Choisissez les langues dans lesquelles le contenu de votre site web doit être disponible.",
         ar: "اختر اللغات التي يجب أن يتوفر بها محتوى موقعك الإلكتروني.",
         de: "Wählen Sie die Sprachen aus, in denen Ihre Website-Inhalte verfügbar sein sollen."
-    }
+    },
+    industry: {
+        en: "Choose the industry in which your company operates.",
+        fr: "Choisissez l'industrie dans laquelle votre entreprise opère.",
+        ar: "اختر الصناعة التي تعمل بها شركتك.",
+        de: "Wählen Sie die Branche aus, in der Ihr Unternehmen tätig ist."
+    },
+   
+    
+
 };

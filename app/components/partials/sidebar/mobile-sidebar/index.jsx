@@ -11,11 +11,19 @@ import { usePathname } from "next/navigation";
 import SingleMenuItem from "./single-menu-item";
 import SubMenuHandler from "./sub-menu-handler";
 import NestedSubMenu from "../common/nested-menus";
+import { useSession } from "next-auth/react";
 const MobileSidebar = ({ collapsed, className }) => {
+  const { data: session } = useSession();
+  const userRole = session?.user?.role;
   const { sidebarBg, mobileMenu, setMobileMenu } = useSidebar();
   const [activeSubmenu, setActiveSubmenu] = useState(null);
   const [activeMultiMenu, setMultiMenu] = useState(null);
-  const menus = menusConfig?.mainMenu || [];
+  const menus = (menusConfig?.mainMenu || [])
+    .filter(item => !item.roles || item.roles.includes(userRole))
+    .map(item => ({
+      ...item,
+      child: item.child?.filter(childItem => !childItem.roles || childItem.roles.includes(userRole))
+    }));
 
   const toggleSubmenu = (i) => {
     if (activeSubmenu === i) {

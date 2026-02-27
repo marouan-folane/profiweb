@@ -893,14 +893,31 @@ const ProjectsPage = () => {
   // Get current projects based on active tab
   const rawProjects = activeTab === 'active' ? activeProjects : archivedProjects;
   const currentProjects = rawProjects.filter(project => {
-    if (session?.user?.role !== 'd.it') return true;
+    // Only apply hiding logic for active projects
+    if (activeTab !== 'active') return true;
 
-    // For IT role, hide projects that are in intermediate content phases
-    // (IT setup is done, but content department hasn't finished submission)
-    const isSetupValidated = project.itStatus === 'setup_validated';
-    const isContentInProgress = project.contentStatus === 'pending' || project.contentStatus === 'checklist_validated';
+    const role = session?.user?.role?.toLowerCase();
 
-    if (isSetupValidated && isContentInProgress) return false;
+    // 1. D.I / D.IN (Integration) - Hide if info questionnaire is completed
+    if ((role === 'd.i' || role === 'd.in') && project.infoStatus === 'completed') return false;
+
+    // 2. D.S (Sales) - Hide if sales department has completed their part
+    if (role === 'd.s' && project.completedDepartments?.includes("sales")) return false;
+
+    // 3. D.IT (IT) - Hide if integration is done OR if setup is validated but content is in progress
+    if (role === 'd.it') {
+      if (project.itStatus === 'integration_completed') return false;
+      
+      const isSetupValidated = project.itStatus === 'setup_validated';
+      const isContentInProgress = project.contentStatus === 'pending' || project.contentStatus === 'checklist_validated';
+      if (isSetupValidated && isContentInProgress) return false;
+    }
+
+    // 4. D.C (Content) - Hide if content is completed
+    if (role === 'd.c' && project.contentStatus === 'completed') return false;
+
+    // 5. D.D (Design) - Hide if design is completed
+    if (role === 'd.d' && project.designStatus === 'completed') return false;
 
     return true;
   });
