@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { Search, Plus, Trash2, MoreHorizontal, User, Building2, Mail, Phone, Globe, Loader2, Eye } from "lucide-react";
+import { Search, Plus, Trash2, MoreHorizontal, User, Building2, Mail, Phone, Globe, Loader2, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -63,7 +63,7 @@ export default function ClientManagementPage() {
     // Fetch clients
     const { data: clientsResponse, isLoading, isError, error, refetch } = useQuery({
         queryKey: ['clients'],
-        queryFn: () => getAllClients(),
+        queryFn: () => getAllClients({ limit: 1000 }),
     });
 
     const createMutation = useMutation({
@@ -185,13 +185,22 @@ export default function ClientManagementPage() {
         let filtered = clientsData;
 
         if (searchTerm) {
-            const term = searchTerm.toLowerCase();
-            filtered = filtered.filter(client =>
-                client.name.toLowerCase().includes(term) ||
-                client.email?.toLowerCase().includes(term) ||
-                client.company?.toLowerCase().includes(term) ||
-                client.phone?.toLowerCase().includes(term)
-            );
+            const term = searchTerm.trim().toLowerCase();
+            const searchWords = term.split(/\s+/).filter(Boolean);
+
+            filtered = filtered.filter(client => {
+                // Multi-word match for name: all search words must be present
+                const nameMatch = searchWords.every(word =>
+                    client.name?.toLowerCase().includes(word)
+                );
+
+                // Fallback search for other fields using the full trimmed term
+                const emailMatch = client.email?.toLowerCase().includes(term);
+                const companyMatch = client.company?.toLowerCase().includes(term);
+                const phoneMatch = client.phone?.toLowerCase().includes(term);
+
+                return nameMatch || emailMatch || companyMatch || phoneMatch;
+            });
         }
 
         return filtered;
@@ -340,32 +349,32 @@ export default function ClientManagementPage() {
                         </Table>
                     </div>
 
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div className="flex items-center justify-between mt-4">
-                            <span className="text-sm text-muted-foreground">
-                                Page {currentPage} of {totalPages}
-                            </span>
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                                    disabled={currentPage === 1}
-                                >
-                                    Previous
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                                    disabled={currentPage === totalPages}
-                                >
-                                    Next
-                                </Button>
-                            </div>
-                        </div>
-                    )}
+                    {/* Pagination - Always visible to match screenshot */}
+                    <div className="flex items-center justify-center gap-4 mt-6">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-9 w-9 border-muted text-primary hover:bg-muted"
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                        >
+                            <ChevronLeft className="h-5 w-5" />
+                        </Button>
+                        
+                        <span className="text-sm font-medium text-gray-700">
+                            Page {currentPage} of {Math.max(1, totalPages)}
+                        </span>
+
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-9 w-9 border-muted text-primary hover:bg-muted"
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages || totalPages === 0}
+                        >
+                            <ChevronRight className="h-5 w-5" />
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 

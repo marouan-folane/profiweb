@@ -56,9 +56,9 @@ export const getArchivedProjects = async (params = {}) => {
     }
 };
 
-export const getClients = async () => {
+export const getClients = async (params = {}) => {
     try {
-        const response = await api.get("/clients");
+        const response = await api.get("/clients", { params });
         return response.data;
     } catch (error) {
         return error.response?.data;

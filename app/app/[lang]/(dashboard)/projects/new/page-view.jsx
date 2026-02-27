@@ -17,6 +17,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -45,6 +54,7 @@ const NewProjectPage = () => {
   const [tagInput, setTagInput] = useState('');
   const [errors, setErrors] = useState([]);
   const [apiError, setApiError] = useState('');
+  const [open, setOpen] = useState(false);
 
   // Client creation state
   const [showClientForm, setShowClientForm] = useState(false);
@@ -111,7 +121,7 @@ const NewProjectPage = () => {
   const fetchClients = async () => {
     setClientsLoading(true);
     try {
-      const response = await getClients();
+      const response = await getClients({ limit: 1000 });
 
       if (response && response.status === 'success' && response.data) {
         if (Array.isArray(response.data)) {
@@ -855,44 +865,73 @@ const NewProjectPage = () => {
                 </Button>
               </div>
 
-              <div className="space-y-2">
-                <Select
-                  value={formData.clientId}
-                  onValueChange={(value) => handleSelectChange('clientId', value)}
-                  disabled={loading || clientsLoading}
-                >
-                  <SelectTrigger className={errors.includes('Client is required') ? 'border-red-300' : ''}>
-                    <SelectValue placeholder={
-                      clientsLoading ? "Loading clients..." : "Select a client"
-                    } />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.length === 0 ? (
-                      <SelectItem value="" disabled>
-                        No clients available
-                      </SelectItem>
-                    ) : (
-                      clients.map((client) => (
-                        <SelectItem key={client._id} value={client._id}>
-                          {client.name} {client.company ? `- ${client.company}` : ''}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-                {errors.includes('Client is required') && (
-                  <p className="text-xs text-red-600">Please select a client</p>
-                )}
-                {clientsLoading && (
-                  <p className="text-xs text-blue-600">Loading clients...</p>
-                )}
-                {!clientsLoading && clients.length === 0 && (
-                  <div className="text-xs text-amber-600 flex items-center gap-1">
-                    <Icon icon="heroicons:exclamation-circle" className="w-3 h-3" />
-                    No clients found. Click "Create New Client" to add one.
-                  </div>
-                )}
-              </div>
+                <div className="space-y-2">
+                  <Popover open={open} onOpenChange={setOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className={cn(
+                          "w-full justify-between font-normal",
+                          !formData.clientId && "text-muted-foreground",
+                          errors.includes('Client is required') ? "border-red-300" : ""
+                        )}
+                        disabled={loading || clientsLoading}
+                      >
+                        {formData.clientId
+                          ? clients.find((client) => client._id === formData.clientId)?.name
+                          : clientsLoading ? "Loading clients..." : "Select a client"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search clients..." />
+                        <CommandEmpty>No client found.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandList>
+                            {clients.map((client) => (
+                              <CommandItem
+                                key={client._id}
+                                value={client.name}
+                                onSelect={() => {
+                                  handleSelectChange('clientId', client._id);
+                                  setOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    formData.clientId === client._id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col">
+                                  <span>{client.name}</span>
+                                  {client.company && (
+                                    <span className="text-xs text-muted-foreground">{client.company}</span>
+                                  )}
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandList>
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {errors.includes('Client is required') && (
+                    <p className="text-xs text-red-600">Please select a client</p>
+                  )}
+                  {clientsLoading && (
+                    <p className="text-xs text-blue-600">Loading clients...</p>
+                  )}
+                  {!clientsLoading && clients.length === 0 && (
+                    <div className="text-xs text-amber-600 flex items-center gap-1">
+                      <Icon icon="heroicons:exclamation-circle" className="w-3 h-3" />
+                      No clients found. Click "Create New Client" to add one.
+                    </div>
+                  )}
+                </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
