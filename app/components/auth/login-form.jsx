@@ -42,28 +42,9 @@ const LogInForm = () => {
     resolver: zodResolver(schema),
     mode: "all",
     defaultValues: {
-      // ! ADMIN
-      // email: "superadmin@superadmin.com",
-      // password: "Pass2024@",
-      // ! D.sales
-      // email: "sales@sales.com",
-      // password: "Pass2024@",
-      // ! D.info
-      // email: "info@info.com",
-      // password: "Pass2024@",
-      // ! D.IT
-      // email: "it@it.com",
-      // password: "Pass2024@",
-      // ! D.C
-      // email: "content@content.com",
-      // password: "Pass2024@",
-      // ! D.D
-      // email: "design@design.com",
-      // password: "Pass2024@",
-
       // default access
-      email: "superadmin@superadmin.com",
-      password: "Pass2024@",
+      email: "",
+      password: "",
     },
   });
 
