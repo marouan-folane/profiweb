@@ -240,7 +240,7 @@ siteAccessSchema.virtual('domain.daysUntilExpiry').get(function () {
 // Pre-save middleware to encrypt passwords (optional - you can use bcrypt)
 siteAccessSchema.pre('save', async function (next) {
   // Track password changes in history
-  if (this.isModified('hosting.password')) {
+  if (this.isModified('hosting.password') && this.hosting.password) {
     this.hosting.hostingPasswordHistory.push({
       password: this.hosting.password,
       changedBy: this.updatedBy || this.createdBy
@@ -252,7 +252,7 @@ siteAccessSchema.pre('save', async function (next) {
     }
   }
 
-  if (this.isModified('wordpress.adminPassword')) {
+  if (this.isModified('wordpress.adminPassword') && this.wordpress.adminPassword) {
     this.wordpress.wordpressPasswordHistory.push({
       password: this.wordpress.adminPassword,
       changedBy: this.updatedBy || this.createdBy

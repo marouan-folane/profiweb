@@ -2600,3 +2600,19 @@ html[dir="rtl"] .react-select .select__loading-indicator {
     padding-bottom: 37px;
   }
 }
+
+/* ─── Notification Toast Animations ─────────── */
+@keyframes enter {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes leave {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0; }
+}
+.animate-enter {
+  animation: enter 0.3s ease-out forwards;
+}
+.animate-leave {
+  animation: leave 0.3s ease-in forwards;
+}

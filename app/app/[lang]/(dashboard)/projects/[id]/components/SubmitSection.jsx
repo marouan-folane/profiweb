@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 import { completeInfoQuestionnaire } from "@/config/functions/project";
 
 const SubmitSection = ({
@@ -19,6 +20,7 @@ const SubmitSection = ({
   isSuperAdmin,
   projectId
 }) => {
+  const router = useRouter();
   const [completeMutationLoading, setCompleteMutationLoading] = useState(false);
   const [draftSaveLoading, setDraftSaveLoading] = useState(false);
   const allRequiredFilled = areAllRequiredFieldsFilled();
@@ -32,7 +34,7 @@ const SubmitSection = ({
     return value && value.toString().trim() !== "";
   }).length;
 
-  const handleCompleteQuestinnaire = async () => {
+  const handleCompleteQuestionnaire = async () => {
     // HARD LOCK: client-side guard (backend also enforces this)
     if (isLockedForEdit || infoStatus === 'completed') {
       toast.error('Questionnaire is already completed and locked.');
@@ -53,9 +55,15 @@ const SubmitSection = ({
       const response = await completeInfoQuestionnaire(projectId);
       if (response && (response.status === 'success' || response.status === 'ok')) {
         toast.success("Questionnaire completed successfully!");
-        // Small delay before reload to show toast
+
+        // Redirection logic: For Info Dept, go back to project list
+        // For SuperAdmin/others, just reload to show locked state (as-is)
         setTimeout(() => {
-          window.location.reload();
+          if (isInfoDept && !isSuperAdmin) {
+            router.push('/projects');
+          } else {
+            window.location.reload();
+          }
         }, 1500);
       } else {
         const errorMsg = response?.message || response?.error || "Failed to complete questionnaire";
@@ -106,7 +114,7 @@ const SubmitSection = ({
       {infoStatus !== 'completed' && (
         <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
           <div className="flex flex-col gap-4 items-end">
-            
+
             <div className="flex flex-wrap gap-3 justify-end items-center">
               {/* Save Draft Button */}
               <button
@@ -135,7 +143,7 @@ const SubmitSection = ({
               {/* Complete button — only visible to d.i / superadmin */}
               {(isInfoDept || isSuperAdmin) && (
                 <button
-                  onClick={handleCompleteQuestinnaire}
+                  onClick={handleCompleteQuestionnaire}
                   disabled={updateProjectMutation?.isPending || completeMutationLoading || draftSaveLoading}
                   className="px-6 py-3 bg-primary text-white rounded-md font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >

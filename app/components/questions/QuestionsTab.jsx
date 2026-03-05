@@ -4,11 +4,11 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { updateProject } from "@/config/functions/project";
-import { 
-  getProjectQuestions, 
+import {
+  getProjectQuestions,
   initializeQuestions,
   updateAnswers,
-  getQuestionsProgress 
+  getQuestionsProgress
 } from "@/config/functions/questions";
 import { useToast } from "@/components/ui/use-toast";
 import QuestionRenderer from "@/components/questions/QuestionRenderer";
@@ -25,11 +25,11 @@ const QuestionsTab = ({ setFormSubmitted }) => {
   const [answers, setAnswers] = useState({});
 
   // Fetch questions
-  const { 
-    data: questionsData, 
-    isLoading, 
+  const {
+    data: questionsData,
+    isLoading,
     error,
-    refetch: refetchQuestions 
+    refetch: refetchQuestions
   } = useQuery({
     queryKey: ['questions', projectId],
     queryFn: () => getProjectQuestions(projectId),
@@ -38,9 +38,9 @@ const QuestionsTab = ({ setFormSubmitted }) => {
   });
 
   // Fetch progress
-  const { 
+  const {
     data: progressData,
-    refetch: refetchProgress 
+    refetch: refetchProgress
   } = useQuery({
     queryKey: ['questions-progress', projectId],
     queryFn: () => getQuestionsProgress(projectId),
@@ -85,12 +85,12 @@ const QuestionsTab = ({ setFormSubmitted }) => {
 
   // Update answer mutation
   const updateAnswerMutation = useMutation({
-    mutationFn: ({ questionKey, answer }) => 
+    mutationFn: ({ questionKey, answer }) =>
       updateAnswers(projectId, { [questionKey]: answer }),
     onSuccess: (data) => {
       queryClient.invalidateQueries(['questions', projectId]);
       queryClient.invalidateQueries(['questions-progress', projectId]);
-      
+
       // Update local answers state
       setAnswers(prev => ({
         ...prev,
@@ -168,7 +168,7 @@ const QuestionsTab = ({ setFormSubmitted }) => {
 
       // Update project
       const response = await updateProject(projectId, submissionData);
-      
+
       toast({
         title: "Success!",
         description: "Project questionnaire completed successfully.",
@@ -252,8 +252,8 @@ const QuestionsTab = ({ setFormSubmitted }) => {
           <span>{progress.percentage}%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
-            className="bg-primary h-2 rounded-full transition-all duration-300" 
+          <div
+            className="bg-primary h-2 rounded-full transition-all duration-300"
             style={{ width: `${progress.percentage}%` }}
           ></div>
         </div>
@@ -265,26 +265,28 @@ const QuestionsTab = ({ setFormSubmitted }) => {
       </div>
 
       {/* Render sections */}
-      {sections.map((section, sectionIndex) => (
-        <div key={section.section} className="bg-white rounded-lg border border-gray-200">
-          <div className="bg-primary px-6 py-4">
-            <h3 className="text-lg font-semibold text-white">
-              {sectionIndex + 1}. {section.name}
-            </h3>
+      {sections
+        .filter(section => section.section !== 'template' && section.section !== 'template_selection')
+        .map((section, sectionIndex) => (
+          <div key={section.section} className="bg-white rounded-lg border border-gray-200">
+            <div className="bg-primary px-6 py-4 rounded-t-lg">
+              <h3 className="text-lg font-semibold text-white">
+                {sectionIndex + 1}. {section.sectionName || section.name}
+              </h3>
+            </div>
+            <div className="p-6 space-y-6">
+              {section.questions.map((question) => (
+                <QuestionRenderer
+                  key={question._id}
+                  question={question}
+                  value={answers[question.questionKey]}
+                  onChange={(value) => handleAnswerChange(question.questionKey, value)}
+                  isSaving={updateAnswerMutation.isPending}
+                />
+              ))}
+            </div>
           </div>
-          <div className="p-6 space-y-6">
-            {section.questions.map((question) => (
-              <QuestionRenderer
-                key={question._id}
-                question={question}
-                value={answers[question.questionKey]}
-                onChange={(value) => handleAnswerChange(question.questionKey, value)}
-                isSaving={updateAnswerMutation.isPending}
-              />
-            ))}
-          </div>
-        </div>
-      ))}
+        ))}
 
       {/* Template Selection Section */}
       <TemplateSelector
@@ -297,8 +299,8 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex-1">
             <h3 className="font-semibold text-gray-900 mb-2">
-              {validation.isValid && selectedTemplate 
-                ? "Ready to Submit!" 
+              {validation.isValid && selectedTemplate
+                ? "Ready to Submit!"
                 : "Complete the form to continue"}
             </h3>
             <p className="text-sm text-gray-600">
@@ -306,7 +308,7 @@ const QuestionsTab = ({ setFormSubmitted }) => {
                 ? "All questions answered and template selected. Ready to create your WordPress project."
                 : `Complete all required questions and select a template to continue.`}
             </p>
-            
+
             {!validation.isValid && (
               <div className="mt-2 text-sm text-amber-700">
                 <p className="font-medium">Missing required fields:</p>
@@ -321,16 +323,15 @@ const QuestionsTab = ({ setFormSubmitted }) => {
               </div>
             )}
           </div>
-          
+
           <div className="flex flex-col gap-2 min-w-[200px]">
             <button
               onClick={handleSubmit}
               disabled={!validation.isValid || !selectedTemplate || updateAnswerMutation.isPending}
-              className={`px-6 py-3 rounded-md font-medium transition-colors flex items-center justify-center gap-2 ${
-                validation.isValid && selectedTemplate && !updateAnswerMutation.isPending
-                  ? "bg-primary text-white hover:bg-primary-dark cursor-pointer"
-                  : "bg-gray-200 text-gray-500 cursor-not-allowed"
-              }`}
+              className={`px-6 py-3 rounded-md font-medium transition-colors flex items-center justify-center gap-2 ${validation.isValid && selectedTemplate && !updateAnswerMutation.isPending
+                ? "bg-primary text-white hover:bg-primary-dark cursor-pointer"
+                : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                }`}
             >
               {updateAnswerMutation.isPending ? (
                 <>
@@ -349,14 +350,14 @@ const QuestionsTab = ({ setFormSubmitted }) => {
                 </>
               )}
             </button>
-            
+
             {(!validation.isValid || !selectedTemplate) && (
               <p className="text-xs text-center text-gray-500">
                 {!validation.isValid && !selectedTemplate
                   ? "Complete all fields and select template"
                   : !validation.isValid
-                  ? "Complete all required fields"
-                  : "Select a template"}
+                    ? "Complete all required fields"
+                    : "Select a template"}
               </p>
             )}
           </div>

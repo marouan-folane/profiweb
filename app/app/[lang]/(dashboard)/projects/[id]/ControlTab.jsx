@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { Icon } from "@iconify/react";
@@ -12,6 +13,7 @@ import {
 
 const ControlTab = ({ projectId, project }) => {
     const { data: session } = useSession();
+    const router = useRouter();
     const queryClient = useQueryClient();
     const userRole = session?.user?.role;
 
@@ -66,6 +68,7 @@ const ControlTab = ({ projectId, project }) => {
                 toast.success("Project confirmed as finished!");
                 queryClient.invalidateQueries(["controlChecklist", projectId]);
                 queryClient.invalidateQueries(["project", projectId]);
+                router.push('/projects');
             } else {
                 toast.error(res?.message || "Failed to confirm project.");
             }
@@ -102,8 +105,8 @@ const ControlTab = ({ projectId, project }) => {
 
             {/* ── Header banner ─────────────────────────────────────────────── */}
             <div className={`rounded-xl border p-5 flex items-center justify-between ${isConfirmed
-                    ? "bg-green-50 border-green-200"
-                    : "bg-violet-50 border-violet-100"
+                ? "bg-green-50 border-green-200"
+                : "bg-violet-50 border-violet-100"
                 }`}>
                 <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isConfirmed ? "bg-green-100" : "bg-violet-100"
@@ -178,8 +181,8 @@ const ControlTab = ({ projectId, project }) => {
                                     >
                                         {/* Checkbox */}
                                         <div className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${item.checked
-                                                ? "bg-violet-600 border-violet-600"
-                                                : "border-gray-300 bg-white"
+                                            ? "bg-violet-600 border-violet-600"
+                                            : "border-gray-300 bg-white"
                                             } ${isToggling ? "opacity-50" : ""}`}>
                                             {item.checked && (
                                                 <Icon icon="lucide:check" className="w-3 h-3 text-white" />
@@ -239,8 +242,8 @@ const ControlTab = ({ projectId, project }) => {
                             onClick={handleConfirmFinished}
                             disabled={!allChecked || confirmingFinish}
                             className={`w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2.5 transition-all active:scale-95 shadow-sm ${allChecked && !confirmingFinish
-                                    ? "bg-violet-600 hover:bg-violet-700 text-white"
-                                    : "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none"
+                                ? "bg-violet-600 hover:bg-violet-700 text-white"
+                                : "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none"
                                 }`}
                         >
                             {confirmingFinish ? (

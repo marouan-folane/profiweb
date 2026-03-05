@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   getSiteAccess,
+  getCredentials,
   createOrUpdateSiteAccess
 } from '@/config/functions/access';
 import {
@@ -88,18 +90,25 @@ const integrationChecklistSections = [
 ];
 
 const AccessesTab = ({ projectId }) => {
+  const router = useRouter();
   const { data: session } = useSession();
-  const userRole = session?.user?.role; // Get the user's role
-
-  // Check if user can edit (only d.it role)
+  const userRole = session?.user?.role;
   const canEdit = userRole === "d.it";
+  const canViewCredentials = ["d.it", "d.in", "d.d", "d.c", "d.i", "superadmin", "admin", "manager"].includes(userRole);
+
+  const handleCopy = (text, label) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copied to clipboard`);
+  };
 
   useEffect(() => {
     if (session) {
       console.log("===========> User Role:", session.user.role);
-      console.log("===========> Can Edit:", userRole === "d.it");
+      console.log("===========> Can Edit:", canEdit);
+      console.log("===========> Can View Credentials:", canViewCredentials);
     }
-  }, [session, userRole]);
+  }, [session, userRole, canEdit, canViewCredentials]);
 
   const [formData, setFormData] = useState({
     hosting: {
@@ -194,9 +203,11 @@ const AccessesTab = ({ projectId }) => {
   const fetchSiteAccess = async () => {
     try {
       setLoading(true);
-      const response = await getSiteAccess(projectId);
+      // If the user is eligible, fetch full credentials (passwords included)
+      const fetchFn = canViewCredentials ? getCredentials : getSiteAccess;
+      const response = await fetchFn(projectId);
+
       if (response.data) {
-        // Merge existing data with default structure
         setFormData(prev => ({
           ...prev,
           hosting: { ...prev.hosting, ...response.data.hosting },
@@ -310,6 +321,7 @@ const AccessesTab = ({ projectId }) => {
       toast.success('Setup validated! IT checklist is now locked.');
       setItStatus('setup_validated');
       setIsChecklistModalOpen(false);
+      router.push('/projects');
     } catch (error) {
       console.error('Error confirming IT checklist:', error);
       toast.error(error.message || 'An error occurred');
@@ -377,7 +389,7 @@ const AccessesTab = ({ projectId }) => {
   };
 
   const togglePasswordVisibility = (field) => {
-    if (!canEdit) {
+    if (!canViewCredentials) {
       toast.error("You don't have permission to view passwords");
       return;
     }
@@ -462,6 +474,7 @@ const AccessesTab = ({ projectId }) => {
         toast.success("Integration finalized and project completed!");
         setItStatus('integration_completed');
         setIsIntegrationModalOpen(false);
+        router.push('/projects');
       } else {
         toast.error(res.message || "Failed to finalize integration");
       }
@@ -476,7 +489,7 @@ const AccessesTab = ({ projectId }) => {
   // Helper function to mask passwords for non-d.it users
   const maskPassword = (password) => {
     if (!password) return '';
-    if (canEdit) return password;
+    if (canViewCredentials) return password;
     return '••••••••';
   };
 
@@ -486,6 +499,32 @@ const AccessesTab = ({ projectId }) => {
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="text-gray-500 mt-2">Loading access information...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (userRole === 'd.d' && (itStatus === 'pending' || contentStatus !== 'completed')) {
+    return (
+      <div className="w-full px-4 sm:px-6">
+        <div className="bg-amber-50 border border-amber-200 rounded-[32px] p-12 text-center">
+          <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-600">
+            <Icon icon="lucide:lock" className="w-10 h-10" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">Access Restricted</h2>
+          <p className="text-gray-600 max-w-md mx-auto">
+            WordPress login credentials will be available once the **IT Setup** and **Content** phases are fully completed and validated.
+          </p>
+          <div className="mt-8 flex justify-center gap-4">
+            <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 ${itStatus !== 'pending' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
+              <Icon icon={itStatus !== 'pending' ? "lucide:check-circle" : "lucide:circle"} className="w-4 h-4" />
+              IT Setup
+            </div>
+            <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 ${contentStatus === 'completed' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
+              <Icon icon={contentStatus === 'completed' ? "lucide:check-circle" : "lucide:circle"} className="w-4 h-4" />
+              Content Phase
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -624,11 +663,22 @@ const AccessesTab = ({ projectId }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-6 bg-white border border-gray-100 rounded-3xl">
                 <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Site Domain</h4>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
-                    <Icon icon="lucide:globe" className="w-5 h-5" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                      <Icon icon="lucide:globe" className="w-5 h-5" />
+                    </div>
+                    <span className="text-xl font-bold text-gray-900">{formData.domain.name || 'N/A'}</span>
                   </div>
-                  <span className="text-xl font-bold text-gray-900">{formData.domain.name || 'N/A'}</span>
+                  {formData.domain.name && (
+                    <button
+                      onClick={() => handleCopy(formData.domain.name, "Domain Name")}
+                      className="p-2 text-gray-400 hover:text-blue-600 transition-all hover:scale-110"
+                      title="Copy Domain Name"
+                    >
+                      <Icon icon="lucide:copy" className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="p-6 bg-white border border-gray-100 rounded-3xl">
@@ -638,16 +688,60 @@ const AccessesTab = ({ projectId }) => {
                     <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600">
                       <Icon icon="lucide:user" className="w-5 h-5" />
                     </div>
-                    <span className="text-lg font-bold text-gray-900">{formData.wordpress.adminUsername}</span>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-bold text-gray-900">{formData.wordpress.adminUsername}</span>
+                        <button
+                          onClick={() => handleCopy(formData.wordpress.adminUsername, "Username")}
+                          className="text-gray-400 hover:text-blue-600 transition-colors"
+                          title="Copy Username"
+                        >
+                          <Icon icon="lucide:copy" className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      {canViewCredentials && (
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs font-mono text-gray-500">
+                            {showPassword.wordpress ? formData.wordpress.adminPassword : '••••••••'}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => togglePasswordVisibility('wordpress')}
+                              className="text-gray-400 hover:text-gray-600 transition-colors"
+                              title={showPassword.wordpress ? "Hide Password" : "Show Password"}
+                            >
+                              <Icon icon={showPassword.wordpress ? "lucide:eye-off" : "lucide:eye"} className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleCopy(formData.wordpress.adminPassword, "Password")}
+                              className="text-gray-400 hover:text-blue-600 transition-colors"
+                              title="Copy Password"
+                            >
+                              <Icon icon="lucide:copy" className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <a
-                    href={formData.wordpress.loginUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2 text-gray-300 hover:text-gray-600 transition-colors"
-                  >
-                    <Icon icon="lucide:external-link" className="w-5 h-5" />
-                  </a>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleCopy(formData.wordpress.loginUrl, "Login URL")}
+                      className="p-2 text-gray-400 hover:text-blue-600 transition-all hover:scale-110"
+                      title="Copy Login URL"
+                    >
+                      <Icon icon="lucide:copy" className="w-5 h-5" />
+                    </button>
+                    <a
+                      href={formData.wordpress.loginUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-2 text-gray-400 hover:text-blue-600 transition-all hover:scale-110"
+                      title="Go to WordPress Login"
+                    >
+                      <Icon icon="lucide:external-link" className="w-5 h-5" />
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
@@ -667,18 +761,28 @@ const AccessesTab = ({ projectId }) => {
                   <label className="block text-xs font-medium text-gray-700 mb-1">
                     Domain Name
                   </label>
-                  <input
-                    type="text"
-                    value={formData.domain.name || ''}
-                    onChange={(e) => handleChange(e, 'domain', 'name')}
-                    placeholder="example.com"
-                    className={`block w-full px-3 py-1.5 text-sm border ${errors.domainName ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
-                    readOnly={!canEdit}
-                    disabled={!canEdit}
-                  />
-                  {errors.domainName && (
-                    <p className="text-red-500 text-xs mt-1">{errors.domainName}</p>
-                  )}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.domain.name || ''}
+                      onChange={(e) => handleChange(e, 'domain', 'name')}
+                      placeholder="example.com"
+                      className={`block w-full px-3 py-1.5 pr-9 text-sm border ${errors.domainName ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                      readOnly={!canEdit}
+                      disabled={!canEdit}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(formData.domain.name, "Domain Name")}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-blue-600 transition-colors"
+                      title="Copy Domain Name"
+                    >
+                      <Icon icon="lucide:copy" className="w-4 h-4" />
+                    </button>
+                    {errors.domainName && (
+                      <p className="text-red-500 text-xs mt-1">{errors.domainName}</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -694,18 +798,53 @@ const AccessesTab = ({ projectId }) => {
                     <label className="block text-xs font-medium text-gray-700 mb-1">
                       Admin Email
                     </label>
-                    <input
-                      type="email"
-                      value={formData.wordpress.adminEmail || ''}
-                      onChange={(e) => handleChange(e, 'wordpress', 'adminEmail')}
-                      placeholder="admin@example.com"
-                      className={`block w-full px-3 py-1.5 text-sm border ${errors.wordpressEmail ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
-                      readOnly={!canEdit}
-                      disabled={!canEdit}
-                    />
+                    <div className="relative">
+                      <input
+                        type="email"
+                        value={formData.wordpress.adminEmail || ''}
+                        onChange={(e) => handleChange(e, 'wordpress', 'adminEmail')}
+                        placeholder="admin@example.com"
+                        className={`block w-full px-3 py-1.5 pr-9 text-sm border ${errors.wordpressEmail ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                        readOnly={!canEdit}
+                        disabled={!canEdit}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(formData.wordpress.adminEmail, "Admin Email")}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-blue-600 transition-colors"
+                        title="Copy Admin Email"
+                      >
+                        <Icon icon="lucide:copy" className="w-4 h-4" />
+                      </button>
+                    </div>
                     {errors.wordpressEmail && (
                       <p className="text-red-500 text-xs mt-1">{errors.wordpressEmail}</p>
                     )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Admin Username
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={formData.wordpress.adminUsername || ''}
+                        onChange={(e) => handleChange(e, 'wordpress', 'adminUsername')}
+                        placeholder="admin"
+                        className={`block w-full px-3 py-1.5 pr-9 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                        readOnly={!canEdit}
+                        disabled={!canEdit}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(formData.wordpress.adminUsername, "Admin Username")}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-blue-600 transition-colors"
+                        title="Copy Admin Username"
+                      >
+                        <Icon icon="lucide:copy" className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   <div>
@@ -714,7 +853,7 @@ const AccessesTab = ({ projectId }) => {
                     </label>
                     <div className="relative">
                       <input
-                        type={showPassword.wordpress && canEdit ? "text" : "password"}
+                        type={showPassword.wordpress && canViewCredentials ? "text" : "password"}
                         value={maskPassword(formData.wordpress.adminPassword)}
                         onChange={(e) => handleChange(e, 'wordpress', 'adminPassword')}
                         placeholder={canEdit ? "WordPress password" : "••••••••"}
@@ -722,28 +861,77 @@ const AccessesTab = ({ projectId }) => {
                         readOnly={!canEdit}
                         disabled={!canEdit}
                       />
-                      {canEdit && (
-                        <button
-                          type="button"
-                          onClick={() => togglePasswordVisibility('wordpress')}
-                          className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-500 hover:text-gray-700"
-                        >
-                          {showPassword.wordpress ? (
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.59 6.59m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                            </svg>
-                          ) : (
-                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                          )}
-                        </button>
+                      {canViewCredentials && (
+                        <div className="absolute inset-y-0 right-0 pr-2 flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => togglePasswordVisibility('wordpress')}
+                            className="p-1 text-gray-500 hover:text-gray-700"
+                            title={showPassword.wordpress ? "Hide password" : "Show password"}
+                          >
+                            {showPassword.wordpress ? (
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.59 6.59m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                              </svg>
+                            ) : (
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542 7z" />
+                              </svg>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(formData.wordpress.adminPassword, "Password")}
+                            className="p-1 text-gray-500 hover:text-blue-600"
+                            title="Copy password"
+                          >
+                            <Icon icon="lucide:copy" className="w-4 h-4" />
+                          </button>
+                        </div>
                       )}
                     </div>
                     {errors.wordpressPassword && (
                       <p className="text-red-500 text-xs mt-1">{errors.wordpressPassword}</p>
                     )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Login URL
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={formData.wordpress.loginUrl || ''}
+                        onChange={(e) => handleChange(e, 'wordpress', 'loginUrl')}
+                        placeholder="https://example.com/wp-admin"
+                        className={`block w-full px-3 py-1.5 pr-16 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                        readOnly={!canEdit}
+                        disabled={!canEdit}
+                      />
+                      <div className="absolute inset-y-0 right-0 pr-2 flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(formData.wordpress.loginUrl, "Login URL")}
+                          className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                          title="Copy Login URL"
+                        >
+                          <Icon icon="lucide:copy" className="w-4 h-4" />
+                        </button>
+                        {formData.wordpress.loginUrl && (
+                          <a
+                            href={formData.wordpress.loginUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                            title="Open Link"
+                          >
+                            <Icon icon="lucide:external-link" className="w-4 h-4" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -24,7 +24,7 @@ router.post('/:projectId', authorize('d.it'), createOrUpdateSiteAccess);
 router.patch('/:projectId', authorize('d.it'), updateSiteAccess);
 
 // Get full credentials (admin/superadmin only)
-router.get('/:projectId/credentials', authorize('d.it'), getCredentials);
+router.get('/:projectId/credentials', authorize('d.it', 'd.in', 'd.c', 'd.d', 'admin', 'superadmin'), getCredentials);
 
 // Get access history (admin/superadmin only)
 router.get('/:projectId/history', authorize('d.it'), getAccessHistory);

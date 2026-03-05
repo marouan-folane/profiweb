@@ -80,6 +80,39 @@ const PreliminaryInfo = ({
               ))}
             </select>
           </div>
+
+          {/* Contact Name */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Contact Name
+            </label>
+            <input
+              type="text"
+              value={formData.contactName || ""}
+              onChange={(e) => handleInputChange('contactName', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+              placeholder="Name of contact person"
+              disabled={disabled}
+            />
+          </div>
+
+          {/* WhatsApp Number */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Numéro WhatsApp
+              </label>
+              <Icon icon="lucide:phone" className="w-4 h-4 text-green-500" />
+            </div>
+            <input
+              type="text"
+              value={formData.whatsappNumber || ""}
+              onChange={(e) => handleInputChange('whatsappNumber', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+              placeholder="+212 ..."
+              disabled={disabled}
+            />
+          </div>
         </div>
       </div>
     </div>

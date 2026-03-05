@@ -2,10 +2,30 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { createOrUpdateQuestions, getQuestionsForProject, updateProject, getProject, completeInfoQuestionnaire } from "@/config/functions/project";
+import {
+  createOrUpdateQuestions,
+  getQuestionsForProject,
+  updateProject,
+  getProject,
+  completeInfoQuestionnaire,
+  toggleQuestionVisibility,
+  updateQuestionMeta,
+} from "@/config/functions/project";
 import { getFolders } from "@/config/functions/folder";
 import { getAllTemplates } from "@/config/functions/template";
+import { api } from "@/config/axios.config";
 import toast from 'react-hot-toast';
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  closestCenter,
+} from "@dnd-kit/core";
+import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { Icon } from "@iconify/react";
 
 // Import components
 import PreliminaryInfo from "./components/PreliminaryInfo.jsx";
@@ -24,10 +44,17 @@ import TemplateSelection from "./components/TemplateSelection.jsx";
 import CustomFields from "./components/CustomFields.jsx";
 import SubmitSection from "./components/SubmitSection.jsx";
 import AIWorkInstructions from "./components/AIWorkInstructions.jsx";
+import DynamicSection from "./components/DynamicSection.jsx";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation"
 
 const QuestionsTab = ({ setFormSubmitted }) => {
+  // ─── DnD sensors ───────────────────────────────────────────────────────────
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+  const [activeDragItem, setActiveDragItem] = useState(null);
   const params = useParams();
   const projectId = params.id;
 
@@ -63,6 +90,8 @@ const QuestionsTab = ({ setFormSubmitted }) => {
     // Preliminary Information
     caseWorkerName: "",
     caseWorkerLanguage: "",
+    contactName: "",
+    whatsappNumber: "",
 
     // Basic Information
     title: "",
@@ -167,6 +196,12 @@ const QuestionsTab = ({ setFormSubmitted }) => {
 
   const queryClient = useQueryClient();
 
+  const getNestedValue = (obj, path) => {
+    if (!path) return undefined;
+    if (!path.includes('.')) return obj[path];
+    return path.split('.').reduce((acc, part) => acc && acc[part], obj);
+  };
+
   // React Query for fetching templates
   const { data: templateRes } = useQuery({
     queryFn: () => getAllTemplates(),
@@ -175,8 +210,9 @@ const QuestionsTab = ({ setFormSubmitted }) => {
 
   // React Query for fetching folders
   const { data: foldersRes } = useQuery({
-    queryKey: ['folders'],
-    queryFn: () => getFolders(),
+    queryKey: ['folders', projectId],
+    queryFn: () => getFolders(projectId),
+    enabled: !!projectId && projectId !== 'undefined',
     staleTime: 1000 * 60 * 5,
   });
 
@@ -184,7 +220,7 @@ const QuestionsTab = ({ setFormSubmitted }) => {
   const { data: projectData, isLoading: isLoadingProject } = useQuery({
     queryKey: ['project', projectId],
     queryFn: () => getProject(projectId),
-    enabled: !!projectId,
+    enabled: !!projectId && projectId !== 'undefined',
     staleTime: 1000 * 60 * 5,
   });
 
@@ -196,7 +232,7 @@ const QuestionsTab = ({ setFormSubmitted }) => {
   } = useQuery({
     queryKey: ['questions', projectId],
     queryFn: () => getQuestionsForProject(projectId),
-    enabled: !!projectId,
+    enabled: !!projectId && projectId !== 'undefined',
     staleTime: 1000 * 60 * 5,
   });
 
@@ -213,6 +249,10 @@ const QuestionsTab = ({ setFormSubmitted }) => {
       setFolders(foldersRes.data.folders);
     }
   }, [foldersRes]);
+
+  // ─── Dynamic sections state (from API, with visibility metadata) ───────────
+  // Mirrors questionsResponse.data.sections but allows optimistic UI updates
+  const [dynamicSections, setDynamicSections] = useState([]);
 
   // Enhanced function to populate form from questions
   const populateFormFromQuestions = useCallback((questions) => {
@@ -237,12 +277,21 @@ const QuestionsTab = ({ setFormSubmitted }) => {
             sectionName: q.sectionName || 'Custom Fields',
             options: q.options || [],
             answer: q.answer || "",
-            isCustom: true
+            isCustom: true,
+            isVisible: q.isVisible !== false,
+            isSectionVisible: q.isSectionVisible !== false,
+            translations: q.translations || {},
           });
         } else {
           // Update existing custom question with new answer
           const updatedCustomQuestions = customQuestions.map(cq =>
-            cq.questionKey === q.questionKey ? { ...cq, answer: q.answer || "" } : cq
+            cq.questionKey === q.questionKey ? {
+              ...cq,
+              answer: q.answer || "",
+              isVisible: q.isVisible !== false,
+              isSectionVisible: q.isSectionVisible !== false,
+              translations: q.translations || cq.translations || {}
+            } : cq
           );
           setCustomQuestions(updatedCustomQuestions);
         }
@@ -283,14 +332,38 @@ const QuestionsTab = ({ setFormSubmitted }) => {
     }
 
     // Handle template selection
-    const templateQuestion = questions.find(q => q.questionKey === 'selectedTemplateId');
+    const templateQuestion = questions.find(q =>
+      q.questionKey === 'selectedTemplateId' ||
+      (q.question && q.question.toLowerCase().includes('selected template'))
+    );
+
     if (templateQuestion?.answer) {
-      const templateId = templateQuestion.answer;
-      const template = templates.find(t => t._id === templateId);
+      const templateVal = templateQuestion.answer;
+      const template = templates.find(t => t._id === templateVal || t.title === templateVal);
+
       if (template) {
-        setSelectedTemplate(templateId);
-        updatedFormData.selectedTemplateId = templateId;
+        setSelectedTemplate(template._id);
+        updatedFormData.selectedTemplateId = template._id;
         updatedFormData.templateName = template.title;
+      } else if (templateVal && templateVal.match(/^[0-9a-fA-F]{24}$/)) {
+        // If it's an ID but template list is pending, keep the ID as selected
+        setSelectedTemplate(templateVal);
+        updatedFormData.selectedTemplateId = templateVal;
+      } else if (templateVal) {
+        // If it's a title but template list is pending
+        updatedFormData.templateName = templateVal;
+      }
+    }
+
+    // ─── Fallback: Check project record ───
+    if (!updatedFormData.templateName && projectData?.data?.project?.templateName) {
+      updatedFormData.templateName = projectData.data.project.templateName;
+    }
+    if (!updatedFormData.selectedTemplateId && projectData?.data?.project?.selectedTemplate) {
+      const tId = projectData.data.project.selectedTemplate;
+      if (typeof tId === 'string' && tId.match(/^[0-9a-fA-F]{24}$/)) {
+        updatedFormData.selectedTemplateId = tId;
+        setSelectedTemplate(tId);
       }
     }
 
@@ -355,6 +428,169 @@ const QuestionsTab = ({ setFormSubmitted }) => {
     // console.log("Form data populated from questions:", updatedFormData);
   }, [initialFormData, customQuestions, templates]);
 
+  // ── Fetch global question templates to fill in missing sections ──────────
+  const { data: globalTemplatesRes } = useQuery({
+    queryKey: ['question-templates-global'],
+    queryFn: () => api.get('/question-templates').then(r => r.data),
+    staleTime: 1000 * 60 * 10,
+  });
+
+  // Sync dynamic sections whenever questionsResponse OR global templates change
+  useEffect(() => {
+    if (questionsResponse?.data?.sections) {
+      let sections = [...questionsResponse.data.sections];
+
+      // 1. Ensure "Preliminary Information" section exists at the top
+      let preliSection = sections.find(s => s.section === 'preliminary' || s.sectionName === 'Preliminary Information');
+      if (!preliSection) {
+        preliSection = {
+          section: 'preliminary',
+          sectionName: 'Preliminary Information',
+          questions: []
+        };
+        sections.unshift(preliSection);
+      }
+
+      // 2. Ensure essential fields exist in Preliminary Information
+      const essentialFields = [
+        { questionKey: 'caseWorkerName', question: 'Case Worker', type: 'text' },
+        { questionKey: 'caseWorkerLanguage', question: 'Language of Case Worker', type: 'text' },
+        { questionKey: 'contactName', question: 'Contact Name', type: 'text' },
+        { questionKey: 'whatsappNumber', question: 'Numéro WhatsApp', type: 'tel' }
+      ];
+
+      essentialFields.forEach(fieldDef => {
+        const existing = preliSection.questions.find(q => q.questionKey === fieldDef.questionKey);
+        if (!existing) {
+          preliSection.questions.push({
+            ...fieldDef,
+            answer: formData[fieldDef.questionKey] || '',
+            section: preliSection.section,
+            sectionName: preliSection.sectionName,
+            status: 'pending',
+            isCustom: false,
+            isVisible: true,
+            isSectionVisible: true,
+            order: 0,
+            translations: {}
+          });
+        }
+      });
+
+      // 3. Update answers from current formData if they were just added
+      preliSection.questions.forEach(q => {
+        if (essentialFields.some(f => f.questionKey === q.questionKey)) {
+          q.answer = formData[q.questionKey] || q.answer || '';
+        }
+      });
+
+      // 4. ── Merge ALL global template sections that are missing from this project ──
+      // This ensures every admin-defined section is visible even on older projects
+      const globalTemplates = globalTemplatesRes?.data?.templates || [];
+      if (globalTemplates.length > 0) {
+        // Build a map of all global sections
+        const globalSectionMap = new Map();
+        globalTemplates.forEach(tpl => {
+          const sid = tpl.section;
+          if (!globalSectionMap.has(sid)) {
+            globalSectionMap.set(sid, {
+              section: sid,
+              sectionName: tpl.sectionName || sid,
+              questions: []
+            });
+          }
+          globalSectionMap.get(sid).questions.push(tpl);
+        });
+
+        // Build set of question keys already in the project sections
+        const existingKeys = new Set(sections.flatMap(s => s.questions.map(q => q.questionKey)));
+
+        // For each global section, either add missing questions or add the whole section
+        globalSectionMap.forEach((globalSec, sid) => {
+          // Skip template/template_selection sections (handled separately)
+          if (sid === 'template' || sid === 'template_selection') return;
+
+          const existingSec = sections.find(s => s.section === sid);
+          if (existingSec) {
+            // Section exists — add any global questions not yet in the project
+            globalSec.questions.forEach(gq => {
+              if (!existingKeys.has(gq.questionKey)) {
+                existingSec.questions.push({
+                  questionKey: gq.questionKey,
+                  question: gq.question,
+                  type: gq.type || 'text',
+                  placeholder: gq.placeholder || '',
+                  options: gq.options || [],
+                  isRequired: gq.isRequired || false,
+                  isVisible: gq.isVisible !== false,
+                  isSectionVisible: true,
+                  section: sid,
+                  sectionName: existingSec.sectionName,
+                  answer: '',
+                  isCustom: false,
+                  status: 'pending',
+                  translations: gq.translations || {},
+                });
+                existingKeys.add(gq.questionKey);
+              }
+            });
+          } else {
+            // Section entirely missing — add it with all its global questions
+            const newSec = {
+              section: sid,
+              sectionName: globalSec.sectionName,
+              questions: globalSec.questions.map(gq => ({
+                questionKey: gq.questionKey,
+                question: gq.question,
+                type: gq.type || 'text',
+                placeholder: gq.placeholder || '',
+                options: gq.options || [],
+                isRequired: gq.isRequired || false,
+                isVisible: gq.isVisible !== false,
+                isSectionVisible: true,
+                section: sid,
+                sectionName: globalSec.sectionName,
+                answer: '',
+                isCustom: false,
+                status: 'pending',
+                translations: gq.translations || {},
+              }))
+            };
+            sections.push(newSec);
+          }
+        });
+      }
+
+      setDynamicSections(sections);
+    } else if (isInitialized) {
+      // ─── CRITICAL: Immediate visibility for Preliminary Info if API response is still pending ───
+      const essentialFields = [
+        { questionKey: 'caseWorkerName', question: 'Case Worker', type: 'text' },
+        { questionKey: 'caseWorkerLanguage', question: 'Language of Case Worker', type: 'text' },
+        { questionKey: 'contactName', question: 'Contact Name', type: 'text' },
+        { questionKey: 'whatsappNumber', question: 'Numéro WhatsApp', type: 'tel' }
+      ];
+
+      const baselinePreliSection = {
+        section: 'preliminary',
+        sectionName: 'Preliminary Information',
+        questions: essentialFields.map(f => ({
+          ...f,
+          answer: formData[f.questionKey] || '',
+          section: 'preliminary',
+          sectionName: 'Preliminary Information',
+          status: 'pending',
+          isCustom: false,
+          isVisible: true,
+          isSectionVisible: true,
+          order: 0
+        }))
+      };
+      setDynamicSections([baselinePreliSection]);
+    }
+  }, [questionsResponse, globalTemplatesRes, isInitialized, formData.caseWorkerName, formData.contactName, formData.whatsappNumber, formData.caseWorkerLanguage]);
+
+
   // Load questions data when it's available
   useEffect(() => {
     if (questionsResponse?.data?.questions && !hasLoadedQuestions) {
@@ -365,14 +601,16 @@ const QuestionsTab = ({ setFormSubmitted }) => {
 
   const infoStatus = projectData?.data?.infoStatus || 'pending';
   const isInfoCompleted = infoStatus === 'completed';
-  const userRole = session?.user?.role;
+  const userRole = session?.user?.role?.toLowerCase();
   const isSuperAdmin = userRole === 'superadmin';
-  const isInfoDept = userRole === 'd.i';
+  const isAdmin = ['superadmin', 'admin', 'manager'].includes(userRole);
+  const isInfoDept = userRole === 'd.i' || userRole === 'd.inf';
   const isSalesDept = userRole === 'd.s';
 
+  // canSeeHidden: Roles that can see greyed-out "hidden" fields
+  const canSeeHidden = isAdmin; // Restricted to admins only so other roles don't see them at all
+
   // HARD LOCK: once questionnaire is completed, everyone is locked out of editing
-  // Filled fields become readonly, empty fields become disabled
-  // This applies to ALL roles — d.i, d.s, superadmin — no exceptions
   const isLockedForEdit = isInfoCompleted;
 
   // Load project data
@@ -492,7 +730,155 @@ const QuestionsTab = ({ setFormSubmitted }) => {
     }
   };
 
-  // Calculate completion percentage
+  // ─── Admin: Toggle visibility (section or question) ───────────────────────────
+  const handleToggleVisibility = useCallback(async (payload) => {
+    // payload: { section, isVisible } OR { questionKey, isVisible }
+    const { section, questionKey, isVisible } = payload;
+
+    // Optimistic UI update on dynamicSections
+    setDynamicSections((prev) =>
+      prev.map((sec) => {
+        if (section && sec.section === section) {
+          // Toggle all questions' isSectionVisible in this section
+          return {
+            ...sec,
+            questions: sec.questions.map((q) => ({ ...q, isSectionVisible: isVisible })),
+          };
+        }
+        if (questionKey) {
+          return {
+            ...sec,
+            questions: sec.questions.map((q) =>
+              q.questionKey === questionKey ? { ...q, isVisible } : q
+            ),
+          };
+        }
+        return sec;
+      })
+    );
+
+    // Persist to backend
+    try {
+      await toggleQuestionVisibility(projectId, payload);
+      toast.success('Visibility updated.');
+      queryClient.invalidateQueries({ queryKey: ['questions', projectId] });
+    } catch (err) {
+      toast.error('Failed to update visibility. Please try again.');
+      // Revert: re-fetch from server
+      queryClient.invalidateQueries({ queryKey: ['questions', projectId] });
+    }
+  }, [projectId, queryClient]);
+
+  // ─── Admin: Add a custom field to a specific section ──────────────────────
+  const handleAddCustomField = useCallback((sectionId, newFieldDef) => {
+    // 1. Add to customQuestions so auto-save picks it up
+    setCustomQuestions((prev) => [
+      ...prev,
+      {
+        questionKey: newFieldDef.questionKey,
+        label: newFieldDef.question,
+        type: newFieldDef.type,
+        placeholder: newFieldDef.placeholder || '',
+        isRequired: newFieldDef.isRequired || false,
+        section: newFieldDef.section,
+        sectionName: newFieldDef.sectionName,
+        options: newFieldDef.options || [],
+        answer: '',
+        isCustom: true,
+        translations: newFieldDef.translations || {},
+      },
+    ]);
+
+    // 2. Optimistically add to the correct dynamicSection for immediate display
+    setDynamicSections((prev) =>
+      prev.map((sec) =>
+        sec.section === sectionId
+          ? { ...sec, questions: [...sec.questions, { ...newFieldDef, answer: '' }] }
+          : sec
+      )
+    );
+
+    toast.success(`Custom field “${newFieldDef.question}” added — will be saved automatically.`);
+  }, []);
+
+  // ─── Admin: Edit question metadata (label / placeholder / isRequired) ────────
+  // patch = { label, placeholder, isRequired }
+  const handleEditSave = useCallback(async (questionKey, patch) => {
+    // 1. Optimistic update in dynamicSections so UI reflects change instantly
+    setDynamicSections((prev) =>
+      prev.map((sec) => ({
+        ...sec,
+        questions: sec.questions.map((q) =>
+          q.questionKey === questionKey
+            ? {
+              ...q,
+              ...(patch.label !== undefined && { question: patch.label }),
+              ...(patch.placeholder !== undefined && { placeholder: patch.placeholder }),
+              ...(patch.isRequired !== undefined && { isRequired: patch.isRequired }),
+              ...(patch.translations !== undefined && { translations: patch.translations }),
+            }
+            : q
+        ),
+      }))
+    );
+
+    // 2. Persist to backend
+    try {
+      await updateQuestionMeta(projectId, questionKey, patch);
+      toast.success(`Field updated.`);
+    } catch (err) {
+      toast.error('Failed to save field changes.');
+      // Revert
+      queryClient.invalidateQueries({ queryKey: ['questions', projectId] });
+    }
+  }, [projectId, queryClient]);
+
+  // ─── Admin: Delete a field (Global sync) ──────────────────────────────────
+  const handleDeleteField = useCallback(async (questionKey) => {
+    if (!confirm(`Are you sure you want to delete this field? It will be removed from the GLOBAL registry and all projects.`)) {
+      return;
+    }
+
+    // 1. Optimistic UI removal
+    setDynamicSections((prev) =>
+      prev.map((sec) => ({
+        ...sec,
+        questions: sec.questions.filter((q) => q.questionKey !== questionKey),
+      }))
+    );
+
+    // Also remove from customQuestions if present
+    setCustomQuestions((prev) => prev.filter(q => q.questionKey !== questionKey));
+
+    // 2. Persist to backend
+    try {
+      await api.delete(`/question-templates/${questionKey}`);
+      toast.success("Field deleted globally.");
+      // Refresh to ensure everything is in sync
+      queryClient.invalidateQueries({ queryKey: ["questions", projectId] });
+    } catch (err) {
+      toast.error("Failed to delete field.");
+      queryClient.invalidateQueries({ queryKey: ["questions", projectId] });
+    }
+  }, [projectId, queryClient]);
+
+  // ─── Visibility Lookup Helper ──────────────────────────────────────────────
+  const getVisibilityForKey = useCallback((key) => {
+    if (!dynamicSections || dynamicSections.length === 0) {
+      return { isVisible: true, isSectionVisible: true };
+    }
+    for (const sec of dynamicSections) {
+      const q = sec.questions.find(item => item.questionKey === key);
+      if (q) {
+        return {
+          isVisible: q.isVisible !== false,
+          isSectionVisible: q.isSectionVisible !== false
+        };
+      }
+    }
+    return { isVisible: true, isSectionVisible: true };
+  }, [dynamicSections]);
+
   const getCompletionPercentage = () => {
     if (questionsResponse?.data?.statistics?.completionPercentage) {
       return questionsResponse.data.statistics.completionPercentage;
@@ -756,97 +1142,72 @@ const QuestionsTab = ({ setFormSubmitted }) => {
       // Update project first
       await updateProjectMutation.mutateAsync(projectUpdateData);
 
-      // Prepare ALL questions data
+      // Prepare ALL questions data dynamically from current sections
       const allQuestions = [];
       let orderCounter = 1;
 
-      // Preliminary Information
-      addQuestion(allQuestions, 'caseWorkerName', 'Case worker', 'text', formData.caseWorkerName, 'preliminary', 'Preliminary Information', orderCounter++, false);
-      addQuestion(allQuestions, 'caseWorkerLanguage', 'Language of case worker', 'text', formData.caseWorkerLanguage, 'preliminary', 'Preliminary Information', orderCounter++, false);
-      addQuestion(allQuestions, 'communicationLanguage', 'Communication language', 'select', formData.communicationLanguage, 'preliminary', 'Preliminary Information', orderCounter++, false);
+      dynamicSections.forEach(section => {
+        section.questions.forEach(q => {
+          // Get current answer from formData
+          const value = getNestedValue(formData, q.questionKey);
+          let processedAnswer = value;
 
-      // Add other questions (the rest of the addQuestion logic remains the same, I'll keep the ones from the inner block)
-      addQuestion(allQuestions, 'companyName', 'Company Name', 'text', formData.companyName, 'business', 'Business Information', orderCounter++, true);
-      addQuestion(allQuestions, 'legalForm', 'Legal Form', 'text', formData.legalForm, 'business', 'Business Information', orderCounter++, false);
-      addQuestion(allQuestions, 'businessAddress', 'Business Address', 'textarea', formData.businessAddress, 'business', 'Business Information', orderCounter++, true);
-      addQuestion(allQuestions, 'companyTelephone', 'Company Telephone', 'tel', formData.companyTelephone, 'business', 'Business Information', orderCounter++, true);
-      addQuestion(allQuestions, 'companyEmail', 'Company Email Address', 'email', formData.companyEmail, 'business', 'Business Information', orderCounter++, true);
-      addQuestion(allQuestions, 'companyDescription', 'Detailed Company Description', 'textarea', formData.companyDescription, 'business', 'Business Information', orderCounter++, false);
-      addQuestion(allQuestions, 'briefCompanyDescription', 'Brief Company Description', 'textarea', formData.briefCompanyDescription, 'business', 'Business Information', orderCounter++, false);
-      addQuestion(allQuestions, 'managingDirector', 'Managing Director', 'text', formData.managingDirector, 'legal', 'Company Legal & Background', orderCounter++, false);
-      addQuestion(allQuestions, 'iceNumber', 'ICE Number', 'text', formData.iceNumber, 'legal', 'Company Legal & Background', orderCounter++, false);
-      addQuestion(allQuestions, 'yearOfFoundation', 'Year of Foundation', 'number', formData.yearOfFoundation, 'legal', 'Company Legal & Background', orderCounter++, false);
-      addQuestion(allQuestions, 'industry', 'Industry', 'text', formData.industry, 'business', 'Business Information', orderCounter++, false);
-      addQuestion(allQuestions, 'servicesOffered', 'Services Offered', 'textarea', formData.servicesOffered, 'business', 'Business Information', orderCounter++, true);
-      addQuestion(allQuestions, 'uniqueSellingPoints', 'What Makes You Unique?', 'textarea', formData.uniqueSellingPoints, 'business', 'Business Information', orderCounter++, false);
-      addQuestion(allQuestions, 'callToAction', 'Call to Action', 'textarea', formData.callToAction, 'business', 'Business Information', orderCounter++, false);
+          if ((q.type === 'checkbox' || q.type === 'multiselect') && Array.isArray(value)) {
+            processedAnswer = value.filter(item => item && item.trim() !== '').join(', ');
+          } else if (value === null || value === undefined) {
+            processedAnswer = q.answer || '';
+          }
 
-      // Website Goals
-      addQuestion(allQuestions, 'websitePurpose', 'Website Goals', 'textarea', formData.websitePurpose, 'goals', 'Website Goals & Target Audience', orderCounter++, false);
-      addQuestion(allQuestions, 'targetCustomers', 'Target Audience', 'textarea', formData.targetCustomers, 'goals', 'Website Goals & Target Audience', orderCounter++, false);
-      addQuestion(allQuestions, 'businessType', 'Business Type', 'select', formData.businessType, 'goals', 'Website Goals & Target Audience', orderCounter++, false);
-      addQuestion(allQuestions, 'websiteObjective', 'Website Objective', 'textarea', formData.websiteObjective, 'goals', 'Website Goals & Target Audience', orderCounter++, false);
-
-      // Market Analysis
-      addQuestion(allQuestions, 'likedCompetitors', 'Competitors You Like', 'textarea', formData.likedCompetitors, 'market', 'Market Analysis', orderCounter++, false);
-      addQuestion(allQuestions, 'marketSize', 'Market Size', 'text', formData.marketSize, 'market', 'Market Analysis', orderCounter++, false);
-      addQuestion(allQuestions, 'marketGrowthRate', 'Market Growth Rate', 'text', formData.marketGrowthRate, 'market', 'Market Analysis', orderCounter++, false);
-      addQuestion(allQuestions, 'marketShare', 'Market Share', 'text', formData.marketShare, 'market', 'Market Analysis', orderCounter++, false);
-      addQuestion(allQuestions, 'differentiationCompetitors', 'Competitors to Differentiate From', 'textarea', formData.differentiationCompetitors, 'market', 'Market Analysis', orderCounter++, false);
-      addQuestion(allQuestions, 'competitiveEnvironment', 'Competitive environment', 'textarea', formData.competitiveEnvironment, 'market', 'Market Analysis', orderCounter++, false);
-      addQuestion(allQuestions, 'specialFeaturesCompared', 'Special features', 'textarea', formData.specialFeaturesCompared, 'market', 'Market Analysis', orderCounter++, false);
-      addQuestion(allQuestions, 'contentRestrictions', 'Content Restrictions', 'textarea', formData.contentRestrictions, 'market', 'Market Analysis', orderCounter++, false);
-
-      // Website Structure
-      addQuestion(allQuestions, 'websitePages', 'Required Website Pages', 'checkbox', formData.websitePages, 'structure', 'Website Structure & Pages', orderCounter++, false);
-      addQuestion(allQuestions, 'highlightedService', 'Service to Highlight', 'text', formData.highlightedService, 'structure', 'Website Structure & Pages', orderCounter++, false);
-      addQuestion(allQuestions, 'lowPriorityServices', 'Services Not to Feature', 'textarea', formData.lowPriorityServices, 'structure', 'Website Structure & Pages', orderCounter++, false);
-      addQuestion(allQuestions, 'mandatoryHomepageContent', 'Mandatory Homepage Content', 'textarea', formData.mandatoryHomepageContent, 'structure', 'Website Structure & Pages', orderCounter++, false);
-      addQuestion(allQuestions, 'websiteLanguages', 'Website Languages', 'checkbox', formData.websiteLanguages, 'structure', 'Website Structure & Pages', orderCounter++, false);
-      addQuestion(allQuestions, 'outputLanguages', 'Output languages', 'checkbox', formData.outputLanguages, 'structure', 'Website Structure & Pages', orderCounter++, false);
-
-      // Revenue Streams
-      addQuestion(allQuestions, 'revenueStreams', 'Revenue Streams', 'text', formData.revenueStreams, 'revenue', 'Revenue Streams', orderCounter++, false);
-      addQuestion(allQuestions, 'subscriptionModel', 'Subscription Model', 'text', formData.subscriptionModel, 'revenue', 'Revenue Streams', orderCounter++, false);
-      addQuestion(allQuestions, 'subscriptionFee', 'Subscription Fee', 'text', formData.subscriptionFee, 'revenue', 'Revenue Streams', orderCounter++, false);
-      addQuestion(allQuestions, 'subscriptionDuration', 'Subscription Duration', 'text', formData.subscriptionDuration, 'revenue', 'Revenue Streams', orderCounter++, false);
-      addQuestion(allQuestions, 'subscriptionFrequency', 'Subscription Frequency', 'text', formData.subscriptionFrequency, 'revenue', 'Revenue Streams', orderCounter++, false);
-
-      // Social Media Strategy
-      addQuestion(allQuestions, 'socialMediaStrategy', 'Social Media Strategy', 'textarea', formData.socialMediaStrategy, 'social', 'Social Media Strategy', orderCounter++, false);
-
-      // Design Requirements
-      addQuestion(allQuestions, 'logoAvailability', 'Logo availability', 'select', formData.logoAvailability, 'design', 'Design Requirements', orderCounter++, false);
-      addQuestion(allQuestions, 'corporateDesignAvailability', 'Corporate design', 'select', formData.corporateDesignAvailability, 'design', 'Design Requirements', orderCounter++, false);
-      addQuestion(allQuestions, 'imageAvailability', 'Images for website', 'select', formData.imageAvailability, 'design', 'Design Requirements', orderCounter++, false);
-
-      if (formData.imageAvailability !== "No - Please use stock images") {
-        addQuestion(allQuestions, 'imageNotes', 'Image Preferences', 'textarea', formData.imageNotes, 'design', 'Design Requirements', orderCounter++, false);
-      }
-
-      addQuestion(allQuestions, 'colorScheme', 'Brand Colors', 'text', formData.colorScheme, 'design', 'Design Requirements', orderCounter++, false);
-      addQuestion(allQuestions, 'tonality', 'Design Style & Tone', 'checkbox', formData.tonality, 'design', 'Design Requirements', orderCounter++, false);
-
-      // Template selection
-      addQuestion(allQuestions, 'selectedTemplateId', 'Selected Template', 'select', selectedTemplate, 'template', 'Template Selection', orderCounter++, false);
-
-      // Add all custom questions
-      customQuestions.forEach((customQ) => {
-        allQuestions.push({
-          questionKey: customQ.questionKey,
-          question: customQ.label,
-          type: customQ.type,
-          answer: customQ.answer || '',
-          section: customQ.section || 'custom',
-          sectionName: customQ.sectionName || 'Custom Fields',
-          order: orderCounter++,
-          isRequired: customQ.isRequired || false,
-          projectType: 'wordpress',
-          options: customQ.options || [],
-          placeholder: customQ.placeholder || '',
-          isCustom: true
+          allQuestions.push({
+            ...q,
+            answer: processedAnswer,
+            order: orderCounter++
+          });
         });
       });
+
+      // ─── Manually Add Preliminary Information Fields ───
+      const preliminaryFields = [
+        { key: 'caseWorkerName', label: 'Case Worker', type: 'text' },
+        { key: 'caseWorkerLanguage', label: 'Language of Case Worker', type: 'text' },
+        { key: 'contactName', label: 'Contact Name', type: 'text' },
+        { key: 'whatsappNumber', label: 'Numéro WhatsApp', type: 'text' }
+      ];
+
+      preliminaryFields.forEach(field => {
+        if (!allQuestions.find(q => q.questionKey === field.key)) {
+          allQuestions.push({
+            questionKey: field.key,
+            question: field.label,
+            type: field.type,
+            answer: formData[field.key] || '',
+            section: 'preliminary',
+            sectionName: 'Preliminary Information',
+            order: orderCounter++,
+            isRequired: false,
+            projectType: 'wordpress'
+          });
+        }
+      });
+
+      // Template selection tracking (if not already in sections)
+      if (!allQuestions.find(q => q.questionKey === 'selectedTemplateId')) {
+        allQuestions.push({
+          questionKey: 'selectedTemplateId',
+          question: 'Selected Template',
+          type: 'select',
+          answer: selectedTemplate || '',
+          section: 'template',
+          sectionName: 'Template Selection',
+          order: orderCounter++,
+          isRequired: false,
+          projectType: 'wordpress',
+          options: [],
+          isCustom: false,
+          isVisible: true,
+          isSectionVisible: true
+        });
+      }
 
       // Prepare payload for backend
       const questionsPayload = {
@@ -905,84 +1266,70 @@ const QuestionsTab = ({ setFormSubmitted }) => {
       try {
         setSaveStatus('saving');
 
-        // Build payload inline (mirrors handleSubmit logic)
+        // DYNAMIC PAYLOAD BUILDING
         const allQuestions = [];
-        let order = 1;
-        const addQ = (key, question, type, answer, section, sectionName, required, opts = []) => {
-          let ans = answer;
-          if ((type === 'checkbox' || type === 'multiselect') && Array.isArray(answer)) {
-            ans = answer.filter(i => i && i.trim() !== '').join(', ');
-          } else if (ans === null || ans === undefined) ans = '';
-          allQuestions.push({
-            questionKey: key, question, type, answer: ans || '', section,
-            sectionName, order: order++, isRequired: required || false, projectType: 'wordpress',
-            options: opts, isCustom: false
-          });
-        };
+        let orderCounter = 1;
 
-        const f = formData;
-        addQ('caseWorkerName', 'Case worker', 'text', f.caseWorkerName, 'preliminary', 'Preliminary Information', false);
-        addQ('caseWorkerLanguage', 'Language of case worker', 'text', f.caseWorkerLanguage, 'preliminary', 'Preliminary Information', false);
-        addQ('communicationLanguage', 'Communication language', 'select', f.communicationLanguage, 'preliminary', 'Preliminary Information', false);
-        addQ('companyName', 'Company Name', 'text', f.companyName, 'business', 'Business Information', true);
-        addQ('legalForm', 'Legal Form', 'text', f.legalForm, 'business', 'Business Information', false);
-        addQ('businessAddress', 'Business Address', 'textarea', f.businessAddress, 'business', 'Business Information', true);
-        addQ('companyTelephone', 'Company Telephone', 'tel', f.companyTelephone, 'business', 'Business Information', true);
-        addQ('companyEmail', 'Company Email Address', 'email', f.companyEmail, 'business', 'Business Information', true);
-        addQ('companyDescription', 'Detailed Company Description', 'textarea', f.companyDescription, 'business', 'Business Information', false);
-        addQ('briefCompanyDescription', 'Brief Company Description', 'textarea', f.briefCompanyDescription, 'business', 'Business Information', false);
-        addQ('managingDirector', 'Managing Director', 'text', f.managingDirector, 'legal', 'Company Legal & Background', false);
-        addQ('iceNumber', 'ICE Number', 'text', f.iceNumber, 'legal', 'Company Legal & Background', false);
-        addQ('yearOfFoundation', 'Year of Foundation', 'number', f.yearOfFoundation, 'legal', 'Company Legal & Background', false);
-        addQ('industry', 'Industry', 'text', f.industry, 'business', 'Business Information', false);
-        addQ('servicesOffered', 'Services Offered', 'textarea', f.servicesOffered, 'business', 'Business Information', true);
-        addQ('uniqueSellingPoints', 'What Makes You Unique?', 'textarea', f.uniqueSellingPoints, 'business', 'Business Information', false);
-        addQ('callToAction', 'Call to Action', 'textarea', f.callToAction, 'business', 'Business Information', false);
-        addQ('websitePurpose', 'Website Goals', 'textarea', f.websitePurpose, 'goals', 'Website Goals & Target Audience', false);
-        addQ('targetCustomers', 'Target Audience', 'textarea', f.targetCustomers, 'goals', 'Website Goals & Target Audience', false);
-        addQ('businessType', 'Business Type', 'select', f.businessType, 'goals', 'Website Goals & Target Audience', false);
-        addQ('websiteObjective', 'Website Objective', 'textarea', f.websiteObjective, 'goals', 'Website Goals & Target Audience', false);
-        addQ('likedCompetitors', 'Competitors You Like', 'textarea', f.likedCompetitors, 'market', 'Market Analysis', false);
-        addQ('marketSize', 'Market Size', 'text', f.marketSize, 'market', 'Market Analysis', false);
-        addQ('marketGrowthRate', 'Market Growth Rate', 'text', f.marketGrowthRate, 'market', 'Market Analysis', false);
-        addQ('marketShare', 'Market Share', 'text', f.marketShare, 'market', 'Market Analysis', false);
-        addQ('differentiationCompetitors', 'Competitors to Differentiate From', 'textarea', f.differentiationCompetitors, 'market', 'Market Analysis', false);
-        addQ('competitiveEnvironment', 'Competitive environment', 'textarea', f.competitiveEnvironment, 'market', 'Market Analysis', false);
-        addQ('specialFeaturesCompared', 'Special features', 'textarea', f.specialFeaturesCompared, 'market', 'Market Analysis', false);
-        addQ('contentRestrictions', 'Content Restrictions', 'textarea', f.contentRestrictions, 'market', 'Market Analysis', false);
-        addQ('websitePages', 'Required Website Pages', 'checkbox', f.websitePages, 'structure', 'Website Structure & Pages', false);
-        addQ('highlightedService', 'Service to Highlight', 'text', f.highlightedService, 'structure', 'Website Structure & Pages', false);
-        addQ('lowPriorityServices', 'Services Not to Feature', 'textarea', f.lowPriorityServices, 'structure', 'Website Structure & Pages', false);
-        addQ('mandatoryHomepageContent', 'Mandatory Homepage Content', 'textarea', f.mandatoryHomepageContent, 'structure', 'Website Structure & Pages', false);
-        addQ('websiteLanguages', 'Website Languages', 'checkbox', f.websiteLanguages, 'structure', 'Website Structure & Pages', false);
-        addQ('outputLanguages', 'Output languages', 'checkbox', f.outputLanguages, 'structure', 'Website Structure & Pages', false);
-        addQ('revenueStreams', 'Revenue Streams', 'text', f.revenueStreams, 'revenue', 'Revenue Streams', false);
-        addQ('subscriptionModel', 'Subscription Model', 'text', f.subscriptionModel, 'revenue', 'Revenue Streams', false);
-        addQ('subscriptionFee', 'Subscription Fee', 'text', f.subscriptionFee, 'revenue', 'Revenue Streams', false);
-        addQ('subscriptionDuration', 'Subscription Duration', 'text', f.subscriptionDuration, 'revenue', 'Revenue Streams', false);
-        addQ('subscriptionFrequency', 'Subscription Frequency', 'text', f.subscriptionFrequency, 'revenue', 'Revenue Streams', false);
-        addQ('socialMediaStrategy', 'Social Media Strategy', 'textarea', f.socialMediaStrategy, 'social', 'Social Media Strategy', false);
-        addQ('logoAvailability', 'Logo availability', 'select', f.logoAvailability, 'design', 'Design Requirements', false);
-        addQ('corporateDesignAvailability', 'Corporate design', 'select', f.corporateDesignAvailability, 'design', 'Design Requirements', false);
-        addQ('imageAvailability', 'Images for website', 'select', f.imageAvailability, 'design', 'Design Requirements', false);
-        if (f.imageAvailability !== 'No - Please use stock images') {
-          addQ('imageNotes', 'Image Preferences', 'textarea', f.imageNotes, 'design', 'Design Requirements', false);
-        }
-        addQ('colorScheme', 'Brand Colors', 'text', f.colorScheme, 'design', 'Design Requirements', false);
-        addQ('tonality', 'Design Style & Tone', 'checkbox', f.tonality, 'design', 'Design Requirements', false);
-        allQuestions.push({
-          questionKey: 'selectedTemplateId', question: 'Selected Template', type: 'select',
-          answer: selectedTemplate || '', section: 'template', sectionName: 'Template Selection',
-          order: order++, isRequired: false, projectType: 'wordpress', options: [], isCustom: false
-        });
-        customQuestions.forEach(cq => {
-          allQuestions.push({
-            questionKey: cq.questionKey, question: cq.label, type: cq.type,
-            answer: cq.answer || '', section: cq.section || 'custom', sectionName: cq.sectionName || 'Custom Fields',
-            order: order++, isRequired: cq.isRequired || false, projectType: 'wordpress',
-            options: cq.options || [], placeholder: cq.placeholder || '', isCustom: true
+        dynamicSections.forEach(section => {
+          section.questions.forEach(q => {
+            const value = getNestedValue(formData, q.questionKey);
+            let processedAnswer = value;
+
+            if ((q.type === 'checkbox' || q.type === 'multiselect') && Array.isArray(value)) {
+              processedAnswer = value.filter(item => item && item.trim() !== '').join(', ');
+            } else if (value === null || value === undefined) {
+              processedAnswer = q.answer || '';
+            }
+
+            allQuestions.push({
+              ...q,
+              answer: processedAnswer,
+              order: orderCounter++
+            });
           });
         });
+
+        // ─── Manually Add Preliminary Information Fields (Auto-save) ───
+        const preliminaryFields = [
+          { key: 'caseWorkerName', label: 'Case Worker', type: 'text' },
+          { key: 'caseWorkerLanguage', label: 'Language of Case Worker', type: 'text' },
+          { key: 'contactName', label: 'Contact Name', type: 'text' },
+          { key: 'whatsappNumber', label: 'Numéro WhatsApp', type: 'text' }
+        ];
+
+        preliminaryFields.forEach(field => {
+          if (!allQuestions.find(q => q.questionKey === field.key)) {
+            allQuestions.push({
+              questionKey: field.key,
+              question: field.label,
+              type: field.type,
+              answer: formData[field.key] || '',
+              section: 'preliminary',
+              sectionName: 'Preliminary Information',
+              order: orderCounter++,
+              isRequired: false,
+              projectType: 'wordpress'
+            });
+          }
+        });
+
+        if (!allQuestions.find(q => q.questionKey === 'selectedTemplateId')) {
+          allQuestions.push({
+            questionKey: 'selectedTemplateId',
+            question: 'Selected Template',
+            type: 'select',
+            answer: selectedTemplate || '',
+            section: 'template_selection',
+            sectionName: 'Template Selection',
+            order: orderCounter++,
+            isRequired: false,
+            projectType: 'wordpress',
+            options: [],
+            isCustom: false,
+            isVisible: true,
+            isSectionVisible: true
+          });
+        }
 
         await createOrUpdateQuestions(projectId, { questions: allQuestions, projectType: 'wordpress' });
         setSaveStatus('saved');
@@ -996,10 +1343,10 @@ const QuestionsTab = ({ setFormSubmitted }) => {
 
     return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData, customQuestions, selectedTemplate, isInitialized, hasLoadedQuestions, isLockedForEdit, projectId]);
+  }, [formData, customQuestions, dynamicSections, selectedTemplate, isInitialized, hasLoadedQuestions, isLockedForEdit, projectId, getVisibilityForKey]);
 
   // Helper function to add a question to the array
-  const addQuestion = (questionsArray, questionKey, question, type, answer, section, sectionName, order, isRequired, options = []) => {
+  const addQuestion = (questionsArray, questionKey, question, type, answer, section, sectionName, order, isRequired, options = [], isCustom = false) => {
     let processedAnswer = answer;
 
     // Handle array answers for checkbox/multiselect types
@@ -1008,6 +1355,9 @@ const QuestionsTab = ({ setFormSubmitted }) => {
     } else if (answer === null || answer === undefined) {
       processedAnswer = '';
     }
+
+    // Lookup current visibility from state
+    const visibility = getVisibilityForKey(questionKey);
 
     questionsArray.push({
       questionKey,
@@ -1020,7 +1370,9 @@ const QuestionsTab = ({ setFormSubmitted }) => {
       isRequired: isRequired || false,
       projectType: 'wordpress',
       options,
-      isCustom: false
+      isCustom: isCustom,
+      isVisible: visibility.isVisible,
+      isSectionVisible: visibility.isSectionVisible
     });
   };
 
@@ -1029,28 +1381,16 @@ const QuestionsTab = ({ setFormSubmitted }) => {
     const errors = {};
     let isValid = true;
 
-    requiredFields.forEach(field => {
-      let value;
-      const keys = field.split('.');
+    // Dynamic validation based on currently visible dynamic fields
+    const activeRequiredFields = dynamicSections.flatMap(s =>
+      s.questions.filter(q => q.isRequired && q.isVisible !== false && q.isSectionVisible !== false).map(q => q.questionKey)
+    );
 
-      if (keys.length === 1) {
-        value = formData[field];
-      } else if (keys.length === 2) {
-        value = formData[keys[0]]?.[keys[1]];
-      } else if (keys.length === 3) {
-        value = formData[keys[0]]?.[keys[1]]?.[keys[2]];
-      }
+    activeRequiredFields.forEach(field => {
+      let value = getNestedValue(formData, field);
 
       if (!value || value.toString().trim() === "") {
         errors[field] = "This field is required";
-        isValid = false;
-      }
-    });
-
-    // Validate custom required fields
-    customQuestions.forEach((q, index) => {
-      if (q.isRequired && (!q.answer || q.answer.toString().trim() === "")) {
-        errors[`custom_${index}`] = `${q.label} is required`;
         isValid = false;
       }
     });
@@ -1101,9 +1441,16 @@ const QuestionsTab = ({ setFormSubmitted }) => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Project Questionnaire</h2>
-          <p className="text-gray-600">
-            Fill out the project questionnaire
-          </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+            {(formData.templateName || projectData?.data?.project?.templateName) && (
+              <div className="text-indigo-600 font-bold italic text-sm flex items-center gap-1 px-2 py-0.5 bg-indigo-50 border border-indigo-100 rounded">
+                Template: {formData.templateName || projectData.data.project.templateName}
+              </div>
+            )}
+            <p className="text-gray-600 text-sm">
+              {(formData.templateName || projectData?.data?.project?.templateName) ? "Detailed configurations for the selected template" : "Fill out the project questionnaire"}
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -1188,154 +1535,188 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         </div>
       </div> */}
 
-      {/* Render all sections */}
-      <PreliminaryInfo
-        formData={formData}
-        handleInputChange={handleInputChange}
-        validationErrors={validationErrors}
-        requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
-      />
+      {/* ── Main Questionnaire Content (Hidden for Sales) ─────────────────────────── */}
+      {isSalesDept ? (
+        <div className="bg-white rounded-xl border border-blue-100 p-12 text-center shadow-sm">
+          <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-500">
+            <Icon icon="lucide:user-check" className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Project Created</h2>
+          <p className="text-gray-600 max-w-md mx-auto">
+            As a member of the Sales Department, you have successfully created this project.
+            The detailed questionnaire is managed by the Information Department.
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* ── Dynamic / Static section rendering with drag-and-drop ────── */}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={({ active }) => {
+              // Find the dragged question across all sections
+              let found = null;
+              for (const sec of dynamicSections) {
+                const q = sec.questions.find(q => q.questionKey === active.id);
+                if (q) { found = q; break; }
+              }
+              setActiveDragItem(found);
+            }}
+            onDragEnd={({ active, over }) => {
+              setActiveDragItem(null);
+              if (!active || !over) return;
 
-      {/* <BasicProjectInfo
-        formData={formData}
-        handleInputChange={handleInputChange}
-        validationErrors={validationErrors}
-        requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
-      /> */}
+              const activeKey = active.id;
+              const overId = over.id; // could be a questionKey OR a section-drop-<sectionId>
 
-      {/* <ClientInfo
-        formData={formData}
-        handleInputChange={handleInputChange}
-        validationErrors={validationErrors}
-        requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
-      /> */}
+              // Find source section
+              let sourceSectionId = null;
+              let sourceQuestion = null;
+              for (const sec of dynamicSections) {
+                const q = sec.questions.find(q => q.questionKey === activeKey);
+                if (q) { sourceSectionId = sec.section; sourceQuestion = q; break; }
+              }
+              if (!sourceSectionId || !sourceQuestion) return;
 
-      <ProjectDetails
-        formData={formData}
-        handleInputChange={handleInputChange}
-        newTag={newTag}
-        setNewTag={setNewTag}
-        handleAddTag={handleAddTag}
-        handleRemoveTag={handleRemoveTag}
-        handleTagKeyPress={handleTagKeyPress}
-        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
-      />
+              // Determine target section
+              let targetSectionId = null;
+              if (String(overId).startsWith('section-drop-')) {
+                // Dropped on the section droppable area
+                targetSectionId = String(overId).replace('section-drop-', '');
+              } else {
+                // Dropped on another question — find which section it belongs to
+                for (const sec of dynamicSections) {
+                  if (sec.questions.find(q => q.questionKey === overId)) {
+                    targetSectionId = sec.section;
+                    break;
+                  }
+                }
+              }
+              if (!targetSectionId) return;
 
-      <BusinessInfo
-        formData={formData}
-        handleInputChange={handleInputChange}
-        validationErrors={validationErrors}
-        requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
-      />
+              setDynamicSections(prev => {
+                let updated = prev.map(sec => ({ ...sec, questions: [...sec.questions] }));
 
-      <CompanyLegalInfo
-        formData={formData}
-        handleInputChange={handleInputChange}
-        validationErrors={validationErrors}
-        requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
-      />
+                if (sourceSectionId === targetSectionId) {
+                  // ── Reorder within same section ──
+                  const secIdx = updated.findIndex(s => s.section === sourceSectionId);
+                  if (secIdx === -1) return prev;
+                  const qs = updated[secIdx].questions;
+                  const oldIdx = qs.findIndex(q => q.questionKey === activeKey);
+                  const newIdx = qs.findIndex(q => q.questionKey === overId);
+                  if (oldIdx === -1 || newIdx === -1 || oldIdx === newIdx) return prev;
+                  updated[secIdx].questions = arrayMove(qs, oldIdx, newIdx);
+                } else {
+                  // ── Move between sections ──
+                  const srcIdx = updated.findIndex(s => s.section === sourceSectionId);
+                  const tgtIdx = updated.findIndex(s => s.section === targetSectionId);
+                  if (srcIdx === -1 || tgtIdx === -1) return prev;
 
-      <WebsiteGoalsInfo
-        formData={formData}
-        handleInputChange={handleInputChange}
-        validationErrors={validationErrors}
-        requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
-      />
+                  // Remove from source
+                  updated[srcIdx].questions = updated[srcIdx].questions.filter(
+                    q => q.questionKey !== activeKey
+                  );
 
-      <MarketAnalysisInfo
-        formData={formData}
-        handleInputChange={handleInputChange}
-        validationErrors={validationErrors}
-        requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
-      />
+                  // Update the question's section metadata
+                  const movedQ = {
+                    ...sourceQuestion,
+                    section: updated[tgtIdx].section,
+                    sectionName: updated[tgtIdx].sectionName,
+                  };
 
-      <WebsiteStructureInfo
-        formData={formData}
-        handleInputChange={handleInputChange}
-        handleLanguageToggle={handleLanguageToggle}
-        handleWebsitePagesToggle={handleWebsitePagesToggle}
-        validationErrors={validationErrors}
-        requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
-      />
+                  // Insert into target: before the 'over' question if possible
+                  const overQIdx = updated[tgtIdx].questions.findIndex(q => q.questionKey === overId);
+                  if (overQIdx >= 0) {
+                    updated[tgtIdx].questions.splice(overQIdx, 0, movedQ);
+                  } else {
+                    updated[tgtIdx].questions.push(movedQ);
+                  }
 
-      <DesignRequirementsInfo
-        formData={formData}
-        handleInputChange={handleInputChange}
-        handleTonalityToggle={handleTonalityToggle}
-        validationErrors={validationErrors}
-        requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
-        projectId={projectId}
-      />
+                  toast.success(`Moved "${sourceQuestion.question}" → ${updated[tgtIdx].sectionName}`);
+                }
 
-      <RevenueStreamsInfo
-        formData={formData}
-        handleInputChange={handleInputChange}
-        validationErrors={validationErrors}
-        requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
-      />
+                return updated;
+              });
+            }}
+            onDragCancel={() => setActiveDragItem(null)}
+          >
+            {dynamicSections
+              .filter(section => section.section !== 'template' && section.section !== 'template_selection')
+              .map((section) => (
+                <DynamicSection
+                  key={section.section}
+                  section={section}
+                  formValues={formData}
+                  onFieldChange={handleInputChange}
+                  onToggleSection={
+                    isAdmin
+                      ? (sectionId, isVisible) =>
+                        handleToggleVisibility({ section: sectionId, isVisible })
+                      : undefined
+                  }
+                  onToggleField={
+                    isAdmin
+                      ? (questionKey, isVisible) =>
+                        handleToggleVisibility({ questionKey, isVisible })
+                      : undefined
+                  }
+                  onAddCustomField={isAdmin ? handleAddCustomField : undefined}
+                  onEditSave={isAdmin ? handleEditSave : undefined}
+                  onDelete={isAdmin ? handleDeleteField : undefined}
+                  isAdmin={isAdmin}
+                  canSeeHidden={canSeeHidden}
+                  disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
+                  validationErrors={validationErrors}
+                />
+              ))}
 
-      <SocialMediaStrategyInfo
-        formData={formData}
-        handleInputChange={handleInputChange}
-        validationErrors={validationErrors}
-        requiredFields={requiredFields}
-        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
-      />
+            {/* ── DragOverlay: floating preview while dragging ── */}
+            <DragOverlay>
+              {activeDragItem ? (
+                <div className="bg-white border-2 border-primary rounded-xl px-4 py-3 shadow-2xl opacity-95 max-w-sm">
+                  <div className="flex items-center gap-2">
+                    <Icon icon="lucide:grip-vertical" className="w-4 h-4 text-primary" />
+                    <p className="text-sm font-medium text-gray-800 truncate">{activeDragItem.question}</p>
+                  </div>
+                  <p className="text-[10px] font-mono text-gray-400 mt-0.5 ml-6">{activeDragItem.questionKey}</p>
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
 
-      <TemplateSelection
-        templates={templates}
-        selectedTemplate={selectedTemplate}
-        handleTemplateSelect={handleTemplateSelect}
-        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
-      />
+          <TemplateSelection
+            templates={templates}
+            selectedTemplate={selectedTemplate}
+            handleTemplateSelect={handleTemplateSelect}
+            disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
+          />
 
-      <CustomFields
-        customQuestions={customQuestions}
-        setCustomQuestions={setCustomQuestions}
-        showAddCustomField={showAddCustomField}
-        setShowAddCustomField={setShowAddCustomField}
-        newCustomField={newCustomField}
-        setNewCustomField={setNewCustomField}
-        validationErrors={validationErrors}
-        setValidationErrors={setValidationErrors}
-        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
-      />
+          <AIWorkInstructions
+            formData={formData}
+            handleInputChange={handleInputChange}
+            disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
+          />
 
-      <AIWorkInstructions
-        formData={formData}
-        handleInputChange={handleInputChange}
-        disabled={updateProjectMutation.isPending || isLoading || isLockedForEdit}
-      />
-
-      <SubmitSection
-        formData={formData}
-        selectedTemplate={selectedTemplate}
-        customQuestions={customQuestions}
-        requiredFields={requiredFields}
-        getCompletionPercentage={getCompletionPercentage}
-        getOverallCompletionPercentage={getOverallCompletionPercentage}
-        areAllRequiredFieldsFilled={areAllRequiredFieldsFilled}
-        handleSubmit={handleSubmit}
-        handleSaveDraft={handleSaveDraft}
-        updateProjectMutation={updateProjectMutation}
-        isLoading={isLoading}
-        infoStatus={infoStatus}
-        isLockedForEdit={isLockedForEdit}
-        isInfoDept={isInfoDept}
-        isSuperAdmin={isSuperAdmin}
-        projectId={projectId}
-      />
-
+          <SubmitSection
+            formData={formData}
+            selectedTemplate={selectedTemplate}
+            customQuestions={customQuestions}
+            requiredFields={requiredFields}
+            getCompletionPercentage={getCompletionPercentage}
+            getOverallCompletionPercentage={getOverallCompletionPercentage}
+            areAllRequiredFieldsFilled={areAllRequiredFieldsFilled}
+            handleSubmit={handleSubmit}
+            handleSaveDraft={handleSaveDraft}
+            updateProjectMutation={updateProjectMutation}
+            isLoading={isLoading}
+            infoStatus={infoStatus}
+            isLockedForEdit={isLockedForEdit}
+            isInfoDept={isInfoDept}
+            isSuperAdmin={isSuperAdmin}
+            projectId={projectId}
+          />
+        </>
+      )}
     </div>
   );
 };

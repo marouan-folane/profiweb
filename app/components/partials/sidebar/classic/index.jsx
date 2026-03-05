@@ -11,11 +11,20 @@ import SingleMenuItem from "./single-menu-item";
 import SubMenuHandler from "./sub-menu-handler";
 import NestedSubMenu from "../common/nested-menus";
 import AddBlock from "../common/add-block";
+import { useSession } from "next-auth/react";
+
 const ClassicSidebar = ({ trans }) => {
+  const { data: session } = useSession();
+  const userRole = session?.user?.role?.toLowerCase();
   const { sidebarBg } = useSidebar();
   const [activeSubmenu, setActiveSubmenu] = useState(null);
   const [activeMultiMenu, setMultiMenu] = useState(null);
-  const menus = menusConfig?.mainMenu || [];
+  const menus = (menusConfig?.mainMenu || [])
+    .filter(item => !item.roles || item.roles.map(r => r.toLowerCase()).includes(userRole))
+    .map(item => ({
+      ...item,
+      child: item.child?.filter(childItem => !childItem.roles || childItem.roles.map(r => r.toLowerCase()).includes(userRole))
+    }));
   const { collapsed, setCollapsed } = useSidebar();
   const { isRtl } = useThemeStore();
   const [hovered, setHovered] = useState(false);

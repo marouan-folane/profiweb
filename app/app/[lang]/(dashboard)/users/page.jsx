@@ -94,15 +94,17 @@ export function UserManagementTable() {
         if (!usersData?.data) return [];
 
         const roleDeptMapping = {
-            'd.s': 'D.Sales',
-            'd.i': 'D.Informations',
-            'd.it': 'D.IT Department',
-            'd.d': 'D.Design',
-            'd.in': 'D.Integration',
-            'd.c': 'D.Content',
-            'admin': 'D.Administration',
-            'manager': 'D.Management',
+            'd.s': 'Sales Department',
+            'd.i': 'Information Department',
+            'd.inf': 'Information Department',
+            'd.it': 'IT Department',
+            'd.d': 'Design Department',
+            'd.in': 'Integration Department',
+            'd.c': 'Content Department',
+            'admin': 'Administration',
+            'manager': 'Management',
             'c.m': 'Control Manager',
+            'user': 'Project Manager'
         };
 
         return usersData.data.map(user => {
@@ -114,7 +116,8 @@ export function UserManagementTable() {
                 firstName: user.firstName || '',
                 lastName: user.lastName || '',
                 email: user.email || 'No email',
-                role: user.role || 'User',
+                role: roleKey,
+                fullRoleName: roleDeptMapping[roleKey] || user.role || 'User',
                 department: mappedDept,
                 status: user.isActive !== false ? 'active' : 'inactive',
                 lastLogin: user.lastLogin || user.updatedAt || new Date().toISOString(),
@@ -242,10 +245,15 @@ export function UserManagementTable() {
         }
     };
 
-    // Get unique roles from data
-    const uniqueRoles = React.useMemo(() => {
-        const roles = processedData.map(user => user.role).filter(Boolean);
-        return [...new Set(roles)];
+    // Get unique roles from data for mapping
+    const uniqueRoleOptions = React.useMemo(() => {
+        const rolesMap = new Map();
+        processedData.forEach(user => {
+            if (user.role && !rolesMap.has(user.role)) {
+                rolesMap.set(user.role, user.fullRoleName);
+            }
+        });
+        return Array.from(rolesMap.entries()).map(([value, label]) => ({ value, label }));
     }, [processedData]);
 
     // Loading state
@@ -400,9 +408,9 @@ export function UserManagementTable() {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Roles</SelectItem>
-                                {uniqueRoles.map((role) => (
-                                    <SelectItem key={role} value={role.toLowerCase()}>
-                                        {role}
+                                {uniqueRoleOptions.map((role) => (
+                                    <SelectItem key={role.value} value={role.value}>
+                                        {role.label}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -478,7 +486,7 @@ export function UserManagementTable() {
                                                 }
                                                 className="font-medium"
                                             >
-                                                {user.role}
+                                                {user.fullRoleName}
                                             </Badge>
                                         </TableCell>
                                         <TableCell>

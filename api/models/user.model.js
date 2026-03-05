@@ -70,8 +70,8 @@ const userSchema = new mongoose.Schema({
 
   // ROLE SYSTEM
   role: {
-    type: String,
-    enum: ['superadmin', 'admin', 'd.s', 'd.i', 'd.c', 'd.d', 'd.it', 'd.in', 'c.m'],
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Role',
     default: null
   },
 
@@ -84,13 +84,13 @@ const userSchema = new mongoose.Schema({
   // DEPARTMENT (Required for users, optional for admins)
   department: {
     type: String,
-    enum: ['informations', null],
+    enum: ['informations', 'design', 'it', 'integration', 'content', 'sales', null],
     default: null,
     validate: {
       validator: function (value) {
         // Users must have a department, admins/superadmins can be null
-        if (this.role === 'user') {
-          return value !== null;
+        if (this.role === 'user' || (['d.s', 'd.i', 'd.c', 'd.d', 'd.it', 'd.in', 'c.m'].includes(this.role))) {
+          return value !== null || this.role !== 'user';
         }
         return true;
       },
@@ -196,20 +196,29 @@ userSchema.virtual('departmentName').get(function () {
     'integration': 'Integration Department',
     'design': 'Design Department',
     'it': 'IT Department',
-    'informations': 'Information Department'
+    'informations': 'Information Department',
+    'content': 'Content Department',
+    'sales': 'Sales Department'
   };
 
   return names[this.department] || this.department;
 });
 
 userSchema.virtual('roleName').get(function () {
+  const roleCode = this.role?.code?.toLowerCase() || (typeof this.role === 'string' ? this.role : null);
   const names = {
     'superadmin': 'Super Administrator',
     'admin': 'Administrator',
-    'user': 'User'
+    'd.s': 'Sales Department',
+    'd.i': 'Information Department',
+    'd.c': 'Content Department',
+    'd.d': 'Design Department',
+    'd.it': 'IT Department',
+    'd.in': 'Integration Department',
+    'c.m': 'Control Manager',
+    'user': 'Project Manager'
   };
-
-  return names[this.role] || this.role;
+  return names[roleCode] || roleCode || 'Not Assigned';
 });
 
 // PRE-SAVE MIDDLEWARE

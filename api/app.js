@@ -20,6 +20,8 @@ const siteAccessRouter = require("./routes/siteAccess.routes");
 const checklistRouter = require("./routes/checklist.routes");
 const profileRouter = require("./routes/profile.routes");
 const statsRouter = require("./routes/stats.routes");
+const questionTemplateRouter = require('./routes/questionTemplate.routes');
+const notificationRouter = require('./routes/notification.routes');
 
 const handleErrors = require("./middlewares/handleErrors");
 const cors = require("cors");
@@ -80,6 +82,8 @@ app.use("/api/v1/site-access", siteAccessRouter);
 app.use("/api/v1/checklist", checklistRouter);
 app.use("/api/v1/profile", profileRouter);
 app.use("/api/v1/stats", statsRouter);
+app.use('/api/v1/question-templates', questionTemplateRouter);
+app.use('/api/v1/notifications', notificationRouter);
 
 // Error handling
 app.use(handleErrors);

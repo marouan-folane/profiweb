@@ -20,13 +20,14 @@ import { useSession } from "next-auth/react";
 
 const ModuleSidebar = ({ trans }) => {
   const { data: session } = useSession();
-  const userRole = session?.user?.role;
+  const userRole = session?.user?.role?.toLowerCase();
   const menus = (menusConfig?.mainMenu || [])
-    .filter(item => !item.roles || item.roles.includes(userRole))
+    .filter(item => !item.roles || item.roles.map(r => r.toLowerCase()).includes(userRole))
     .map(item => ({
       ...item,
-      child: item.child?.filter(childItem => !childItem.roles || childItem.roles.includes(userRole))
+      child: item.child?.filter(childItem => !childItem.roles || childItem.roles.map(r => r.toLowerCase()).includes(userRole))
     }));
+
   const { subMenu, setSubmenu, collapsed, setCollapsed, sidebarBg } =
     useSidebar();
   const { isRtl } = useThemeStore();

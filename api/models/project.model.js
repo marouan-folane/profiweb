@@ -154,8 +154,12 @@ const projectSchema = new mongoose.Schema({
 
   // Template selection
   selectedTemplate: {
-    type: String,
+    type: String, // Stores the ID or selection ID
     default: null
+  },
+  templateName: {
+    type: String, // Stores the human-readable name for display
+    default: ""
   },
 
   // Questions metadata
@@ -200,13 +204,13 @@ const projectSchema = new mongoose.Schema({
 
   activeDepartments: [{
     type: String,
-    enum: ['sales', 'info', 'design', 'content', 'integration', 'it', 'superadmin'],
+    enum: ['sales', 'info', 'design', 'content', 'integration', 'it', 'control', 'superadmin'],
     default: ['sales']
   }],
 
   completedDepartments: [{
     type: String,
-    enum: ['sales', 'info', 'design', 'content', 'integration', 'it', 'superadmin'],
+    enum: ['sales', 'info', 'design', 'content', 'integration', 'it', 'control', 'superadmin'],
     default: []
   }],
 
@@ -301,6 +305,13 @@ const projectSchema = new mongoose.Schema({
   controlConfirmedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
+  },
+
+  // Direct reference for quick access
+  instructionsPdf: {
+    filename: String,
+    path: String,
+    generatedAt: Date
   }
 
 

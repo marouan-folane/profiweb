@@ -1,0 +1,701 @@
+[
+    {
+        "questionKey": "caseWorkerName",
+        "section": "preliminary",
+        "sectionName": "Preliminary Information",
+        "order": 1,
+        "type": "text",
+        "question": "Case Worker Name",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "caseWorkerLanguage",
+        "section": "preliminary",
+        "sectionName": "Preliminary Information",
+        "order": 2,
+        "type": "text",
+        "question": "Language of Case Worker",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "communicationLanguage",
+        "section": "preliminary",
+        "sectionName": "Preliminary Information",
+        "order": 3,
+        "type": "select",
+        "question": "Communication Language",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true,
+        "options": [
+            {
+                "value": "French",
+                "label": "French"
+            },
+            {
+                "value": "Arabic",
+                "label": "Arabic"
+            },
+            {
+                "value": "English",
+                "label": "English"
+            },
+            {
+                "value": "German",
+                "label": "German"
+            }
+        ]
+    },
+    {
+        "questionKey": "companyName",
+        "section": "business",
+        "sectionName": "Business Information",
+        "order": 10,
+        "type": "text",
+        "question": "Full Company Name",
+        "isRequired": true,
+        "placeholder": "Will appear in website header and footer",
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "legalForm",
+        "section": "business",
+        "sectionName": "Business Information",
+        "order": 11,
+        "type": "select",
+        "question": "Legal Form",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true,
+        "options": [
+            {
+                "value": "SARL",
+                "label": "SARL"
+            },
+            {
+                "value": "SA",
+                "label": "SA"
+            },
+            {
+                "value": "SNC",
+                "label": "SNC"
+            },
+            {
+                "value": "SCS",
+                "label": "SCS"
+            },
+            {
+                "value": "SCA",
+                "label": "SCA"
+            },
+            {
+                "value": "SCOP",
+                "label": "SCOP"
+            },
+            {
+                "value": "EI",
+                "label": "EI"
+            },
+            {
+                "value": "Micro-entreprise",
+                "label": "Micro-entreprise"
+            },
+            {
+                "value": "Auto-entrepreneur",
+                "label": "Auto-entrepreneur"
+            },
+            {
+                "value": "Association",
+                "label": "Association"
+            },
+            {
+                "value": "Other",
+                "label": "Other"
+            }
+        ]
+    },
+    {
+        "questionKey": "businessAddress",
+        "section": "business",
+        "sectionName": "Business Information",
+        "order": 12,
+        "type": "textarea",
+        "question": "Business Address",
+        "isRequired": true,
+        "placeholder": "Full company address for contact page",
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "companyTelephone",
+        "section": "business",
+        "sectionName": "Business Information",
+        "order": 13,
+        "type": "tel",
+        "question": "Telephone Number",
+        "isRequired": true,
+        "placeholder": "+212 XXX-XXXXXX",
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "companyEmail",
+        "section": "business",
+        "sectionName": "Business Information",
+        "order": 14,
+        "type": "email",
+        "question": "Email Address",
+        "isRequired": true,
+        "placeholder": "info@company.com",
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "companyDescription",
+        "section": "business",
+        "sectionName": "Business Information",
+        "order": 15,
+        "type": "textarea",
+        "question": "Detailed Company Description",
+        "isRequired": false,
+        "placeholder": "Mission, vision, and values",
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "briefCompanyDescription",
+        "section": "business",
+        "sectionName": "Business Information",
+        "order": 16,
+        "type": "textarea",
+        "question": "Brief Company Description",
+        "isRequired": false,
+        "placeholder": "Short summary for homepage (1-2 sentences)",
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "industry",
+        "section": "business",
+        "sectionName": "Business Information",
+        "order": 17,
+        "type": "text",
+        "question": "Industry / Field of Activity",
+        "isRequired": false,
+        "placeholder": "e.g., Marketing, Technology, Healthcare",
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "servicesOffered",
+        "section": "business",
+        "sectionName": "Business Information",
+        "order": 18,
+        "type": "textarea",
+        "question": "Services Offered",
+        "isRequired": true,
+        "placeholder": "List all services offered by the company",
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "uniqueSellingPoints",
+        "section": "business",
+        "sectionName": "Business Information",
+        "order": 19,
+        "type": "textarea",
+        "question": "Unique Selling Points",
+        "isRequired": false,
+        "placeholder": "Key benefits or differentiators",
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "callToAction",
+        "section": "business",
+        "sectionName": "Business Information",
+        "order": 20,
+        "type": "textarea",
+        "question": "Call to Action",
+        "isRequired": false,
+        "placeholder": "e.g., Order now, Contact us, Get a quote",
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "websiteObjective",
+        "section": "business",
+        "sectionName": "Business Information",
+        "order": 21,
+        "type": "textarea",
+        "question": "Website Objective",
+        "isRequired": false,
+        "placeholder": "Main goal of the website",
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "toneAndDemeanor",
+        "section": "business",
+        "sectionName": "Business Information",
+        "order": 22,
+        "type": "checkbox",
+        "question": "Tone & Demeanor",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true,
+        "options": [
+            "Professional",
+            "Reliable",
+            "International",
+            "Friendly",
+            "Formal",
+            "Casual",
+            "Innovative",
+            "Traditional"
+        ].map(v => ({
+            "value": v,
+            "label": v
+        }))
+    },
+    {
+        "questionKey": "managingDirector",
+        "section": "legal",
+        "sectionName": "Company Legal & Background",
+        "order": 30,
+        "type": "text",
+        "question": "Managing Director",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "iceNumber",
+        "section": "legal",
+        "sectionName": "Company Legal & Background",
+        "order": 31,
+        "type": "text",
+        "question": "ICE Number",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "yearOfFoundation",
+        "section": "legal",
+        "sectionName": "Company Legal & Background",
+        "order": 32,
+        "type": "number",
+        "question": "Year of Foundation",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "websitePurpose",
+        "section": "goals",
+        "sectionName": "Website Goals & Target Audience",
+        "order": 40,
+        "type": "textarea",
+        "question": "Website Goals",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "targetCustomers",
+        "section": "goals",
+        "sectionName": "Website Goals & Target Audience",
+        "order": 41,
+        "type": "textarea",
+        "question": "Target Audience",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "businessType",
+        "section": "goals",
+        "sectionName": "Website Goals & Target Audience",
+        "order": 42,
+        "type": "select",
+        "question": "Business Type",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true,
+        "options": [
+            "B2B",
+            "B2C",
+            "B2B2C",
+            "Non-profit",
+            "Government",
+            "Other"
+        ].map(v => ({
+            "value": v,
+            "label": v
+        }))
+    },
+    {
+        "questionKey": "likedCompetitors",
+        "section": "market",
+        "sectionName": "Market Analysis",
+        "order": 50,
+        "type": "textarea",
+        "question": "Competitors You Like",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "marketSize",
+        "section": "market",
+        "sectionName": "Market Analysis",
+        "order": 51,
+        "type": "text",
+        "question": "Market Size",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "marketGrowthRate",
+        "section": "market",
+        "sectionName": "Market Analysis",
+        "order": 52,
+        "type": "text",
+        "question": "Market Growth Rate",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "marketShare",
+        "section": "market",
+        "sectionName": "Market Analysis",
+        "order": 53,
+        "type": "text",
+        "question": "Market Share",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "differentiationCompetitors",
+        "section": "market",
+        "sectionName": "Market Analysis",
+        "order": 54,
+        "type": "textarea",
+        "question": "Competitors to Differentiate From",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "competitiveEnvironment",
+        "section": "market",
+        "sectionName": "Market Analysis",
+        "order": 55,
+        "type": "textarea",
+        "question": "Competitive Environment",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "specialFeaturesCompared",
+        "section": "market",
+        "sectionName": "Market Analysis",
+        "order": 56,
+        "type": "textarea",
+        "question": "Special Features vs Competitors",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "contentRestrictions",
+        "section": "market",
+        "sectionName": "Market Analysis",
+        "order": 57,
+        "type": "textarea",
+        "question": "Content Restrictions",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "websitePages",
+        "section": "structure",
+        "sectionName": "Website Structure & Pages",
+        "order": 60,
+        "type": "checkbox",
+        "question": "Required Website Pages",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true,
+        "options": [
+            "Home",
+            "About Us",
+            "Services",
+            "Portfolio",
+            "Blog",
+            "Contact",
+            "FAQ",
+            "Pricing",
+            "Team",
+            "Testimonials"
+        ].map(v => ({
+            "value": v,
+            "label": v
+        }))
+    },
+    {
+        "questionKey": "highlightedService",
+        "section": "structure",
+        "sectionName": "Website Structure & Pages",
+        "order": 61,
+        "type": "text",
+        "question": "Service to Highlight",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "lowPriorityServices",
+        "section": "structure",
+        "sectionName": "Website Structure & Pages",
+        "order": 62,
+        "type": "textarea",
+        "question": "Services Not to Feature",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "mandatoryHomepageContent",
+        "section": "structure",
+        "sectionName": "Website Structure & Pages",
+        "order": 63,
+        "type": "textarea",
+        "question": "Mandatory Homepage Content",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "websiteLanguages",
+        "section": "structure",
+        "sectionName": "Website Structure & Pages",
+        "order": 64,
+        "type": "checkbox",
+        "question": "Website Languages",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true,
+        "options": [
+            "French",
+            "Arabic",
+            "English",
+            "German",
+            "Spanish"
+        ].map(v => ({
+            "value": v,
+            "label": v
+        }))
+    },
+    {
+        "questionKey": "outputLanguages",
+        "section": "structure",
+        "sectionName": "Website Structure & Pages",
+        "order": 65,
+        "type": "checkbox",
+        "question": "Output Languages (AI)",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true,
+        "options": [
+            "French",
+            "Arabic",
+            "English",
+            "German"
+        ].map(v => ({
+            "value": v,
+            "label": v
+        }))
+    },
+    {
+        "questionKey": "revenueStreams",
+        "section": "revenue",
+        "sectionName": "Revenue Streams",
+        "order": 70,
+        "type": "text",
+        "question": "Revenue Streams",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "subscriptionModel",
+        "section": "revenue",
+        "sectionName": "Revenue Streams",
+        "order": 71,
+        "type": "text",
+        "question": "Subscription Model",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "subscriptionFee",
+        "section": "revenue",
+        "sectionName": "Revenue Streams",
+        "order": 72,
+        "type": "text",
+        "question": "Subscription Fee",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "subscriptionDuration",
+        "section": "revenue",
+        "sectionName": "Revenue Streams",
+        "order": 73,
+        "type": "text",
+        "question": "Subscription Duration",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "subscriptionFrequency",
+        "section": "revenue",
+        "sectionName": "Revenue Streams",
+        "order": 74,
+        "type": "text",
+        "question": "Subscription Frequency",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "socialMediaStrategy",
+        "section": "social",
+        "sectionName": "Social Media Strategy",
+        "order": 80,
+        "type": "textarea",
+        "question": "Social Media Strategy",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "logoAvailability",
+        "section": "design",
+        "sectionName": "Design Requirements",
+        "order": 90,
+        "type": "select",
+        "question": "Logo Availability",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true,
+        "options": [
+            "Yes - High quality",
+            "Yes - Low quality",
+            "No - Needs to be created"
+        ].map(v => ({
+            "value": v,
+            "label": v
+        }))
+    },
+    {
+        "questionKey": "corporateDesignAvailability",
+        "section": "design",
+        "sectionName": "Design Requirements",
+        "order": 91,
+        "type": "select",
+        "question": "Corporate Design",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true,
+        "options": [
+            "Yes - Complete brand guide",
+            "Yes - Partial",
+            "No"
+        ].map(v => ({
+            "value": v,
+            "label": v
+        }))
+    },
+    {
+        "questionKey": "imageAvailability",
+        "section": "design",
+        "sectionName": "Design Requirements",
+        "order": 92,
+        "type": "select",
+        "question": "Images for Website",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true,
+        "options": [
+            "Yes - Professional photos",
+            "Yes - Amateur photos",
+            "No - Please use stock images"
+        ].map(v => ({
+            "value": v,
+            "label": v
+        }))
+    },
+    {
+        "questionKey": "imageNotes",
+        "section": "design",
+        "sectionName": "Design Requirements",
+        "order": 93,
+        "type": "textarea",
+        "question": "Image Preferences/Notes",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "colorScheme",
+        "section": "design",
+        "sectionName": "Design Requirements",
+        "order": 94,
+        "type": "text",
+        "question": "Brand Colors",
+        "isRequired": false,
+        "placeholder": "e.g. #1A2B3C, #FFFFFF",
+        "isVisible": true,
+        "isSectionVisible": true
+    },
+    {
+        "questionKey": "tonality",
+        "section": "design",
+        "sectionName": "Design Requirements",
+        "order": 95,
+        "type": "checkbox",
+        "question": "Design Style & Tone",
+        "isRequired": false,
+        "isVisible": true,
+        "isSectionVisible": true,
+        "options": [
+            "Modern",
+            "Classic",
+            "Minimalist",
+            "Bold",
+            "Elegant",
+            "Playful",
+            "Corporate",
+            "Creative"
+        ].map(v => ({
+            "value": v,
+            "label": v
+        }))
+    }
+]

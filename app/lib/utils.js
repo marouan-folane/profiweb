@@ -142,7 +142,13 @@ export function getDynamicPath(pathname) {
       return "/";
     }
     if (pathname.startsWith(`/${prefix}/`)) {
-      return `/${pathname.slice(prefix.length + 2)}`;
+      return pathname.slice(prefix.length + 1);
+    }
+    // Handle cases like /en/projects where the previous check might be tricky if slice index is wrong
+    if (pathname === `/${prefix}`) return "/";
+    const prefixSlash = `/${prefix}/`;
+    if (pathname.startsWith(prefixSlash)) {
+      return pathname.substring(prefixSlash.length - 1); // returns /path
     }
   }
 

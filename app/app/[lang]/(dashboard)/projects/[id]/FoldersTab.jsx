@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getFolders, getFilesByFolder, createFolder, deleteFolder } from "@/config/functions/folder";
 import { getProject, completeContentWorkflow, validateContentChecklist } from "@/config/functions/project";
@@ -88,6 +89,7 @@ const integrationChecklistSections = [
 
 const FoldersTab = ({ projectId }) => {
   const { data: session } = useSession();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
 
@@ -125,9 +127,9 @@ const FoldersTab = ({ projectId }) => {
   const [isConfirmingIntegration, setIsConfirmingIntegration] = useState(false);
 
   const userRole = session?.user?.role?.toLowerCase();
-  // Folders are locked once D.C marks content as completed — SuperAdmin is exempt
+  // Folders are locked once D.C marks content as completed — SuperAdmin, Admin, and Manager are exempt
   const contentStatus = project?.contentStatus;
-  const foldersLocked = contentStatus === 'completed' && userRole !== 'superadmin';
+  const foldersLocked = contentStatus === 'completed' && !['superadmin', 'admin', 'manager'].includes(userRole);
 
   // Helper: Get project IT status
   const itStatus = project?.itStatus || 'pending';
@@ -153,6 +155,7 @@ const FoldersTab = ({ projectId }) => {
         toast.success("Integration finalized and project completed!");
         setProject(prev => ({ ...prev, itStatus: 'integration_completed' }));
         setIsIntegrationModalOpen(false);
+        router.push('/projects');
         queryClient.invalidateQueries(['project', projectId]);
       } else {
         toast.error(res.message || "Failed to finalize integration");
@@ -176,7 +179,7 @@ const FoldersTab = ({ projectId }) => {
   } = useQuery({
     queryKey: ['folders', projectId],
     queryFn: () => getFolders(projectId),
-    enabled: !!projectId,
+    enabled: !!projectId && projectId !== 'undefined',
     staleTime: 1000 * 60 * 5,
   });
 
@@ -467,6 +470,7 @@ const FoldersTab = ({ projectId }) => {
         toast.success('Content checklist validated and phase completed!');
         setProject(response.data.project);
         setIsChecklistModalOpen(false);
+        router.push('/projects');
         queryClient.invalidateQueries(['folders', projectId]);
       } else {
         toast.error(response.message || 'Failed to complete content phase');
@@ -609,6 +613,9 @@ const FoldersTab = ({ projectId }) => {
       minute: '2-digit'
     });
   };
+
+  // Find instructions folder
+  const instructionsFolder = allProjectFolders.find(f => f.name?.toLowerCase() === "generated instructions pdf");
 
   // Handle file view - FIXED VERSION
   const handleViewFile = (file) => {
@@ -928,11 +935,15 @@ const FoldersTab = ({ projectId }) => {
             <div className="flex items-center gap-4">
               <h3 className="text-lg font-semibold text-gray-900">Project Folders</h3>
               <span className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
-                {userRole === 'd.it' ? '1' :
-                  userRole === 'd.d' ? allProjectFolders.filter(f => f.name !== "Structured content json").length :
-                    allProjectFolders.length} folder{(userRole === 'd.it' ? 1 :
-                      userRole === 'd.d' ? allProjectFolders.filter(f => f.name !== "Structured content json").length :
-                        allProjectFolders.length) !== 1 ? 's' : ''}
+                {allProjectFolders.filter(folder => {
+                  const isOwner = folder.user === session?.user?.id || folder.user?._id === session?.user?.id;
+                  if (['superadmin', 'admin', 'manager', 'c.m'].includes(userRole)) return true;
+                  const folderName = folder.name?.toLowerCase();
+                  if (userRole === 'd.it') return isOwner || folderName === "structured content json";
+                  if (userRole === 'd.d') return isOwner || folderName === "generated instructions pdf" || folderName === "design assets";
+                  if (userRole === 'd.in') return isOwner || folderName === "structured content json" || folderName === "generated instructions pdf";
+                  return true;
+                }).length} folders
               </span>
               {foldersLocked && (
                 <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full font-medium">
@@ -971,8 +982,15 @@ const FoldersTab = ({ projectId }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {allProjectFolders
                 .filter(folder => {
-                  if (userRole === 'd.it') return folder.name === "Structured content json";
-                  if (userRole === 'd.d') return folder.name !== "Structured content json";
+                  const isOwner = folder.user === session?.user?.id || folder.user?._id === session?.user?.id;
+                  if (['superadmin', 'admin', 'manager', 'c.m'].includes(userRole)) return true;
+
+                  const folderName = folder.name?.toLowerCase();
+
+                  if (userRole === 'd.it') return isOwner || folderName === "structured content json";
+                  if (userRole === 'd.d') return isOwner || folderName === "generated instructions pdf" || folderName === "design assets";
+                  if (userRole === 'd.in') return isOwner || folderName === "structured content json" || folderName === "generated instructions pdf";
+
                   return true;
                 })
                 .map((folder) => (

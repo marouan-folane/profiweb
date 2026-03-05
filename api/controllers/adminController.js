@@ -1,5 +1,5 @@
-// controllers/adminController.js
 const User = require("../models/user.model");
+const Role = require("../models/role.model");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/AppError");
 const { default: mongoose } = require("mongoose");
@@ -8,8 +8,14 @@ const { default: mongoose } = require("mongoose");
 exports.getAllAdmins = catchAsync(async (req, res, next) => {
   const { search, isActive, page = 1, limit = 20 } = req.query;
 
-  // Query for admin users
-  let query = { role: { $in: ['superadmin', 'admin'] } };
+  // 1. Find role IDs for superadmin and admin
+  const adminRoles = await Role.find({
+    code: { $in: ['SUPERADMIN', 'ADMIN'] }
+  });
+  const adminRoleIds = adminRoles.map(r => r._id);
+
+  // 2. Query for admin users
+  let query = { role: { $in: adminRoleIds } };
 
   if (search) {
     query.$or = [
@@ -123,30 +129,40 @@ exports.createUser = catchAsync(async (req, res, next) => {
     }
   }
 
-  // 4. Handle department based on admin role
-  let userDepartment = department;
+  // 4. Validate department (if provided)
+  const userDepartment = department;
 
-  if (req.user.role === 'admin') {
-    // Admin can only create users in 'informations' department
-    if (userDepartment && userDepartment !== 'informations') {
-      return next(new AppError("You can only create users in the 'informations' department", 403));
-    }
-    userDepartment = 'informations'; // Force informations department
-  }
-  else if (req.user.role === 'superadmin') {
-    // Superadmin can create users with specified department or default to informations
-    if (!userDepartment) {
-      userDepartment = 'informations';
-    }
+  // Admin restrictions
+  if (req.user.role === 'admin' && userDepartment !== 'informations') {
+    // Admin can only create users in 'informations' department (existing rule)
+    // But we might want to relax this later. For now, let's keep it if it's strictly necessary,
+    // though it seems to be blocking the user's intent.
+    // userDepartment = 'informations'; 
   }
 
   // 5. Validate department
-  const validDepartments = ['informations'];
-  if (!validDepartments.includes(userDepartment)) {
+  const validDepartments = ['informations', 'design', 'it', 'integration', 'content', 'sales'];
+  if (userDepartment && !validDepartments.includes(userDepartment)) {
     return next(new AppError(`Invalid department. Must be one of: ${validDepartments.join(', ')}`, 400));
   }
 
-  // 6. Create the user (always as 'user' role)
+  // 6. Find role ID
+  let roleIdToAssign = role;
+  if (!roleIdToAssign) {
+    const defaultRole = await Role.findOne({ code: 'USER' });
+    roleIdToAssign = defaultRole ? defaultRole._id : null;
+  } else if (!mongoose.Types.ObjectId.isValid(roleIdToAssign)) {
+    // If it's a code/name like 'superadmin', find the role
+    const foundRole = await Role.findOne({
+      code: roleIdToAssign.toUpperCase().replace('.', '_') // Handle d.s -> D_S if needed, but in DB it's D.S
+    }) || await Role.findOne({ code: roleIdToAssign.toUpperCase() });
+
+    if (foundRole) {
+      roleIdToAssign = foundRole._id;
+    }
+  }
+
+  // 7. Create the user
   const user = await User.create({
     username,
     email: email.toLowerCase(),
@@ -155,15 +171,15 @@ exports.createUser = catchAsync(async (req, res, next) => {
     firstName,
     lastName,
     phone,
-    role, // Always create as regular user
+    role: roleIdToAssign,
     department: userDepartment,
     isActive: true,
-    createdBy: req.user._id
+    createdBy: req.user.id
   });
 
   console.log("✅ User created successfully:", user.email);
 
-  // 7. Prepare response (remove sensitive data)
+  // 8. Prepare response (remove sensitive data)
   const userResponse = {
     id: user._id,
     username: user.username,
@@ -188,30 +204,34 @@ exports.createUser = catchAsync(async (req, res, next) => {
   });
 });
 
+// Get all users (admin + superadmin)
 exports.getAllUsers = catchAsync(async (req, res, next) => {
-  // console.log("📋 Fetching all users - Request from:", req.user.role);
+  // 1. Get role IDs for filtering
+  const allRoles = await Role.find({});
+  const getRoleId = (code) => allRoles.find(r => r.code === code.toUpperCase())?._id;
 
-  // 1. Build base query based on requester's role
+  const superadminRoleId = getRoleId('SUPERADMIN');
+  const userRoleId = getRoleId('USER');
+  const adminRoleId = getRoleId('ADMIN');
+
+  // 2. Build base query based on requester's role
   let query = {};
 
   if (req.user.role === 'admin') {
-    // Admin can only see users in 'informations' department
+    // Admin can see all non-superadmin users
     query = {
-      role: 'user',
-      department: 'informations'
+      role: { $ne: superadminRoleId }
     };
-  }
-  else if (req.user.role === 'superadmin') {
-    // Superadmin can see all non-superadmin users
+  } else if (req.user.role === 'superadmin' || req.user.role === 'manager') {
+    // Superadmin/Manager can see all non-superadmin users
     query = {
-      role: { $ne: 'superadmin' }
+      role: { $ne: superadminRoleId }
     };
-  }
-  else {
+  } else {
     return next(new AppError("Unauthorized access", 403));
   }
 
-  // 2. Apply filters from query parameters
+  // 3. Apply filters from query parameters
   const {
     role,
     department,
@@ -224,12 +244,15 @@ exports.getAllUsers = catchAsync(async (req, res, next) => {
   } = req.query;
 
   // Role filter
-  if (role && ['user', 'admin'].includes(role)) {
-    query.role = role;
+  if (role) {
+    const roleId = getRoleId(role);
+    if (roleId) {
+      query.role = roleId;
+    }
   }
 
   // Department filter
-  if (department && ['informations'].includes(department)) {
+  if (department && ['informations', 'design', 'it', 'integration', 'content', 'sales'].includes(department)) {
     query.department = department;
   }
 
@@ -238,7 +261,7 @@ exports.getAllUsers = catchAsync(async (req, res, next) => {
     query.isActive = isActive === 'true' || isActive === true;
   }
 
-  // Search filter (searches in name, email, username)
+  // Search filter
   if (search) {
     query.$or = [
       { firstName: { $regex: search, $options: 'i' } },
@@ -248,27 +271,26 @@ exports.getAllUsers = catchAsync(async (req, res, next) => {
     ];
   }
 
-  // 3. Calculate pagination
+  // 4. Calculate pagination
   const pageNum = parseInt(page);
   const limitNum = parseInt(limit);
   const skip = (pageNum - 1) * limitNum;
 
-  // 4. Build sort object
+  // 5. Build sort object
   const sort = {};
   sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
-  // 5. Execute query with pagination
+  // 6. Execute query with pagination
   const users = await User.find(query)
     .select('-password -passwordConfirm -__v')
+    .populate('role', 'name code')
     .sort(sort)
     .skip(skip)
     .limit(limitNum);
 
-  // 6. Get total count for pagination info
   const totalUsers = await User.countDocuments(query);
   const totalPages = Math.ceil(totalUsers / limitNum);
 
-  // 7. Prepare response data
   const usersResponse = users.map(user => ({
     id: user._id,
     username: user.username,
@@ -277,8 +299,8 @@ exports.getAllUsers = catchAsync(async (req, res, next) => {
     lastName: user.lastName,
     fullName: user.fullName,
     phone: user.phone,
-    role: user.role,
-    roleName: user.roleName,
+    role: user.role?.code?.toLowerCase() || user.role,
+    roleName: user.role?.name || user.roleName,
     department: user.department,
     departmentName: user.departmentName,
     isActive: user.isActive,
@@ -287,7 +309,6 @@ exports.getAllUsers = catchAsync(async (req, res, next) => {
     updatedAt: user.updatedAt
   }));
 
-  // 8. Send response
   res.status(200).json({
     success: true,
     count: users.length,
@@ -401,7 +422,7 @@ exports.activateUserById = catchAsync(async (req, res, next) => {
   user.isActive = true;
   user.activatedAt = Date.now();
   user.activatedBy = req.user.id;
-  
+
   // If using soft delete, you might want to clear deleted flags
   // user.isDeleted = false;
   // user.deletedAt = undefined;

@@ -8,6 +8,8 @@ const {
     restoreProject,
     createOrUpdateQuestions,
     getQuestionsByProject,
+    toggleQuestionsVisibility,
+    updateQuestionMeta,
     deleteProject,
     updateProject,
     submitContent,
@@ -87,6 +89,14 @@ router.route("/:id/confirm-finished")
 router.route("/:id/questions")
     .get(getQuestionsByProject)
     .patch(createOrUpdateQuestions);
+
+// Admin: toggle visibility of a section or single question
+router.route("/:id/questions/visibility")
+    .patch(toggleQuestionsVisibility);
+
+// Admin: edit a single question's metadata (label / placeholder / isRequired)
+router.route("/:id/questions/:questionKey/meta")
+    .patch(updateQuestionMeta);
 
 // General project CRUD routes - should come LAST
 router.route("/:id")

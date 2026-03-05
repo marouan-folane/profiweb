@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@iconify/react";
@@ -42,6 +43,7 @@ const designDepartmentSections = [
 ];
 
 const DesignChecklistModal = ({ isOpen, onClose, projectId, projectTitle, onSuccess }) => {
+    const router = useRouter();
     const queryClient = useQueryClient();
     const [sections, setSections] = useState(designDepartmentSections);
     const [isLoading, setIsLoading] = useState(false);
@@ -143,6 +145,7 @@ const DesignChecklistModal = ({ isOpen, onClose, projectId, projectTitle, onSucc
                 toast.success("Design workflow completed successfully!");
                 queryClient.invalidateQueries(['projects']);
                 if (onSuccess) onSuccess();
+                router.push('/projects');
                 onClose();
             } else {
                 toast.error(completeRes.message || "Failed to complete workflow");

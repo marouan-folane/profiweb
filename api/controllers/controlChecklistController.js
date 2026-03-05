@@ -161,6 +161,19 @@ const confirmProjectFinished = catchAsync(async (req, res, next) => {
     project.controlConfirmedBy = req.user.id;
     await project.save({ validateBeforeSave: false });
 
+    // 🔔 Notify IT department — time for final Product delivery
+    try {
+        const NotificationService = require('../services/notificationService');
+        await NotificationService.notifyRoles({
+            projectId: project._id,
+            targetRoles: ['d.it'],
+            message: `Project "${project.title}" has been confirmed by Quality Control. Please proceed with final production deployment (Product tab).`,
+            type: 'action_required'
+        });
+    } catch (err) {
+        console.error('[Notification] Failed to notify IT after confirmation:', err.message);
+    }
+
     res.status(200).json({
         status: 'success',
         message: 'Project has been confirmed as finished.',

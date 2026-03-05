@@ -388,7 +388,7 @@ const NewProjectPage = () => {
         subcategory: formData.subcategory,
         tags: tags,
         status: formData.status,
-        priority: formData.priority,
+        priority: formData.priority || "standard",
         startDate: formData.startDate ? format(new Date(formData.startDate), 'yyyy-MM-dd') : null,
         endDate: formData.endDate ? format(new Date(formData.endDate), 'yyyy-MM-dd') : null,
         budget: parseFloat(formData.budget),

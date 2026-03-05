@@ -7,7 +7,7 @@ const roleSchema = new mongoose.Schema({
     unique: true,
     trim: true
   },
-  
+
   code: {
     type: String,
     required: [true, 'Role code is required'],
@@ -15,33 +15,33 @@ const roleSchema = new mongoose.Schema({
     uppercase: true,
     trim: true
   },
-  
+
   description: {
     type: String,
     maxlength: [500, 'Description must be less than 500 characters'],
     default: ''
   },
-  
+
   // Department association - OPTIONAL for now
   department: {
     type: String,
     enum: ['integration', 'design', 'it', 'informations', null],
     default: null
   },
-  
+
   // Simple permissions array - we'll add permissions later
   // For now, just store permission names as strings
   permissions: [{
     type: String,
     trim: true
   }],
-  
+
   // System roles cannot be modified
   isSystemRole: {
     type: Boolean,
     default: false
   },
-  
+
   // Basic level for sorting
   level: {
     type: Number,
@@ -49,26 +49,26 @@ const roleSchema = new mongoose.Schema({
     min: 0,
     max: 100
   },
-  
+
   // Active status
   isActive: {
     type: Boolean,
     default: true
   },
-  
+
   // Created by (track who created this role)
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
-  
+
   // Updated by
   updatedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }
-  
+
 }, {
   timestamps: true
 });
@@ -80,7 +80,7 @@ roleSchema.index({ isActive: 1 });
 roleSchema.index({ level: 1 });
 
 // Virtual for display name
-roleSchema.virtual('displayName').get(function() {
+roleSchema.virtual('displayName').get(function () {
   if (this.department) {
     return `${this.name} (${this.department.toUpperCase()})`;
   }

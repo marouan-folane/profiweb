@@ -11,6 +11,7 @@ import ClassicHeader from "./layout/classic-header";
 import FullScreen from "./full-screen";
 import ThemeButton from "./theme-button";
 import { useSession } from "next-auth/react";
+import NotificationBell from "@/components/NotificationBell";
 
 // Static roles array based on your schema
 export const USER_ROLES = [
@@ -71,16 +72,16 @@ export const RoleBadge = ({ role }) => {
   const getRoleDisplayName = (role) => {
     const displayNames = {
       'superadmin': 'Super Admin',
-      'admin': 'Admin',
-      'd.s': 'D. Sales',
-      'd.i': 'D. Information',
-      'd.inf': 'D. Info',
-      'd.c': 'D. Content',
-      'd.d': 'D. Design',
-      'd.it': 'D. IT',
-      'd.in': 'D. Integration',
+      'admin': 'Administration',
+      'd.s': 'Sales Department',
+      'd.i': 'Information Department',
+      'd.inf': 'Info Department',
+      'd.c': 'Content Department',
+      'd.d': 'Design Department',
+      'd.it': 'IT Department',
+      'd.in': 'Integration Department',
       'c.m': 'Control Manager',
-      'user': 'User'
+      'user': 'Project Manager'
     };
     return displayNames[role] || role;
   };
@@ -108,6 +109,9 @@ const NavTools = ({ isDesktop, isMobile, sidebarType, userRole }) => {
     <div className="nav-tools flex items-center gap-2">
       {isDesktop && <FullScreen />}
 
+      {/* Notification Bell - visible to all authenticated users */}
+      <NotificationBell />
+
       {/* Example: Display role badge for superadmin */}
       {isDesktop && userRole === 'superadmin' && (
         <div className="flex items-center gap-2">
@@ -134,7 +138,7 @@ const Header = ({ handleOpenSearch, trans }) => {
   const isMobile = useMediaQuery("(min-width: 768px)");
 
   // Get user role directly from session
-  const userRole = session?.user?.role || null;
+  const userRole = session?.user?.role?.toLowerCase() || null;
 
   // Log role for debugging
   useEffect(() => {

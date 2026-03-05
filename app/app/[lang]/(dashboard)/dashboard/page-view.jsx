@@ -41,11 +41,10 @@ const DashboardPageView = ({ trans, lang }) => {
   });
 
   useEffect(() => {
-    if (session?.user?.role !== "superadmin") {
-      // router.push("/projects");
+    if (session?.user?.role && !["superadmin", "admin"].includes(session.user.role)) {
+      router.push(`/${lang}/projects`);
     }
-    console.log("session?.user?.role => ", session?.user?.role === "superadmin");
-  }, [session]);
+  }, [session, lang, router]);
 
   if (isLoading) {
     return (

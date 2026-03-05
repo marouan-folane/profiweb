@@ -22,6 +22,7 @@ const Overview = () => {
   const queryClient = useQueryClient();
 
   const { data: session } = useSession();
+  const userRole = session?.user?.role?.toLowerCase();
 
   const [activeTab, setActiveTab] = useState("questions"); // Default to questions tab
   const [formSubmitted, setFormSubmitted] = useState(false);
@@ -39,13 +40,14 @@ const Overview = () => {
       const roleTabConfig = {
         'superadmin': 'questions',
         'admin': 'questions',
-        'd.i': 'questions',
-        'd.it': 'accesses',
-        'd.c': 'folders',
-        'd.d': 'folders',
-        'd.s': 'questions',
-        'd.in': 'accesses',
-        'c.m': 'control',
+        'd.s': 'questions',   // Sales — Questionnaire
+        'd.i': 'questions',   // Info (full) — Questionnaire
+        'd.inf': 'questions',   // Info (limited) — Questionnaire only
+        'd.c': 'folders',     // Content — Folders only
+        'd.it': 'accesses',    // IT — Accesses/Integration/Product
+        'd.d': 'folders',     // Design — Folders
+        'd.in': 'accesses',    // Integration — stays as-is
+        'c.m': 'control',     // Control Manager — Control tab
       };
 
       // Get the tab for the role
@@ -66,8 +68,8 @@ const Overview = () => {
   // Fetch site access domain for Designer role
   useEffect(() => {
     const fetchDomainForDesigner = async () => {
-      const allowedRoles = ["d.d", "c.m", "superadmin"];
-      if (allowedRoles.includes(session?.user?.role) && projectId) {
+      const allowedRoles = ["d.d", "c.m", "superadmin", "admin", "manager"];
+      if (allowedRoles.includes(session?.user?.role?.toLowerCase()) && projectId) {
         try {
           const response = await getSiteAccess(projectId);
           if (response?.data?.domain?.name) {
@@ -208,9 +210,19 @@ const Overview = () => {
                   </div>
                   <div>
                     <h1 className="text-2xl font-bold text-gray-900">{projectTitle}</h1>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-sm text-gray-600">Client:</span>
-                      <span className="text-sm font-medium text-gray-800">{clientName}</span>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">Client:</span>
+                        <span className="text-sm font-medium text-gray-800">{clientName}</span>
+                      </div>
+                      {(project.templateName || project.selectedTemplate) && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-600 border-l border-gray-300 pl-4">Template:</span>
+                          <span className="text-sm font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 italic">
+                            {(project.templateName && !project.templateName.match(/^[0-9a-fA-F]{24}$/)) ? project.templateName : project.selectedTemplate}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -228,38 +240,36 @@ const Overview = () => {
                     </div>
                   )}
 
-                  {/* Website Domain — visible for Designer, Control Manager, and Super Admin roles when domain exists */}
-                  {["d.d", "c.m", "superadmin"].includes(session?.user?.role) && websiteDomain && (
-                    <div className="pt-1">
-                      <a
-                        href={websiteDomain.startsWith("http") ? websiteDomain : `https://${websiteDomain}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-3 px-4 py-2.5 rounded-xl bg-primary/5 border border-primary/15 hover:bg-primary/10 hover:border-primary/30 transition-all group w-fit"
+                  {/* Designer Toolkit Section */}
+                  {userRole === "d.d" && project.itStatus !== 'pending' && project.contentStatus === 'completed' && (
+                    <div className="pt-2 flex flex-wrap gap-3">
+                      {/* WP Login Hub */}
+                      {websiteDomain && (
+                        <a
+                          href={websiteDomain.startsWith("http") ? websiteDomain : `https://${websiteDomain}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-md active:scale-95 group"
+                        >
+                          <Icon icon="lucide:external-link" className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                          <span className="font-bold">Open WordPress Panel</span>
+                        </a>
+                      )}
+
+                      {/* PDF Instructions Shortcut */}
+                      <button
+                        onClick={() => handleTabChange("folders")}
+                        className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 transition-all shadow-sm active:scale-95 group"
                       >
-                        {/* Globe icon */}
-                        <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 text-primary flex-shrink-0">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
-                          </svg>
-                        </span>
-
-                        {/* Domain text */}
-                        <span className="text-sm font-semibold text-primary leading-none">
-                          {websiteDomain}
-                        </span>
-
-                        {/* External link arrow */}
-                        <svg className="w-3.5 h-3.5 text-primary/50 group-hover:text-primary transition-colors ml-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      </a>
+                        <Icon icon="lucide:file-text" className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                        <span className="font-bold">View Phase Instructions (PDF)</span>
+                      </button>
                     </div>
                   )}
                 </div>
 
                 {/* Designer Confirm Button */}
-                {session?.user?.role === "d.d" && (
+                {userRole === "d.d" && (
                   <div className="mt-4 pt-4 border-t border-gray-100 flex justify-start">
                     {project.designStatus === 'completed' ? (
                       <Badge color="success" variant="soft" className="px-4 py-2">
@@ -311,7 +321,8 @@ const Overview = () => {
           <div className="border-b border-gray-200">
             <nav className="flex">
 
-              {["superadmin", "d.s", "d.i"].includes(session?.user?.role) && (
+              {/* Questionnaire tab — d.s, d.i, d.inf, admin/superadmin */}
+              {["superadmin", "admin", "manager", "d.s", "d.i", "d.inf"].includes(userRole) && (
                 <button
                   onClick={() => handleTabChange("questions")}
                   className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${activeTab === "questions"
@@ -319,7 +330,7 @@ const Overview = () => {
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }`}
                 >
-                  Questions
+                  Questionnaire
                   {activeTab === "questions" && isLoading && (
                     <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -329,10 +340,8 @@ const Overview = () => {
                 </button>
               )}
 
-
-
-
-              {(["superadmin", "d.d", "d.c", "d.s", "d.in"].includes(session?.user?.role) || (session?.user?.role === 'd.it' && ((project.itStatus === 'setup_validated' && project.contentStatus === 'completed') || project.itStatus === 'integration_completed'))) && (
+              {/* Folders tab — d.d, d.c, d.it, admin/superadmin  (NOT d.inf, NOT d.i, NOT d.in, NOT d.s, NOT c.m) */}
+              {["superadmin", "admin", "manager", "d.d", "d.c", "d.it"].includes(userRole) && (
                 <button
                   onClick={() => handleTabChange("folders")}
                   className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${activeTab === "folders"
@@ -350,7 +359,15 @@ const Overview = () => {
                 </button>
               )}
 
-              {["d.it", "d.in"].includes(session?.user?.role) && (
+              {/* Accesses/Integration/Product tab
+                  d.i       → HIDDEN (user requested)
+                  d.it      → "Accesses" | "Integration" | "Product" (depends on project status)
+                  d.in      → "Integration"  (untouched, keep as-is)
+                  d.d       → "WordPress Login" (GATED: visible only after IT and Content are done)
+                  d.c       → HIDDEN (content sees only Folders)
+                  d.inf     → HIDDEN
+              */}
+              {(["superadmin", "admin", "manager", "d.it", "d.in"].includes(userRole) || (userRole === "d.d" && project.itStatus !== 'pending' && project.contentStatus === 'completed')) && (
                 <button
                   onClick={() => handleTabChange("accesses")}
                   className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${activeTab === "accesses"
@@ -358,7 +375,13 @@ const Overview = () => {
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }`}
                 >
-                  {(project.itStatus === 'setup_validated' && project.contentStatus === 'completed') || project.itStatus === 'integration_completed' ? "Integration" : "Accesses"}
+                  {userRole === 'd.d'
+                    ? "WordPress Login"
+                    : userRole === 'd.it' && project.controlStatus === 'confirmed'
+                      ? "Product"
+                      : (userRole === 'd.it' || userRole === 'd.in') && ((project.itStatus === 'setup_validated' && project.contentStatus === 'completed') || project.itStatus === 'integration_completed')
+                        ? "Integration"
+                        : "Accesses"}
                   {activeTab === "accesses" && isLoading && (
                     <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -369,7 +392,7 @@ const Overview = () => {
               )}
 
               {/* Control tab — Control Manager + Super Admin */}
-              {(session?.user?.role === "superadmin" || (session?.user?.role === "c.m" && project.designStatus === 'completed')) && (
+              {(["superadmin", "admin", "manager"].includes(userRole) || (userRole === "c.m" && project.designStatus === 'completed')) && (
                 <button
                   onClick={() => handleTabChange("control")}
                   className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${activeTab === "control"

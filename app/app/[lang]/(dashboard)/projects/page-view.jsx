@@ -433,6 +433,7 @@ const ProjectCalendar = ({ project, onDateSave }) => {
 const ProjectsPage = () => {
   const router = useRouter();
   const { data: session } = useSession();
+  const userRole = session?.user?.role?.toLowerCase();
 
   useEffect(() => {
     console.log("session?.user?.role ==> ", session?.user?.role);
@@ -907,7 +908,7 @@ const ProjectsPage = () => {
     // 3. D.IT (IT) - Hide if integration is done OR if setup is validated but content is in progress
     if (role === 'd.it') {
       if (project.itStatus === 'integration_completed') return false;
-      
+
       const isSetupValidated = project.itStatus === 'setup_validated';
       const isContentInProgress = project.contentStatus === 'pending' || project.contentStatus === 'checklist_validated';
       if (isSetupValidated && isContentInProgress) return false;
@@ -1229,7 +1230,7 @@ const ProjectsPage = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          {["superadmin", "d.s"].includes(session?.user?.role) && (
+          {["superadmin", "admin", "manager", "d.s"].includes(userRole) && (
             <Button
               className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
               onClick={() => router.push('/projects/new')}
@@ -1356,7 +1357,7 @@ const ProjectsPage = () => {
                   ? 'Get started by creating your first project'
                   : 'Archived projects will appear here'}
               </p>
-              {activeTab === 'active' && (["superadmin", "d.s"].includes(session?.user?.role)) && (
+              {activeTab === 'active' && (["superadmin", "admin", "manager", "d.s"].includes(userRole)) && (
                 <Button
                   onClick={() => router.push('/projects/new')}
                   className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
@@ -1373,41 +1374,41 @@ const ProjectsPage = () => {
                   <thead className="bg-slate-50/50 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-white/5">
                     <tr>
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Project</th>
-                      {session?.user?.role === "d.it" && (
+                      {userRole === "d.it" && (
                         <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Phase</th>
                       )}
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Client</th>
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Category</th>
-                      {session?.user?.role === "d.s" && (
+                      {userRole === "d.s" && (
                         <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Status</th>
                       )}
-                      {session?.user?.role === "d.i" && (
-                        <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Info Status</th>
+                      {userRole === "d.i" && (
+                        <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Information Dept Status</th>
                       )}
-                      {session?.user?.role === "d.c" && (
-                        <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Content Status</th>
+                      {userRole === "d.c" && (
+                        <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Content Dept Status</th>
                       )}
-                      {session?.user?.role === "d.d" && (
-                        <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Design Status</th>
+                      {userRole === "d.d" && (
+                        <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Design Dept Status</th>
                       )}
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Priority</th>
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Budget</th>
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                         {activeTab === 'active' ? 'Due Date' : 'Archived Date'}
                       </th>
-                      {["superadmin", "c.m"].includes(session?.user?.role) && (
+                      {["superadmin", "admin", "manager", "c.m"].includes(userRole) && (
                         <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                           Final Project
                         </th>
                       )}
 
-                      {["superadmin"].includes(session?.user?.role) && (
+                      {["superadmin", "admin", "manager"].includes(userRole) && (
                         <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                           Notes
                         </th>
                       )}
 
-                      {["superadmin", "d.i", "d.c", "d.d", "d.it", "d.in", "c.m"].includes(session?.user?.role) && (
+                      {["superadmin", "admin", "manager"].includes(userRole) && (
                         <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                           Actions
                         </th>
@@ -1432,11 +1433,11 @@ const ProjectsPage = () => {
                           <div className="text-sm text-slate-500 dark:text-slate-400 line-clamp-1 mb-3">
                             {project.description?.substring(0, 100)}{project.description?.length > 100 ? '...' : ''}
                           </div>
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="flex flex-wrap gap-1 mt-2">
                             {project.tags?.slice(0, 3).map((tag, idx) => (
                               <span
                                 key={idx}
-                                className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/10 uppercase tracking-wider"
+                                className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-500 uppercase tracking-tighter"
                               >
                                 {tag}
                               </span>
@@ -1447,9 +1448,41 @@ const ProjectsPage = () => {
                               </span>
                             )}
                           </div>
+
+                          {/* Quick Access Icons for Designer */}
+                          {userRole === "d.d" && (
+                            <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-100 dark:border-white/5">
+                              {project.instructionsPdf?.path && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const path = project.instructionsPdf.path;
+                                    const url = path.startsWith('http') ? path : `${process.env.NEXT_PUBLIC_API_URL}/${path.startsWith('/') ? path.substring(1) : path}`;
+                                    window.open(url, '_blank');
+                                  }}
+                                  className="flex items-center gap-1.5 text-[11px] font-bold text-red-600 hover:text-red-700 transition-colors bg-red-50 dark:bg-red-500/10 px-2.5 py-1 rounded-lg"
+                                  title="View Instructions PDF"
+                                >
+                                  <Icon icon="vscode-icons:file-type-pdf2" className="w-4 h-4" />
+                                  <span>PDF Instructions</span>
+                                </button>
+                              )}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/projects/${project._id}`);
+                                }}
+                                className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 hover:text-indigo-700 transition-colors bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-1 rounded-lg"
+                                title="Go to WordPress Access"
+                              >
+                                <Icon icon="logos:wordpress-icon" className="w-3.5 h-3.5 shadow-sm" />
+                                <span>WP Logins</span>
+                              </button>
+                            </div>
+                          )}
                         </td>
 
-                        {session?.user?.role === "d.it" && (
+                        {userRole === "d.it" && (
                           <td className="py-5 px-6">
                             <div className={cn(
                               "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider",
@@ -1482,93 +1515,6 @@ const ProjectsPage = () => {
                           <CategoryBadge category={project.category} />
                         </td>
 
-                        {session?.user?.role === "d.s" && (
-                          <td className="py-5 px-6">
-                            {project.completedDepartments?.includes("sales") ? (
-                              <Badge color="success" variant="soft" className="dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20">
-                                <span className="inline-flex items-center gap-1">
-                                  <Icon icon="lucide:check-circle" className="w-3 h-3" />
-                                  Completed
-                                </span>
-                              </Badge>
-                            ) : (
-                              <Badge color="destructive" variant="soft" className="dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20">
-                                <span className="inline-flex items-center gap-1">
-                                  <Icon icon="lucide:x-circle" className="w-3 h-3" />
-                                  Pending
-                                </span>
-                              </Badge>
-                            )}
-                          </td>
-                        )}
-
-                        {session?.user?.role === "d.i" && (
-                          <td className="py-5 px-6">
-                            {project.infoStatus === 'completed' ? (
-                              <Badge color="success" variant="soft" className="dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20">
-                                <span className="inline-flex items-center gap-1">
-                                  <Icon icon="lucide:check-circle" className="w-3 h-3" />
-                                  Completed
-                                </span>
-                              </Badge>
-                            ) : (
-                              <Badge color="warning" variant="soft" className="dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">
-                                <span className="inline-flex items-center gap-1">
-                                  <Icon icon="lucide:clock" className="w-3 h-3" />
-                                  Pending
-                                </span>
-                              </Badge>
-                            )}
-                          </td>
-                        )}
-
-                        {session?.user?.role === "d.c" && (
-                          <td className="py-5 px-6">
-                            {project.contentStatus === 'completed' ? (
-                              <Badge color="success" variant="soft" className="dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20">
-                                <span className="inline-flex items-center gap-1">
-                                  <Icon icon="lucide:check-circle" className="w-3 h-3" />
-                                  Completed
-                                </span>
-                              </Badge>
-                            ) : project.contentStatus === 'checklist_validated' ? (
-                              <Badge color="warning" variant="soft" className="dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20">
-                                <span className="inline-flex items-center gap-1">
-                                  <Icon icon="lucide:list-checks" className="w-3 h-3" />
-                                  Checklist Done
-                                </span>
-                              </Badge>
-                            ) : (
-                              <Badge color="warning" variant="soft" className="dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">
-                                <span className="inline-flex items-center gap-1">
-                                  <Icon icon="lucide:clock" className="w-3 h-3" />
-                                  Pending
-                                </span>
-                              </Badge>
-                            )}
-                          </td>
-                        )}
-
-                        {session?.user?.role === "d.d" && (
-                          <td className="py-5 px-6">
-                            {project.designStatus === 'completed' ? (
-                              <Badge color="success" variant="soft" className="dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20">
-                                <span className="inline-flex items-center gap-1">
-                                  <Icon icon="lucide:check-circle" className="w-3 h-3" />
-                                  Completed
-                                </span>
-                              </Badge>
-                            ) : (
-                              <Badge color="warning" variant="soft" className="dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">
-                                <span className="inline-flex items-center gap-1">
-                                  <Icon icon="lucide:clock" className="w-3 h-3" />
-                                  Pending
-                                </span>
-                              </Badge>
-                            )}
-                          </td>
-                        )}
-
                         <td className="py-5 px-6">
                           <Badge
                             color={getPriorityColor(project.priority)}
@@ -1594,7 +1540,7 @@ const ProjectsPage = () => {
                                 : formatDate(project.archivedAt || project.updatedAt)
                               }
                             </div>
-                            {activeTab === 'active' && ["superadmin", "d.s"].includes(session?.user?.role) && (
+                            {activeTab === 'active' && ["superadmin", "admin", "d.s"].includes(userRole) && (
                               <ProjectCalendar
                                 project={project}
                                 onDateSave={handleSaveProjectDate}
@@ -1608,7 +1554,7 @@ const ProjectsPage = () => {
                             )}
                           </div>
                         </td>
-                        {["superadmin", "c.m"].includes(session?.user?.role) && (
+                        {["superadmin", "admin", "manager", "c.m"].includes(userRole) && (
                           <td className="py-5 px-6">
                             {project.controlStatus === 'confirmed' ? (
                               <Badge color="success" variant="soft" className="font-bold flex items-center w-fit gap-1">
@@ -1624,7 +1570,7 @@ const ProjectsPage = () => {
                           </td>
                         )}
 
-                        {["superadmin"].includes(session?.user?.role) && (
+                        {["superadmin", "admin"].includes(userRole) && (
                           <td className="py-5 px-6">
                             {project.note ? (
                               <div
@@ -1649,7 +1595,7 @@ const ProjectsPage = () => {
                         )}
 
 
-                        {["superadmin", "d.i", "d.c", "d.d", "d.it", "d.in", "c.m"].includes(session?.user?.role) && (
+                        {["superadmin", "admin", "manager", "d.i", "d.c", "d.d", "d.it", "d.in", "c.m", "d.s", "d.inf"].includes(userRole) && (
                           <td className="py-5 px-6">
                             <div className="flex items-center gap-1">
                               {activeTab === 'active' ? (
@@ -1663,7 +1609,7 @@ const ProjectsPage = () => {
                                   >
                                     <Icon icon="lucide:eye" className="w-4 h-4" />
                                   </Button>
-                                  {["superadmin"].includes(session?.user?.role) && (
+                                  {["superadmin", "admin", "manager"].includes(userRole) && (
                                     <>
                                       <Button
                                         variant="ghost"
@@ -1698,24 +1644,28 @@ const ProjectsPage = () => {
                                   >
                                     <Icon icon="lucide:eye" className="w-4 h-4" />
                                   </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-slate-500 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-500/10 dark:hover:text-green-400"
-                                    onClick={() => handleOpenRestoreDialog(project)}
-                                    title="Restore Project"
-                                  >
-                                    <Icon icon="lucide:rotate-ccw" className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-slate-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-                                    onClick={() => handleOpenDeleteDialog(project)}
-                                    title="Delete Permanently"
-                                  >
-                                    <Icon icon="lucide:trash-2" className="w-4 h-4" />
-                                  </Button>
+                                  {["superadmin", "admin"].includes(userRole) && (
+                                    <>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-slate-500 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-500/10 dark:hover:text-green-400"
+                                        onClick={() => handleOpenRestoreDialog(project)}
+                                        title="Restore Project"
+                                      >
+                                        <Icon icon="lucide:rotate-ccw" className="w-4 h-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-slate-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                                        onClick={() => handleOpenDeleteDialog(project)}
+                                        title="Delete Permanently"
+                                      >
+                                        <Icon icon="lucide:trash-2" className="w-4 h-4" />
+                                      </Button>
+                                    </>
+                                  )}
                                 </>
                               )}
                             </div>

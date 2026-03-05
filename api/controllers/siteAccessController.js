@@ -17,8 +17,8 @@ const getSiteAccess = catchAsync(async (req, res, next) => {
   }
 
   const siteAccess = await SiteAccess.findOne({ project: projectId })
-    .populate('createdBy', 'name email')
-    .populate('updatedBy', 'name email');
+    .populate('createdBy', 'firstName lastName email')
+    .populate('updatedBy', 'firstName lastName email');
 
   res.status(200).json({
     success: true,
@@ -73,23 +73,33 @@ const createOrUpdateSiteAccess = catchAsync(async (req, res, next) => {
     return next(new AppError('Domain information is required', 400));
   }
 
+  // Check if user has permission (Only IT, Integration, Admin, or the Project Manager can set credentials)
+  const isAuthorized = [
+    'admin', 'superadmin', 'd.it', 'd.in'
+  ].includes(req.user.role) || (project.projectManager && project.projectManager.toString() === req.user.id);
+
+  if (!isAuthorized) {
+    return next(new AppError('Not authorized to manage site access for this project', 403));
+  }
+
   // Find existing site access or create new
   let siteAccess = await SiteAccess.findOne({ project: projectId });
 
   if (siteAccess) {
     // Update existing
-    siteAccess.hosting = { ...siteAccess.hosting, ...hosting };
-    siteAccess.wordpress = { ...siteAccess.wordpress, ...wordpress };
-    siteAccess.domain = { ...siteAccess.domain, ...domain };
+    // Use .toObject() or just assign fields to avoid spreading Mongoose internal properties
+    const existingHosting = siteAccess.hosting ? siteAccess.hosting.toObject() : {};
+    const existingWordpress = siteAccess.wordpress ? siteAccess.wordpress.toObject() : {};
+    const existingDomain = siteAccess.domain ? siteAccess.domain.toObject() : {};
+
+    siteAccess.hosting = { ...existingHosting, ...hosting };
+    siteAccess.wordpress = { ...existingWordpress, ...wordpress };
+    siteAccess.domain = { ...existingDomain, ...domain };
     siteAccess.notes = notes || siteAccess.notes;
 
-    if (ftp) siteAccess.ftp = ftp;
-    if (database) siteAccess.database = database;
-    if (ssl) siteAccess.ssl = ssl;
-
-    // if (req.user.id) {
-    //   console.log("req.user.id role: ", req.user.id);
-    // }
+    if (ftp) siteAccess.ftp = { ...(siteAccess.ftp ? siteAccess.ftp.toObject() : {}), ...ftp };
+    if (database) siteAccess.database = { ...(siteAccess.database ? siteAccess.database.toObject() : {}), ...database };
+    if (ssl) siteAccess.ssl = { ...(siteAccess.ssl ? siteAccess.ssl.toObject() : {}), ...ssl };
 
     siteAccess.updatedBy = req.user.id;
 
@@ -111,8 +121,8 @@ const createOrUpdateSiteAccess = catchAsync(async (req, res, next) => {
   }
 
   // Populate user information
-  await siteAccess.populate('createdBy', 'name email');
-  await siteAccess.populate('updatedBy', 'name email');
+  await siteAccess.populate('createdBy', 'firstName lastName email');
+  await siteAccess.populate('updatedBy', 'firstName lastName email');
 
   res.status(siteAccess.isNew ? 201 : 200).json({
     success: true,
@@ -127,15 +137,15 @@ const createOrUpdateSiteAccess = catchAsync(async (req, res, next) => {
 const getCredentials = catchAsync(async (req, res, next) => {
   const { projectId } = req.params;
 
-  // Only admin/superadmin can get full credentials
-  if (!['admin', 'superadmin'].includes(req.user.role)) {
+  // admin, superadmin, d.it, d.in, d.c, and d.d can get full credentials
+  if (!['admin', 'superadmin', 'd.it', 'd.in', 'd.c', 'd.d'].includes(req.user.role)) {
     return next(new AppError('Not authorized to view credentials', 403));
   }
 
   const siteAccess = await SiteAccess.findOne({ project: projectId })
     .select('+hosting.password +wordpress.adminPassword +ftp.password +database.password')
-    .populate('createdBy', 'name email')
-    .populate('updatedBy', 'name email');
+    .populate('createdBy', 'firstName lastName email')
+    .populate('updatedBy', 'firstName lastName email');
 
   if (!siteAccess) {
     return next(new AppError('Site access not found for this project', 404));
@@ -185,8 +195,8 @@ const getAccessHistory = catchAsync(async (req, res, next) => {
 
   const siteAccess = await SiteAccess.findOne({ project: projectId })
     .select('hosting.hostingPasswordHistory wordpress.wordpressPasswordHistory')
-    .populate('hosting.hostingPasswordHistory.changedBy', 'name email')
-    .populate('wordpress.wordpressPasswordHistory.changedBy', 'name email');
+    .populate('hosting.hostingPasswordHistory.changedBy', 'firstName lastName email')
+    .populate('wordpress.wordpressPasswordHistory.changedBy', 'firstName lastName email');
 
   if (!siteAccess) {
     return next(new AppError('Site access not found', 404));
@@ -215,8 +225,8 @@ const updateSiteAccess = catchAsync(async (req, res, next) => {
 
   // Check if user has permission
   if (
-    project.user.toString() !== req.user.id &&
-    !['admin', 'superadmin'].includes(req.user.role)
+    project.projectManager.toString() !== req.user.id &&
+    !['admin', 'superadmin', 'd.it', 'd.in'].includes(req.user.role)
   ) {
     return next(new AppError('Not authorized to update this project', 403));
   }
@@ -229,8 +239,11 @@ const updateSiteAccess = catchAsync(async (req, res, next) => {
 
   // Update only provided fields
   Object.keys(updateData).forEach(key => {
-    if (key === 'hosting' || key === 'wordpress' || key === 'domain') {
-      siteAccess[key] = { ...siteAccess[key], ...updateData[key] };
+    if (key === 'hosting' || key === 'wordpress' || key === 'domain' || key === 'ftp' || key === 'database' || key === 'ssl') {
+      const existing = siteAccess[key] && typeof siteAccess[key].toObject === 'function'
+        ? siteAccess[key].toObject()
+        : siteAccess[key] || {};
+      siteAccess[key] = { ...existing, ...updateData[key] };
     } else if (key !== 'project') {
       siteAccess[key] = updateData[key];
     }

@@ -233,13 +233,15 @@ const CreateUserForm = () => {
                 <SelectValue placeholder="Choose a role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="d.s">Department Sales</SelectItem>
-                <SelectItem value="d.i">Department Information</SelectItem>
-                <SelectItem value="d.c">Department Content</SelectItem>
-                <SelectItem value="d.d">Department Design</SelectItem>
-                <SelectItem value="d.it">Department IT</SelectItem>
-                <SelectItem value="d.in">Department Integration</SelectItem>
+                <SelectItem value="d.s">Sales Department</SelectItem>
+                <SelectItem value="d.i">Information Department</SelectItem>
+                <SelectItem value="d.c">Content Department</SelectItem>
+                <SelectItem value="d.d">Design Department</SelectItem>
+                <SelectItem value="d.it">IT Department</SelectItem>
+                <SelectItem value="d.in">Integration Department</SelectItem>
                 <SelectItem value="c.m">Control Manager</SelectItem>
+                <SelectItem value="user">Project Manager</SelectItem>
+                <SelectItem value="admin">Administrator</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -329,10 +331,10 @@ const CreateUserForm = () => {
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div
                       className={`h-full transition-all duration-300 ${formData.password.length < 6 ? 'bg-red-500 w-1/4' :
-                          formData.password.length < 8 ? 'bg-yellow-500 w-1/2' :
-                            /[A-Z]/.test(formData.password) && /[a-z]/.test(formData.password) && /[0-9]/.test(formData.password)
-                              ? 'bg-green-500 w-full'
-                              : 'bg-orange-500 w-3/4'
+                        formData.password.length < 8 ? 'bg-yellow-500 w-1/2' :
+                          /[A-Z]/.test(formData.password) && /[a-z]/.test(formData.password) && /[0-9]/.test(formData.password)
+                            ? 'bg-green-500 w-full'
+                            : 'bg-orange-500 w-3/4'
                         }`}
                     />
                   </div>

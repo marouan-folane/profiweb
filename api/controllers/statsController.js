@@ -6,8 +6,13 @@ const Template = require("../models/template.model");
 const catchAsync = require("../utils/catchAsync");
 
 exports.getAdminDashboardStats = catchAsync(async (req, res, next) => {
+    // Import Role model locally or at top
+    const Role = require("../models/role.model");
+    const superadminRole = await Role.findOne({ code: 'SUPERADMIN' });
+    const superadminId = superadminRole ? superadminRole._id : null;
+
     // 1. Basic Stats (Totals)
-    const totalUsers = await User.countDocuments({ role: { $ne: 'superadmin' } });
+    const totalUsers = await User.countDocuments({ role: { $ne: superadminId } });
     const totalProjects = await Project.countDocuments({ isDeleted: false });
     const totalClients = await Client.countDocuments();
     const totalTemplates = await Template.countDocuments();
@@ -26,7 +31,7 @@ exports.getAdminDashboardStats = catchAsync(async (req, res, next) => {
         {
             $match: {
                 createdAt: { $gte: sixMonthsAgo },
-                role: { $ne: 'superadmin' }
+                role: { $ne: superadminId }
             }
         },
         {

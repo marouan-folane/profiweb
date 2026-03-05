@@ -14,7 +14,9 @@ const generateToken = (id, role) => {
 
 // Send response with token
 const sendTokenResponse = (user, statusCode, res) => {
-  const token = generateToken(user._id, user.role);
+  // Use code level for role in token and response to match frontend expectations
+  const roleCode = user.role?.code?.toLowerCase() || user.role;
+  const token = generateToken(user._id, roleCode);
 
   res.status(statusCode).json({
     success: true,
@@ -26,7 +28,7 @@ const sendTokenResponse = (user, statusCode, res) => {
       firstName: user.firstName,
       lastName: user.lastName,
       phone: user.phone,
-      role: user.role,
+      role: roleCode,
       department: user.department,
       fullName: user.fullName,
       departmentName: user.departmentName,
@@ -49,19 +51,19 @@ exports.login = catchAsync(async (req, res, next) => {
     return next(new AppError("Please provide email/username and password", 400));
   }
 
-  // Find user with password
+  // Find user with password and populate role
   const user = await User.findOne({
     $or: [
       { email: emailOrUsername.toLowerCase() },
       { username: emailOrUsername }
     ]
-  }).select('+password +failedLoginAttempts +lockUntil');
+  }).select('+password +failedLoginAttempts +lockUntil').populate('role');
 
   // Check if user exists
   if (!user) {
     return next(new AppError("Invalid email/username or password", 401));
   }
-  
+
   // Verify password
   const isPasswordCorrect = await user.comparePassword(password);
   if (!isPasswordCorrect) {
@@ -110,6 +112,9 @@ exports.register = catchAsync(async (req, res, next) => {
   }
 
   // Create regular user (role defaults to 'user')
+  const Role = require("../models/role.model");
+  const userRole = await Role.findOne({ code: 'USER' });
+
   const user = await User.create({
     username,
     email: email.toLowerCase(),
@@ -119,20 +124,25 @@ exports.register = catchAsync(async (req, res, next) => {
     lastName,
     phone,
     department,
-    role: 'user' // Always 'user' for public registration
+    role: userRole ? userRole._id : null
   });
 
+  // Re-fetch user to get populated role for sendTokenResponse
+  const populatedUser = await User.findById(user._id).populate('role');
+
   // Send response with token
-  sendTokenResponse(user, 201, res);
+  sendTokenResponse(populatedUser, 201, res);
 });
 
 // GET CURRENT USER (Protected)
 exports.getMe = catchAsync(async (req, res, next) => {
-  const user = await User.findById(req.user.id);
+  const user = await User.findById(req.user.id).populate('role');
 
   if (!user) {
     return next(new AppError("User not found", 404));
   }
+
+  const roleCode = user.role?.code?.toLowerCase() || user.role;
 
   res.status(200).json({
     success: true,
@@ -143,7 +153,7 @@ exports.getMe = catchAsync(async (req, res, next) => {
       firstName: user.firstName,
       lastName: user.lastName,
       phone: user.phone,
-      role: user.role,
+      role: roleCode,
       department: user.department,
       fullName: user.fullName,
       roleName: user.roleName,

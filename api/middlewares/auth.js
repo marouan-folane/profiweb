@@ -22,7 +22,7 @@ const protect = async (req, res, next) => {
     const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
 
     // 3) Check if user still exists
-    const currentUser = await User.findById(decoded.id);
+    const currentUser = await User.findById(decoded.id).populate('role');
     if (!currentUser) {
       return next(new AppError('The user belonging to this token no longer exists.', 401));
     }
@@ -37,14 +37,23 @@ const protect = async (req, res, next) => {
       return next(new AppError('Your account has been deactivated.', 401));
     }
 
-    // Grant access to protected route
-    req.user = currentUser;
+    // Convert role to lowercased code — MUST use .toObject() so Mongoose's
+    // schema field getter doesn't block the plain-string override
+    const userRoleCode = currentUser.role?.code?.toLowerCase() || String(currentUser.role);
+
+    // Convert to plain JS object so we can freely set role as a string
+    req.user = {
+      ...currentUser.toObject(),
+      role: userRoleCode,         // lowercase string code: 'superadmin', 'd.s', etc.
+      id: currentUser._id,        // convenience alias
+    };
+
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
       return next(new AppError('Invalid token. Please log in again.', 401));
     }
-    
+
     if (error.name === 'TokenExpiredError') {
       return next(new AppError('Your token has expired! Please log in again.', 401));
     }
@@ -76,7 +85,7 @@ const authorize = (...roles) => {
 
       const userRoleName = roleNames[req.user.role] || req.user.role;
       const requiredRoles = roles.map(role => roleNames[role] || role).join(', ');
-      
+
       return next(
         new AppError(
           `Access denied. Your role (${userRoleName}) does not have permission to perform this action. Required role(s): ${requiredRoles}`,
@@ -111,7 +120,7 @@ const restrictTo = (...roles) => {  // Changed from authorize to restrictTo
 
       const userRoleName = roleNames[req.user.role] || req.user.role;
       const requiredRoles = roles.map(role => roleNames[role] || role).join(', ');
-      
+
       return next(
         new AppError(
           `Access denied. Your role (${userRoleName}) does not have permission to perform this action. Required role(s): ${requiredRoles}`,

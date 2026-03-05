@@ -184,3 +184,32 @@ export const completeDesignWorkflow = async (projectId) => {
         return error.response?.data;
     }
 };
+
+// Toggle visibility of a section or single question (admin only)
+// payload: { section: 'business', isVisible: false }
+//       OR { questionKey: 'companyName', isVisible: false }
+export const toggleQuestionVisibility = async (projectId, payload) => {
+    try {
+        const response = await api.patch(
+            `/projects/${projectId}/questions/visibility`,
+            payload
+        );
+        return response.data;
+    } catch (error) {
+        return error.response?.data;
+    }
+};
+
+// Update a single question's metadata: label, placeholder, isRequired (admin only)
+// patch: { label?: string, placeholder?: string, isRequired?: boolean }
+export const updateQuestionMeta = async (projectId, questionKey, patch) => {
+    try {
+        const response = await api.patch(
+            `/projects/${projectId}/questions/${encodeURIComponent(questionKey)}/meta`,
+            patch
+        );
+        return response.data;
+    } catch (error) {
+        return error.response?.data;
+    }
+};

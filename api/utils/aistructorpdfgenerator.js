@@ -990,6 +990,7 @@ The AI must not:
         const projectDetails = [
             { label: 'Client', value: project.client?.name || 'Not specified' },
             { label: 'Category', value: project.category || 'Not specified' },
+            { label: 'Template', value: project.templateName || project.selectedTemplate || project.selectedTemplateId || 'Not specified' },
             { label: 'Priority', value: project.priority || 'Not specified' },
             { label: 'Start Date', value: project.startDate ? new Date(project.startDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Not specified' },
             { label: 'End Date', value: project.endDate ? new Date(project.endDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Not specified' },
@@ -1052,9 +1053,26 @@ The AI must not:
             return;
         }
 
+        const answeredQuestions = questions.filter(q => {
+            const hasAnswer = q.answer !== null &&
+                q.answer !== undefined &&
+                String(q.answer).trim() !== "";
+            return hasAnswer;
+        });
+
+        if (answeredQuestions.length === 0) {
+            doc.fontSize(12)
+                .fillColor(this.COLORS.textLight)
+                .text('No answered questions available for this project.', {
+                    align: 'center',
+                    width: contentWidth
+                });
+            return;
+        }
+
         // Group questions by section
         const questionsBySection = {};
-        questions.forEach((q) => {
+        answeredQuestions.forEach((q) => {
             const section = q.section || 'general';
             if (!questionsBySection[section]) {
                 questionsBySection[section] = {
@@ -1078,7 +1096,7 @@ The AI must not:
 
             // Questions in this section
             section.questions.forEach((question, qIndex) => {
-                this.checkPageBreakQuestions(doc, 80);
+                this.checkPageBreakQuestions(doc, 100);
 
                 // Question card
                 const cardY = doc.y;
@@ -1105,32 +1123,48 @@ The AI must not:
                         cardY + 14,
                         { width: 10, align: 'center' });
 
+                // Label: Question
+                doc.fontSize(9)
+                    .font('Helvetica-Bold')
+                    .fillColor(this.COLORS.accent)
+                    .text('Question:',
+                        this.PAGE_MARGIN.left + 45,
+                        cardY + 10);
+
                 // Question text
                 doc.fontSize(11)
                     .font('Helvetica-Bold')
                     .fillColor(this.COLORS.text)
                     .text(question.question,
                         this.PAGE_MARGIN.left + 45,
-                        cardY + 14,
+                        cardY + 22,
                         { width: contentWidth - 60 });
 
-                const answerY = cardY + 38;
+                const answerY = cardY + doc.heightOfString(question.question, { width: contentWidth - 60, font: 'Helvetica-Bold', fontSize: 11 }) + 35;
+
+                // Label: Answer
+                doc.fontSize(9)
+                    .font('Helvetica-Bold')
+                    .fillColor(this.COLORS.success)
+                    .text('Answer:',
+                        this.PAGE_MARGIN.left + 45,
+                        answerY - 12);
 
                 // Handle different answer types
                 if (question.type === 'brand-colors' ||
-                    (question.answer && question.answer.includes('#'))) {
+                    (question.answer && typeof question.answer === 'string' && question.answer.includes('#'))) {
                     this.displayBrandColorsProfessional(doc, question.answer, answerY, contentWidth);
                 } else {
                     // Regular text answer
                     const answerText = question.answer || 'Not answered yet';
-                    const answerColor = question.answer ? this.COLORS.success : this.COLORS.textLight;
+                    const answerColor = question.answer ? this.COLORS.text : this.COLORS.textLight;
 
                     // Answer background
                     doc.roundedRect(
                         this.PAGE_MARGIN.left + 45,
                         answerY - 4,
                         contentWidth - 60,
-                        questionHeight - 48,
+                        questionHeight - (answerY - cardY) - 10,
                         3
                     )
                         .fillColor(this.COLORS.background)
@@ -1176,7 +1210,7 @@ The AI must not:
      * Calculate question card height dynamically
      */
     calculateQuestionHeight(doc, question, contentWidth) {
-        const questionHeight = doc.heightOfString(question.question, {
+        const questionTextHeight = doc.heightOfString(question.question, {
             width: contentWidth - 60,
             font: 'Helvetica-Bold',
             fontSize: 11
@@ -1184,10 +1218,10 @@ The AI must not:
 
         let answerHeight = 30;
         if (question.answer) {
-            if (question.type === 'brand-colors' || question.answer.includes('#')) {
-                answerHeight = 50; // Fixed height for color swatches
+            if (question.type === 'brand-colors' || (typeof question.answer === 'string' && question.answer.includes('#'))) {
+                answerHeight = 60; // Fixed height for color swatches
             } else {
-                answerHeight = Math.max(30, doc.heightOfString(question.answer, {
+                answerHeight = Math.max(30, doc.heightOfString(String(question.answer), {
                     width: contentWidth - 80,
                     font: 'Helvetica',
                     fontSize: 10
@@ -1195,7 +1229,8 @@ The AI must not:
             }
         }
 
-        return Math.max(70, questionHeight + answerHeight + 30);
+        // 10 (top padding) + 12 (Question: label) + questionTextHeight + 15 (spacing) + 12 (Answer: label) + answerHeight + 10 (bottom padding)
+        return Math.max(80, questionTextHeight + answerHeight + 60);
     }
 
     /**

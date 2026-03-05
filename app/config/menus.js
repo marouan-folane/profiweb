@@ -50,18 +50,19 @@ export const menusConfig = {
           href: "/templates/global-interactions",
           roles: ["superadmin", "admin", "manager"],
         },
+
       ]
     },
     {
       title: "Projects",
       icon: UsersIcon,
-      roles: ["superadmin", "admin", "manager", "d.s", "d.i", "d.in", "d.it", "d.d", "d.c", "c.m"],
+      roles: ["superadmin", "admin", "manager", "d.s", "c.m", "d.d", "d.i", "d.inf", "d.c", "d.it", "d.in"],
       child: [
         {
           title: "List",
           icon: List,
           href: "/projects",
-          roles: ["superadmin", "admin", "manager", "d.s", "d.i", "d.in", "d.it", "d.d", "d.c", "c.m"],
+          roles: ["superadmin", "admin", "manager", "d.s", "c.m", "d.d", "d.i", "d.inf", "d.c", "d.it", "d.in"],
         },
         {
           title: "Create",
@@ -80,6 +81,18 @@ export const menusConfig = {
           title: "List",
           icon: List,
           href: "/clients",
+          roles: ["superadmin", "admin", "manager"],
+        },
+      ]
+    }, {
+      title: "Questions",
+      icon: List,
+      roles: ["superadmin", "admin", "manager"],
+      child: [
+        {
+          title: "List",
+          icon: List,
+          href: "/questions",
           roles: ["superadmin", "admin", "manager"],
         },
       ]

@@ -14,7 +14,7 @@ import Image from "next/image";
  */
 const MENU_PERMISSIONS = {
   // Define which roles should see the header menu
-  SHOW_MENU_ROLES: ['superadmin'], // ONLY superadmin
+  SHOW_MENU_ROLES: ['superadmin', 'admin', 'manager'], // superadmin, admin, manager
   HIDE_MENU_FOR_ALL_OTHERS: true // Hide for everyone else
 };
 
@@ -23,14 +23,14 @@ const MENU_PERMISSIONS = {
  */
 const shouldShowMenu = (userRole) => {
   if (!userRole) return false;
-  
+
   // Only show menu for superadmin
   return MENU_PERMISSIONS.SHOW_MENU_ROLES.includes(userRole);
 };
 
 export default function MainMenu({ trans, userRole }) {
   const allMenus = menusConfig.mainMenu || [];
-  
+
   // Check if user role should see the menu
   const showMenu = useMemo(
     () => shouldShowMenu(userRole),

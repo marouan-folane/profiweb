@@ -1,6 +1,7 @@
 // controllers/pdfController.js
 const catchAsync = require("../utils/catchAsync");
 const Project = require("../models/project.model");
+const Question = require("../models/question.model");
 const PDFGenerator = require("../utils/pdfGenerator");
 const AppError = require("../utils/AppError");
 const fs = require("fs");
@@ -44,64 +45,72 @@ const downloadPDF = catchAsync(async (req, res, next) => {
 
 const generatePDFsForProject = catchAsync(async (req, res, next) => {
   const { projectId } = req.params;
-  
-  const project = await Project.findById(projectId);
-  if (!project) {
-    return next(new AppError("Project not found", 404));
+
+  const ProjectPDFService = require("../services/projectPDFService");
+  const pdfResults = await ProjectPDFService.generateAllProjectPDFs(projectId, req.user.id);
+
+  if (!pdfResults) {
+    return next(new AppError("Failed to prepare data for PDF generation", 400));
   }
 
-  // Get all questions for the project
-  const questions = await Question.find({ project: projectId })
-    .sort({ order: 1 });
+  // 3. Save to folders and update Project documents using ProjectFileService
+  const ProjectFileService = require("../services/projectFileService");
 
-  if (!questions || questions.length === 0) {
-    return next(new AppError("No questions found for this project", 400));
-  }
-
-  // Generate PDFs
-  const pdfResults = await PDFGenerator.generateBothPDFs(project, questions);
-
-  // Update project with PDF info
-  await Project.findByIdAndUpdate(projectId, {
-    $push: {
-      documents: {
-        $each: [
-          {
-            type: "doc-infos",
-            filename: pdfResults.documents.docInfos.filename,
-            url: pdfResults.documents.docInfos.url,
-            generatedAt: new Date()
-          },
-          {
-            type: "ai-structured",
-            filename: pdfResults.documents.aiStructured.filename,
-            url: pdfResults.documents.aiStructured.url,
-            generatedAt: new Date()
-          }
-        ]
-      }
+  // Save Standard Info PDF
+  await ProjectFileService.saveFileToProjectFolder(
+    projectId,
+    req.user.id,
+    {
+      name: "Project information pdf",
+      description: "Standard project information and questions"
+    },
+    {
+      filename: pdfResults.docInfos.filename,
+      path: pdfResults.docInfos.url,
+      size: "0"
     }
-  });
+  );
+
+  // Save AI Structured PDF
+  await ProjectFileService.saveFileToProjectFolder(
+    projectId,
+    req.user.id,
+    {
+      name: "Generated instructions pdf",
+      description: "Folder for generated PDF instructions"
+    },
+    {
+      filename: pdfResults.aiStructured.filename,
+      path: pdfResults.aiStructured.url,
+      size: "0"
+    }
+  );
+
+  // Refresh project to get updated documents
+  const updatedProject = await Project.findById(projectId).populate('documents');
 
   res.status(201).json({
     status: "success",
-    message: "PDFs generated successfully",
-    data: pdfResults
+    message: "PDFs generated and stored successfully",
+    data: {
+      project: updatedProject,
+      pdfResults
+    }
   });
 });
 
 const deletePDF = catchAsync(async (req, res, next) => {
   const { filename } = req.params;
-  
+
   const result = await PDFGenerator.deletePDFs(`/uploads/pdfs/${filename}`);
-  
+
   if (result.deleted > 0) {
     // Remove from project documents
     await Project.updateMany(
       { "documents.filename": filename },
       { $pull: { documents: { filename } } }
     );
-    
+
     res.status(200).json({
       status: "success",
       message: "PDF deleted successfully"

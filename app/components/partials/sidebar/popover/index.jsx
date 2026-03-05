@@ -13,11 +13,19 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { usePathname } from "next/navigation";
 import AddBlock from "../common/add-block";
+import { useSession } from "next-auth/react";
 
 const PopoverSidebar = ({ trans }) => {
+  const { data: session } = useSession();
+  const userRole = session?.user?.role?.toLowerCase();
   const { collapsed, sidebarBg } = useSidebar();
   const { layout, isRtl } = useThemeStore();
-  const menus = menusConfig?.mainMenu || [];
+  const menus = (menusConfig?.mainMenu || [])
+    .filter(item => !item.roles || item.roles.map(r => r.toLowerCase()).includes(userRole))
+    .map(item => ({
+      ...item,
+      child: item.child?.filter(childItem => !childItem.roles || childItem.roles.map(r => r.toLowerCase()).includes(userRole))
+    }));
   const [activeSubmenu, setActiveSubmenu] = useState(null);
   const [activeMultiMenu, setMultiMenu] = useState(null);
 

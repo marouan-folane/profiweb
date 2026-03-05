@@ -34,17 +34,21 @@ const RoleGuard = ({ children }) => {
       // Find the menu item matching the current path
       let foundItem = null;
 
+      // Filter menus based on user role first
+      const accessibleMenus = menusConfig.mainMenu.filter(item =>
+        !item.roles || item.roles.map(r => r.toLowerCase()).includes(userRole)
+      );
+
       // Check for exact matches in children first (more specific)
-      for (const item of menusConfig.mainMenu) {
+      for (const item of accessibleMenus) {
         if (item.child) {
           for (const child of item.child) {
             if (currentPath === child.href) {
-              foundItem = child;
-              // Also check if parent is restricted
-              if (item.roles && !item.roles.map(r => r.toLowerCase()).includes(userRole)) {
-                return false;
+              // Only consider children that the user has access to
+              if (!child.roles || child.roles.map(r => r.toLowerCase()).includes(userRole)) {
+                foundItem = child;
+                break;
               }
-              break;
             }
           }
         }
@@ -53,41 +57,42 @@ const RoleGuard = ({ children }) => {
 
       // If not found in exact children, check parents or partial matches
       if (!foundItem) {
-        for (const item of menusConfig.mainMenu) {
+        for (const item of accessibleMenus) {
           if (isLocationMatch(item.href, currentPath)) {
             foundItem = item;
-            
+
             // If it matches a parent, but we are deeper in child paths, 
             // check if there's a more specific child match (partial)
             if (item.child) {
               for (const child of item.child) {
                 if (isLocationMatch(child.href, currentPath)) {
-                  foundItem = child;
-                  break;
+                  if (!child.roles || child.roles.map(r => r.toLowerCase()).includes(userRole)) {
+                    foundItem = child;
+                    break;
+                  }
                 }
               }
             }
             break;
           }
-          
+
           // Additional check: if the path starts with a menu item's href (like /clients/123)
-          // we should apply the parent's roles even if it's not a direct match
           if (item.href && item.href !== "/" && currentPath.startsWith(item.href + "/")) {
             foundItem = item;
             break;
           }
 
-          // Also check children's hrefs for sub-paths (like /users/new/something)
+          // Also check children's hrefs for sub-paths
           if (item.child) {
-             const childMatch = item.child.find(c => c.href && c.href !== "/" && currentPath.startsWith(c.href + "/"));
-             if (childMatch) {
-                foundItem = childMatch;
-                // If parent is restricted, respect that too
-                if (item.roles && !item.roles.map(r => r.toLowerCase()).includes(userRole)) {
-                  return false;
-                }
-                break;
-             }
+            const childMatch = item.child.find(c =>
+              c.href && c.href !== "/" &&
+              currentPath.startsWith(c.href + "/") &&
+              (!c.roles || c.roles.map(r => r.toLowerCase()).includes(userRole))
+            );
+            if (childMatch) {
+              foundItem = childMatch;
+              break;
+            }
           }
         }
       }
@@ -97,12 +102,16 @@ const RoleGuard = ({ children }) => {
         if (foundItem.roles) {
           return foundItem.roles.map(r => r.toLowerCase()).includes(userRole);
         }
-        return true; 
+        return true;
       }
 
-      // If route not in menusConfig, we might want to allow it or check other patterns
-      // For now, let's allow routes that are not explicitly defined in menusConfig
-      // but we can be stricter later if needed.
+      // Special case: Always allow /projects as it's the landing page for most roles
+      // High-level backend RBAC will handle item-level visibility
+      if (currentPath === "/projects") {
+        return true;
+      }
+
+      // If route not in menusConfig, allow it
       return true;
     };
 
@@ -111,10 +120,12 @@ const RoleGuard = ({ children }) => {
     setChecking(false);
 
     if (!authorized) {
-      // Redirect to a default page if not authorized
-      router.push("/projects");
+      // Get lang from pathname to properly redirect
+      const langMatch = pathname.match(/^\/([a-z]{2})/);
+      const lang = langMatch ? langMatch[1] : 'en';
+      router.push(`/${lang}/projects`);
     }
-  }, [session, status, currentPath, userRole, router]);
+  }, [session, status, currentPath, userRole, router, pathname]);
 
   if (status === "loading" || checking) {
     return <LayoutLoader />;

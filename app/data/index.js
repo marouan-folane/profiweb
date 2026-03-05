@@ -34,3 +34,17 @@ export const CURRENCIES = [
   { value: 'MAD', label: 'MAD' },
   { value: 'EUR', label: 'EUR' }
 ];
+
+export const ROLE_DISPLAY_NAMES = {
+  'superadmin': 'Super Admin',
+  'admin': 'Administration',
+  'd.s': 'Sales Department',
+  'd.i': 'Information Department',
+  'd.inf': 'Info Department',
+  'd.c': 'Content Department',
+  'd.d': 'Design Department',
+  'd.it': 'IT Department',
+  'd.in': 'Integration Department',
+  'c.m': 'Control Manager',
+  'user': 'Project Manager'
+};

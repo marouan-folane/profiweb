@@ -13,22 +13,24 @@ import HeaderSearch from "@/components/header-search";
 import { useMounted } from "@/hooks/use-mounted";
 import LayoutLoader from "@/components/layout-loader";
 import RoleGuard from "@/components/RoleGuard";
+import { useSession } from "next-auth/react";
 
 const DashBoardLayoutProvider = ({ children, trans }) => {
+  const { data: session, status } = useSession();
   const { collapsed, sidebarType, setCollapsed, subMenu } = useSidebar();
   const [open, setOpen] = React.useState(false);
   const { layout } = useThemeStore();
   const location = usePathname();
   const isMobile = useMediaQuery("(min-width: 768px)");
   const mounted = useMounted();
-  if (!mounted) {
+  if (!mounted || status === "loading") {
     return <LayoutLoader />;
   }
 
   if (layout === "semibox") {
     return (
       <>
-        <Header handleOpenSearch={() => setOpen(true)} trans={trans} userRole={userRole} />
+        <Header handleOpenSearch={() => setOpen(true)} trans={trans} />
         <Sidebar trans={trans} />
 
         <div
@@ -122,7 +124,7 @@ const DashBoardLayoutProvider = ({ children, trans }) => {
       </>
     );
   }
-  
+
   return (
     <>
       <Header handleOpenSearch={() => setOpen(true)} trans={trans} />
