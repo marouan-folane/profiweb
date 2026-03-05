@@ -59,6 +59,12 @@ export const menusConfig = {
       ]
     },
     {
+      title: "Questions",
+      icon: List,
+      href: "/questions",
+      roles: ["superadmin", "admin"],
+    },
+    {
       title: "Projects",
       icon: UsersIcon,
       roles: ["superadmin", "admin", "manager", "d.s", "c.m", "d.d", "d.i", "d.inf", "d.c", "d.it", "d.in"],

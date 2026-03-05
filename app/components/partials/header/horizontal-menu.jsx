@@ -59,8 +59,11 @@ export default function MainMenu({ trans, userRole }) {
     return null;
   }
 
-  // For superadmin, show all menus
-  const menus = allMenus;
+  // Filter menus based on user role
+  const menus = useMemo(
+    () => allMenus.filter(item => !item.roles || item.roles.includes(userRole)),
+    [allMenus, userRole]
+  );
 
   return (
     <div>
