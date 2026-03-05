@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
 import { Checkbox } from "@/components/ui/checkbox";
-import SiteLogo from "@/public/images/logo/logo-1.png";
+import SiteLogo from "@/public/images/logo/logo-2.png";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import Image from "next/image";
 import { toast } from "sonner";
@@ -120,23 +120,20 @@ const LogInForm = () => {
   };
 
   return (
-    <div className="w-full py-10">
-      <Link href="/" className="inline-block">
-        <Image
-          src={SiteLogo}
-          className="w-28 h-28 text-primary"
-          alt="Site Logo"
-          width={112}
-          height={112}
-        />
-      </Link>
-      <div className="2xl:mt-8 mt-6 2xl:text-3xl text-2xl font-bold text-default-900">
-        Hey, Hello
+    <div className="w-full">
+      <div className="flex flex-col items-center -my-8">
+        <Link href="/" className="h-54 w-54 inline-block">
+          <Image
+            src={SiteLogo}
+            className="object-contain"
+            width={220}
+            alt="Site Logo"
+            priority
+          />
+        </Link>
       </div>
-      <div className="2xl:text-lg text-base text-default-600 mt-2 leading-6">
 
-      </div>
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-5 2xl:mt-7">
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-4 text-left mt-2">
         <div>
           <Label htmlFor="email" className="mb-2 font-medium text-default-600">
             Email

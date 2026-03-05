@@ -1,4 +1,4 @@
-import { SiteLogo } from "@/components/svg";
+import { SiteIcon } from "@/components/svg";
 import { useSidebar } from "@/store";
 import Link from "next/link";
 import React from "react";
@@ -10,10 +10,10 @@ const SidebarLogo = ({ hovered }) => {
       <div className=" flex items-center">
         <div className=" flex-1">
           <Link href="/dashboard" className="flex items-center gap-x-3">
-            <SiteLogo className="text-primary h-8 w-8" />
+            <SiteIcon className="text-primary h-14 w-14" />
             {(!collapsed || hovered) && (
               <div className="flex-1  text-xl text-primary  font-semibold">
-                DashTail
+                Hello <span className="text-black">Website</span>
               </div>
             )}
           </Link>

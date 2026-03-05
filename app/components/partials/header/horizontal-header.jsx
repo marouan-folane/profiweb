@@ -1,6 +1,6 @@
 import React from "react";
 import { Search } from "lucide-react";
-import { SiteLogo } from "@/components/svg";
+import { SiteIcon } from "@/components/svg";
 import Link from "next/link";
 const horizontalHeader = ({ handleOpenSearch }) => {
 
@@ -8,11 +8,12 @@ const horizontalHeader = ({ handleOpenSearch }) => {
     <div className="flex items-center lg:gap-12 gap-3 ">
       <div>
         <Link
-          href={"/projects"}
+          href={"/dashboard"}
           className=" text-primary flex items-center gap-2"
         >
-          <span className=" text-xl font-semibold lg:inline-block hidden uppercase">
-            PROFIWEB
+          <SiteIcon className=" h-7 w-7" />
+          <span className=" text-xl font-semibold lg:inline-block uppercase">
+            HELLO <span className="text-black dark:text-white">WEBSITE</span>
           </span>
         </Link>
       </div>

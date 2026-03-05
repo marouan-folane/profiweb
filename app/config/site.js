@@ -1,7 +1,7 @@
 export const siteConfig = {
-  name: "Profiweb",
+  name: "Hello Website",
   description: null,
-  theme: "violet",
+  theme: "yellow",
   layout: "horizontal",
   // semi-box, horizontal, vertical
   hideSideBar: false,

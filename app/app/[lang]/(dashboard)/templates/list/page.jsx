@@ -1,17 +1,42 @@
 "use client";
 
-import { useState, Fragment } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getTemplates, deleteTemplate } from "@/config/functions/template";
 import Link from "next/link";
-import { Dialog, Transition } from "@headlessui/react";
+import { toast } from "sonner";
+import {
+  Plus,
+  RefreshCw,
+  Trash2,
+  Layout,
+  Calendar,
+  ChevronRight,
+  AlertCircle,
+  Loader2,
+  Search,
+} from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 
-const Page = () => {
+const TemplateListPage = () => {
   const queryClient = useQueryClient();
   const [deleting, setDeleting] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch templates using React Query
   const {
@@ -30,11 +55,18 @@ const Page = () => {
   // Get templates array from response
   const templates = templatesRes?.data?.templates || templatesRes?.templates || [];
 
+  // Filter templates based on search term
+  const filteredTemplates = templates.filter(template =>
+    template?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    template?.shortDesc?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   // Handle refresh with spinner
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await refetch();
     setIsRefreshing(false);
+    toast.success("Templates refreshed");
   };
 
   // Delete template mutation
@@ -63,16 +95,14 @@ const Page = () => {
       if (context?.previousTemplates) {
         queryClient.setQueryData(['templates'], context.previousTemplates);
       }
-      // You can add a toast notification here
-      console.error(`Failed to delete template: ${err.message}`);
+      toast.error(`Failed to delete template: ${err.message}`);
     },
     onSettled: () => {
       setDeleting(null);
       queryClient.invalidateQueries({ queryKey: ['templates'] });
     },
     onSuccess: () => {
-      // You can add a success toast notification here
-      console.log('Template deleted successfully!');
+      toast.success('Template deleted successfully!');
     }
   });
 
@@ -81,16 +111,10 @@ const Page = () => {
     setDeleteModalOpen(true);
   };
 
-  const closeDeleteModal = () => {
-    setDeleteModalOpen(false);
-    setTemplateToDelete(null);
-  };
-
   const handleDelete = () => {
     if (!templateToDelete) return;
-
     deleteMutation.mutate(templateToDelete._id);
-    closeDeleteModal();
+    setDeleteModalOpen(false);
   };
 
   // Format date to readable string
@@ -112,408 +136,219 @@ const Page = () => {
   };
 
   return (
-    <>
-      {/* Delete Confirmation Modal */}
-      <Transition appear show={deleteModalOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-50" onClose={closeDeleteModal}>
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 bg-white/30 backdrop-blur-md" />
-          </Transition.Child>
-
-          <div className="fixed inset-0 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4 text-center">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-              >
-                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                  <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 rounded-full">
-                    <svg
-                      className="w-6 h-6 text-red-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.98-.833-2.732 0L4.34 16.5c-.77.833.192 2.5 1.732 2.5z"
-                      />
-                    </svg>
-                  </div>
-
-                  <Dialog.Title
-                    as="h3"
-                    className="text-lg font-semibold text-gray-900 text-center mb-2"
-                  >
-                    Delete Template
-                  </Dialog.Title>
-
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-500 text-center mb-4">
-                      Are you sure you want to delete <span className="font-semibold text-gray-900">"{templateToDelete?.title}"</span>?
-                    </p>
-                    <div className="bg-red-50 border border-red-100 rounded-lg p-4 mb-6">
-                      <div className="flex items-start">
-                        <svg
-                          className="w-5 h-5 text-red-500 mt-0.5 mr-2 flex-shrink-0"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.98-.833-2.732 0L4.34 16.5c-.77.833.192 2.5 1.732 2.5z"
-                          />
-                        </svg>
-                        <p className="text-sm text-red-700">
-                          This action <span className="font-bold">cannot be undone</span>. The template will be permanently deleted from the system.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 flex justify-center space-x-3">
-                    <button
-                      type="button"
-                      className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
-                      onClick={closeDeleteModal}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      onClick={handleDelete}
-                      disabled={deleting === templateToDelete?._id}
-                    >
-                      {deleting === templateToDelete?._id ? (
-                        <>
-                          <svg
-                            className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            />
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            />
-                          </svg>
-                          Deleting...
-                        </>
-                      ) : (
-                        'Delete Template'
-                      )}
-                    </button>
-                  </div>
-                </Dialog.Panel>
-              </Transition.Child>
-            </div>
-          </div>
-        </Dialog>
-      </Transition>
-
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Template Library</h1>
-              </div>
-              <div className="mt-4 sm:mt-0 flex items-center space-x-3">
-                <button
-                  onClick={handleRefresh}
-                  disabled={isLoading || isRefreshing}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isRefreshing ? (
-                    <>
-                      <svg
-                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-700"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                      Refreshing...
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        className="w-4 h-4 mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                      Refresh
-                    </>
-                  )}
-                </button>
-                <Link
-                  href="/templates/new"
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
-                >
-                  <svg
-                    className="-ml-1 mr-2 h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                    />
-                  </svg>
-                  New Template
-                </Link>
-              </div>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-950 dark:to-slate-900 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header Section */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-12 group">
+          <div className="text-center lg:text-left">
+            <h1 className="text-4xl sm:text-3xl md:text-4xl font-bold tracking-tight capitalize">
+              Template Library ( {stats.total} )
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium max-w-xl mx-auto lg:mx-0">
+              Manage and deploy your high-performance baseline templates.
+            </p>
           </div>
 
-          {/* Error Message */}
-          {isError && (
-            <div className="mb-6 p-4 bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-xl">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-red-800">
-                    {error?.message || 'Failed to load templates. Please try again.'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Loading State */}
-          {isLoading ? (
-            <div className="bg-gradient-to-br from-white to-gray-50 shadow-sm rounded-xl p-12">
-              <div className="flex flex-col items-center justify-center">
-                <svg
-                  className="animate-spin h-10 w-10 text-blue-600 mb-4"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                <span className="text-gray-600 text-lg">Loading templates...</span>
-              </div>
-            </div>
-          ) : stats.total === 0 ? (
-            // Empty State
-            <div className="bg-gradient-to-br from-white to-gray-50 shadow-sm rounded-xl p-12 text-center">
-              <div className="w-20 h-20 mx-auto bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mb-6">
-                <svg
-                  className="h-10 w-10 text-blue-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">No templates found</h3>
-              <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                Get started by creating your first template. Templates help you save time and maintain consistency across your projects.
-              </p>
-              <Link
-                href="/templates/new"
-                className="inline-flex items-center px-6 py-3 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
+          <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-end gap-3 w-full lg:w-auto">
+            <Button
+              variant="outline"
+              onClick={handleRefresh}
+              disabled={isLoading || isRefreshing}
+              className="w-full sm:w-auto h-11 px-6 gap-2 border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-white/5 backdrop-blur-sm hover:bg-white dark:hover:bg-white/10 transition-all font-bold text-xs uppercase tracking-widest"
+            >
+              <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+              <span>{isRefreshing ? "Refreshing..." : "Refresh Library"}</span>
+            </Button>
+            <Link href="/templates/new" className="w-full sm:w-auto">
+              <Button
+                className="w-full h-11 px-8 gap-2 text-white bg-[#FCCF3C] hover:bg-[#ddc165] shadow-lg shadow-yellow-500/10 transition-all font-bold text-xs uppercase tracking-widest border-0"
               >
-                <svg
-                  className="-ml-1 mr-2 h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                  />
-                </svg>
-                Create Your First Template
-              </Link>
-            </div>
-          ) : (
-            // Templates Grid (Modern Card Layout)
-            <div className="space-y-6">
-              {/* Grid Header */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">All Templates ({stats.total})</h2>
-                  <p className="text-sm text-gray-600">Click on a template to view details</p>
-                </div>
-              </div>
-
-              {/* Template Cards Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {templates.map((template) => (
-                  <div
-                    key={template._id}
-                    className="group bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-sm border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 overflow-hidden"
-                  >
-                    {/* Card Header */}
-                    <div className="p-6 border-b border-gray-100">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                            {template.title}
-                          </h3>
-                        </div>
-                        <div className="relative">
-                          <button
-                            onClick={() => openDeleteModal(template)}
-                            disabled={deleting === template._id}
-                            className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            title="Delete template"
-                          >
-                            <svg
-                              className="h-4 w-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Card Body */}
-                    <div className="p-6 space-y-4">
-                      {/* Description */}
-                      <div>
-                        <p className="text-sm text-gray-600 line-clamp-3">
-                          {template.shortDesc || "No description provided"}
-                        </p>
-                      </div>
-
-                      {/* Metadata */}
-                      <div className="pt-4 border-t border-gray-100">
-                        <div className="flex items-center justify-between text-sm">
-                          <div className="flex items-center text-gray-500">
-                            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            Created {formatDate(template.createdAt)}
-                          </div>
-                          <div className="flex items-center space-x-3">
-                            <Link
-                              href={`/templates/${template._id}`}
-                              className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center transition-colors"
-                            >
-                              View Details
-                              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                              </svg>
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Footer */}
-          {stats.total > 0 && (
-            <div className="mt-8 text-center">
-              <p className="text-sm text-gray-500">
-                Showing {stats.total} template{stats.total !== 1 ? 's' : ''} •
-                <button
-                  onClick={handleRefresh}
-                  className="ml-2 text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50"
-                  disabled={isRefreshing}
-                >
-                  {isRefreshing ? 'Refreshing...' : 'Refresh data'}
-                </button>
-              </p>
-            </div>
-          )}
+                <Plus className="h-4 w-4" />
+                <span>New Template</span>
+              </Button>
+            </Link>
+          </div>
         </div>
+
+        {/* Search & Filter Bar */}
+        <div className="mb-8 relative max-w-xl group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#FCCF3C] transition-colors" />
+          <input
+            type="text"
+            placeholder="Search templates by title or description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full h-12 pl-12 pr-4 rounded-xl border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-[#FCCF3C]/20 focus:border-[#FCCF3C] dark:text-white transition-all placeholder-slate-400 font-medium"
+          />
+        </div>
+
+        {/* Dynamic Content Area */}
+        {isLoading ? (
+          <Card className="border-slate-200 dark:border-white/5 bg-white/50 dark:bg-slate-900/40 backdrop-blur-md">
+            <CardContent className="p-24 flex flex-col items-center justify-center">
+              <div className="relative mb-6">
+                <div className="absolute inset-0 rounded-full bg-[#FCCF3C]/20 animate-ping" />
+                <div className="relative p-4 rounded-full bg-white dark:bg-slate-900 border border-[#FCCF3C]/30 shadow-xl">
+                  <Loader2 className="h-10 w-10 text-[#FCCF3C] animate-spin" />
+                </div>
+              </div>
+              <p className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-400 bg-clip-text text-transparent dark:text-white tracking-tight">
+                Retrieving Templates...
+              </p>
+              <p className="text-slate-500 dark:text-white/40 mt-2 text-sm font-medium">Please wait while we sync with the server</p>
+            </CardContent>
+          </Card>
+        ) : isError ? (
+          <Card className="border-red-100 dark:border-red-950/30 bg-red-50/30 dark:bg-red-950/10 backdrop-blur-sm">
+            <CardContent className="p-12 flex flex-col items-center text-center">
+              <div className="p-4 rounded-full bg-red-100 dark:bg-red-500/10 mb-4">
+                <AlertCircle className="h-10 w-10 text-red-500" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Sync Error Detected</h3>
+              <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-6">
+                {error?.message || "There was a problem loading your templates. This might be a temporary connection issue."}
+              </p>
+              <Button
+                onClick={() => refetch()}
+                className="bg-red-500 hover:bg-red-600 text-white border-0 font-bold px-8 shadow-lg shadow-red-500/20"
+              >
+                Retry Connection
+              </Button>
+            </CardContent>
+          </Card>
+        ) : filteredTemplates.length === 0 ? (
+          <Card className="border-slate-200 dark:border-white/5 bg-white/50 dark:bg-slate-900/40 backdrop-blur-lg">
+            <CardContent className="p-20 text-center flex flex-col items-center">
+              <div className="w-24 h-24 rounded-3xl bg-slate-50 dark:bg-white/5 flex items-center justify-center mb-8 border border-slate-100 dark:border-white/10 rotate-3 shadow-inner">
+                <Layout className="h-10 w-10 text-slate-300 dark:text-slate-700" />
+              </div>
+              <h3 className="text-3xl font-black text-slate-900 dark:text-white mb-4   uppercase tracking-tighter">No Templates Available</h3>
+              <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-10 leading-relaxed font-medium">
+                {searchTerm
+                  ? "We couldn't find any templates matching your search criteria. Try a different keyword."
+                  : "Your template library is currently empty. Start by creating a blueprint that can be reused across your projects."}
+              </p>
+              {searchTerm ? (
+                <Button variant="ghost" onClick={() => setSearchTerm("")} className="font-bold text-[#FCCF3C] hover:bg-[#FCCF3C]/10 underline decoration-2">Clear Search Result</Button>
+              ) : (
+                <Link href="/templates/new">
+                  <Button className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-10 h-12 rounded-full font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-2xl">
+                    Define First Template
+                  </Button>
+                </Link>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredTemplates.map((template) => (
+              <Card
+                key={template._id}
+                className="group relative border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-900/40 backdrop-blur-md overflow-hidden hover:shadow-2xl hover:shadow-slate-200/50 dark:hover:shadow-black/50 transition-all duration-500 flex flex-col"
+              >
+                {/* Visual Accent */}
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#FCCF3C] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                <CardHeader className="p-6 pb-2">
+                  <div className="flex items-start justify-between">
+                    <CardTitle className="text-semibold font-black text-slate-900 dark:text-white group-hover:text-[#ddc165] transition-colors line-clamp-1  uppercase tracking-tight mb-2">
+                      {template.title}
+                    </CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openDeleteModal(template)}
+                      className="h-8 w-8 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                      title="Remove Blueprint"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                </CardHeader>
+
+                <CardContent className="p-6 -pt-4 flex-grow flex flex-col">
+                  <p className="text-slate-600 dark:text-slate-400 text-sm line-clamp-3 mb-6 font-medium leading-relaxed">
+                    {template.shortDesc || "This baseline template currently has no detailed description defined."}
+                  </p>
+
+                  <div className="mt-auto pt-4 border-t border-slate-100 dark:border-white/5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-1.5 text-xs font-black text-slate-900 dark:text-slate-400">
+                          <Calendar className="h-3 w-3 text-[#ddc165]" />
+                          {formatDate(template.createdAt)}
+                        </div>
+                      </div>
+
+                      <Link href={`/templates/${template._id}`}>
+                        <Button
+                          variant="ghost"
+                          className="group/btn h-10 px-4 rounded-xl font-bold text-xs uppercase tracking-widest text-slate-600 dark:text-white hover:bg-[#FCCF3C] hover:text-white dark:hover:text-slate-900 transition-all"
+                        >
+                          Structure
+                          <ChevronRight className="h-4 w-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Footer Info */}
+        {!isLoading && filteredTemplates.length > 0 && (
+          <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4 py-8 border-t border-slate-200 dark:border-white/5">
+            <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+              Showing {filteredTemplates.length} of {stats.total} templates
+            </span>
+            <div className="h-1 w-1 rounded-full bg-slate-300 dark:bg-white/10 hidden sm:block" />
+            <button
+              onClick={handleRefresh}
+              className="text-[11px] font-black uppercase tracking-[0.2em] text-[#ddc165] hover:text-[#FCCF3C] transition-colors"
+            >
+              refresh
+            </button>
+          </div>
+        )}
       </div>
-    </>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <AlertDialogContent className="dark:bg-slate-950 dark:border-white/10">
+          <AlertDialogHeader>
+            <div className="mb-4 flex items-center justify-center">
+              <div className="p-4 rounded-full bg-red-100 dark:bg-red-500/10">
+                <Trash2 className="h-8 w-8 text-red-500" />
+              </div>
+            </div>
+            <AlertDialogTitle className="text-2xl font-black text-center text-slate-900 dark:text-white uppercase tracking-tight  ">
+              Purge Template?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center font-medium opacity-80 pt-2 leading-relaxed">
+              Are you sure you want to delete <span className="font-black text-slate-900 dark:text-white  ">"{templateToDelete?.title}"</span>?
+              <br />This operation cannot be reversed and will remove all associated configurations.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-6 flex sm:justify-center gap-3">
+            <AlertDialogCancel asChild>
+              <Button variant="outline" className="font-bold border-slate-200 uppercase tracking-widest text-xs h-12 px-8">ABORT OPERATION</Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                onClick={handleDelete}
+                className="bg-red-600 hover:bg-red-700 text-white border-0 font-bold uppercase tracking-widest text-xs h-12 px-8 shadow-lg shadow-red-600/20"
+              >
+                CONFIRM PURGE
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 };
 
-export default Page;
+export default TemplateListPage;

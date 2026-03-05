@@ -444,7 +444,7 @@ const NewProjectPage = () => {
   ].filter(Boolean).length;
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6 md:p-10 md:pt-6 pb-32">
       {/* Error Alert Section */}
       {(errors.length > 0 || apiError) && (
         <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -526,42 +526,47 @@ const NewProjectPage = () => {
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-default-900 mb-2">Create New Project</h1>
-          <p className="text-default-600">Fill in the details to create a new project</p>
+      <div className="flex flex-col md:flex-col justify-between items-center md:items-start mb-10 gap-6 text-center md:text-left">
+        <div className="w-full">
+          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">Create New Project</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base max-w-lg mx-auto md:mx-0 font-medium">Fill in the essence of your next high-performance achievement</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
           {/* CREATE NEW CLIENT BUTTON - Always visible at the top */}
           <Button
             variant="outline"
-            className="gap-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+            className="w-full sm:w-auto h-11 px-6 gap-2 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 transition-all"
             onClick={() => setShowClientForm(true)}
             disabled={loading}
           >
             <Icon icon="heroicons:user-plus" className="w-4 h-4" />
-            Create New Client
+            <span className="whitespace-nowrap">New Client</span>
           </Button>
 
-          <Button variant="outline" onClick={handleCancel} className="gap-2" disabled={loading}>
+          <Button
+            variant="outline"
+            onClick={handleCancel}
+            className="w-full sm:w-auto h-11 px-6 gap-2 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+            disabled={loading}
+          >
             <Icon icon="heroicons:x-mark" className="w-4 h-4" />
-            Cancel
+            <span>Cancel</span>
           </Button>
           <Button
             onClick={handleSubmit}
-            className="gap-2"
+            className="w-full sm:w-auto h-11 px-8 gap-2 bg-[#FCCF3C] text-white font-bold hover:bg-[#ddc165] shadow-lg shadow-yellow-500/10 transition-all border-none"
             disabled={loading || clients.length === 0}
           >
             {loading ? (
               <>
                 <Icon icon="heroicons:arrow-path" className="w-4 h-4 animate-spin" />
-                Saving...
+                <span>Saving...</span>
               </>
             ) : (
               <>
                 <Icon icon="heroicons:check" className="w-4 h-4" />
-                Save Project
+                <span>Save Project</span>
               </>
             )}
           </Button>
@@ -572,7 +577,7 @@ const NewProjectPage = () => {
       <Dialog open={showClientForm} onOpenChange={setShowClientForm}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-blue-800">
+            <DialogTitle className="flex items-center gap-2 text-yello-800">
               <Icon icon="heroicons:user-plus" className="w-5 h-5" />
               Create New Client
             </DialogTitle>
@@ -717,7 +722,7 @@ const NewProjectPage = () => {
               <Button
                 type="submit"
                 disabled={creatingClient}
-                className="gap-2"
+                className="gap-2 text-white"
               >
                 {creatingClient ? (
                   <>
@@ -736,9 +741,9 @@ const NewProjectPage = () => {
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         {/* Main Form */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="xl:col-span-2 space-y-8">
           {/* Basic Information Card */}
           <Card>
             <CardHeader>
@@ -865,73 +870,73 @@ const NewProjectPage = () => {
                 </Button>
               </div>
 
-                <div className="space-y-2">
-                  <Popover open={open} onOpenChange={setOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className={cn(
-                          "w-full justify-between font-normal",
-                          !formData.clientId && "text-muted-foreground",
-                          errors.includes('Client is required') ? "border-red-300" : ""
-                        )}
-                        disabled={loading || clientsLoading}
-                      >
-                        {formData.clientId
-                          ? clients.find((client) => client._id === formData.clientId)?.name
-                          : clientsLoading ? "Loading clients..." : "Select a client"}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Search clients..." />
-                        <CommandEmpty>No client found.</CommandEmpty>
-                        <CommandGroup>
-                          <CommandList>
-                            {clients.map((client) => (
-                              <CommandItem
-                                key={client._id}
-                                value={client.name}
-                                onSelect={() => {
-                                  handleSelectChange('clientId', client._id);
-                                  setOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    formData.clientId === client._id ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                <div className="flex flex-col">
-                                  <span>{client.name}</span>
-                                  {client.company && (
-                                    <span className="text-xs text-muted-foreground">{client.company}</span>
-                                  )}
-                                </div>
-                              </CommandItem>
-                            ))}
-                          </CommandList>
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  {errors.includes('Client is required') && (
-                    <p className="text-xs text-red-600">Please select a client</p>
-                  )}
-                  {clientsLoading && (
-                    <p className="text-xs text-blue-600">Loading clients...</p>
-                  )}
-                  {!clientsLoading && clients.length === 0 && (
-                    <div className="text-xs text-amber-600 flex items-center gap-1">
-                      <Icon icon="heroicons:exclamation-circle" className="w-3 h-3" />
-                      No clients found. Click "Create New Client" to add one.
-                    </div>
-                  )}
-                </div>
+              <div className="space-y-2">
+                <Popover open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={open}
+                      className={cn(
+                        "w-full justify-between font-normal",
+                        !formData.clientId && "text-muted-foreground",
+                        errors.includes('Client is required') ? "border-red-300" : ""
+                      )}
+                      disabled={loading || clientsLoading}
+                    >
+                      {formData.clientId
+                        ? clients.find((client) => client._id === formData.clientId)?.name
+                        : clientsLoading ? "Loading clients..." : "Select a client"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search clients..." />
+                      <CommandEmpty>No client found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandList>
+                          {clients.map((client) => (
+                            <CommandItem
+                              key={client._id}
+                              value={client.name}
+                              onSelect={() => {
+                                handleSelectChange('clientId', client._id);
+                                setOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  formData.clientId === client._id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex flex-col">
+                                <span>{client.name}</span>
+                                {client.company && (
+                                  <span className="text-xs text-muted-foreground">{client.company}</span>
+                                )}
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandList>
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {errors.includes('Client is required') && (
+                  <p className="text-xs text-red-600">Please select a client</p>
+                )}
+                {clientsLoading && (
+                  <p className="text-xs text-blue-600">Loading clients...</p>
+                )}
+                {!clientsLoading && clients.length === 0 && (
+                  <div className="text-xs text-amber-600 flex items-center gap-1">
+                    <Icon icon="heroicons:exclamation-circle" className="w-3 h-3" />
+                    No clients found. Click "Create New Client" to add one.
+                  </div>
+                )}
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -1198,38 +1203,38 @@ const NewProjectPage = () => {
 
       {/* Bottom Action Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-default-200 p-4 shadow-lg">
-        <div className="container mx-auto flex justify-between items-center">
+        <div className="container mx-auto flex sm:flex-col sm:gap-4 justify-between items-center">
           <div className="text-sm text-default-600">
-            Creating new project: <span className="font-medium">{formData.title || 'Untitled Project'}</span>
+            Creating new project: <span className="font-sm">{formData.title || 'Untitled Project'}</span>
           </div>
           <div className="flex gap-3">
             <Button
               variant="outline"
-              className="gap-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+              className="h-11 px-4 gap-2 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5"
               onClick={() => setShowClientForm(true)}
               disabled={loading}
             >
               <Icon icon="heroicons:user-plus" className="w-4 h-4" />
-              New Client
+              <span className="hidden sm:inline">New Client</span>
             </Button>
 
-            <Button variant="outline" onClick={handleCancel} disabled={loading}>
-              Cancel
+            <Button variant="outline" onClick={handleCancel} className="h-11 px-5 gap-2 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5" disabled={loading}>
+              <span>Cancel</span>
             </Button>
             <Button
               onClick={handleSubmit}
-              className="gap-2"
+              className="h-11 px-8 gap-2 bg-[#FCCF3C] text-white font-bold hover:bg-[#ddc165] shadow-lg shadow-yellow-500/10 border-none"
               disabled={loading || clients.length === 0}
             >
               {loading ? (
                 <>
                   <Icon icon="heroicons:arrow-path" className="w-4 h-4 animate-spin" />
-                  Saving...
+                  <span>Saving...</span>
                 </>
               ) : (
                 <>
                   <Icon icon="heroicons:check" className="w-4 h-4" />
-                  Save Project
+                  <span>Save </span>
                 </>
               )}
             </Button>
