@@ -50,12 +50,7 @@ export const menusConfig = {
           href: "/templates/new",
           roles: ["superadmin", "admin", "manager"],
         },
-        {
-          title: "Global AI Interactions",
-          icon: Globe,
-          href: "/templates/global-interactions",
-          roles: ["superadmin", "admin", "manager"],
-        },
+
       ]
     },
     {
@@ -88,14 +83,7 @@ export const menusConfig = {
       icon: UsersIcon,
       href: "/clients",
       roles: ["superadmin", "admin", "manager"],
-      child: [
-        {
-          title: "List",
-          icon: List,
-          href: "/clients",
-          roles: ["superadmin", "admin", "manager"],
-        },
-      ]
+      
     },
   ],
   mainMesssnu: [
