@@ -1,15 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, Copy, Download, Loader2, Type } from "lucide-react";
+import { Save, Copy, Download, Loader2, Type, RefreshCw, AlertCircle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getGlobalInstructions, updateGlobalInstructions } from "@/config/functions/ai-interactions";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
 import dynamic from 'next/dynamic';
 import { EditorState } from 'draft-js';
 import { stateToMarkdown } from 'draft-js-export-markdown';
 import { stateFromMarkdown } from 'draft-js-import-markdown';
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 // Dynamically import the Editor to avoid SSR issues
 const Editor = dynamic(
@@ -32,7 +36,7 @@ const GlobalAIPage = () => {
     if (initialData?.data?.instructions) {
       const markdown = initialData.data.instructions;
       setRawMarkdown(markdown);
-      
+
       // Convert markdown to Draft.js ContentState
       const contentState = stateFromMarkdown(markdown);
       setEditorState(EditorState.createWithContent(contentState));
@@ -107,7 +111,7 @@ const GlobalAIPage = () => {
     setRawMarkdown(originalMarkdown);
     const contentState = stateFromMarkdown(originalMarkdown);
     setEditorState(EditorState.createWithContent(contentState));
-    toast.success("Reset to original content");
+    toast.info("Reset to original content");
   };
 
   const getCharacterCount = () => {
@@ -120,147 +124,253 @@ const GlobalAIPage = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-950 dark:to-slate-900">
+        <Loader2 className="h-12 w-12 animate-spin text-[#ddc165] mb-4" />
+        <p className="text-slate-500 dark:text-slate-400 font-medium animate-pulse">Loading Global Instructions...</p>
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-red-600">Error loading instructions</p>
-          <button 
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-950 dark:to-slate-900">
+        <div className="text-center p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl max-w-md">
+          <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-500" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Error loading instructions</h2>
+          <p className="text-slate-500 dark:text-slate-400 mb-6">We couldn't retrieve the global AI settings. Please try again.</p>
+          <Button
             onClick={() => queryClient.invalidateQueries({ queryKey: ['global-instructions'] })}
-            className="mt-4 px-4 py-2 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+            className="w-full bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white"
           >
-            Retry
-          </button>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Retry Connection
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Global AI Instructions</h1>
-          <p className="text-gray-600 mt-2">
-            Define how the AI should behave across all templates and projects
-          </p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-950 dark:to-slate-900 p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
 
-        {/* Mode Toggle */}
-        <div className="mb-6">
-          <button
-            onClick={toggleMode}
-            className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2"
-          >
-            <Type size={16} />
-            <span>{isRawMode ? 'Switch to WYSIWYG Editor' : 'Switch to Raw Markdown'}</span>
-          </button>
-        </div>
-
-        {/* Editor Area */}
-        <div className="mb-6">
-          {isRawMode ? (
-            <textarea
-              value={rawMarkdown}
-              onChange={(e) => setRawMarkdown(e.target.value)}
-              className="w-full min-h-[500px] p-4 text-gray-800 font-mono text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter markdown here..."
-              spellCheck="false"
-            />
-          ) : (
-            <div className="border rounded-lg overflow-hidden">
-              <Editor
-                editorState={editorState}
-                onEditorStateChange={setEditorState}
-                wrapperClassName="wrapper-class"
-                editorClassName="editor-class p-4 min-h-[500px] bg-white"
-                toolbarClassName="toolbar-class border-b bg-gray-50"
-                toolbar={{
-                  options: ['inline', 'list', 'history'],
-                  inline: {
-                    options: ['bold', 'italic', 'underline', 'strikethrough'],
-                  },
-                  list: {
-                    options: ['unordered', 'ordered'],
-                  },
-                }}
-                placeholder="Start typing your AI instructions..."
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Info and Actions */}
-        <div className="border-t pt-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center space-x-6">
-              <button
-                onClick={handleReset}
-                className="text-gray-600 hover:text-gray-900 transition-colors px-3 py-1.5 hover:bg-gray-50 rounded"
-              >
-                Reset to Original
-              </button>
-              <span className="text-gray-500 text-sm">
-                {getCharacterCount()} characters
-              </span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                onClick={handleCopy}
-                className="flex items-center space-x-2 px-4 py-2.5 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors border"
-              >
-                <Copy size={18} />
-                <span>Copy</span>
-              </button>
-              <button
-                onClick={handleDownload}
-                className="flex items-center space-x-2 px-4 py-2.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-200"
-              >
-                <Download size={18} />
-                <span>Download</span>
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saveMutation.isPending}
-                className="flex items-center space-x-2 px-4 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saveMutation.isPending ? (
-                  <Loader2 className="animate-spin" size={18} />
-                ) : (
-                  <Save size={18} />
-                )}
-                <span>Save</span>
-              </button>
-            </div>
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+          <div>
+            <h1 className="text-4xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text dark:text-white mb-2">
+              Global AI Instructions
+            </h1>
+            <p className="text-slate-500 dark:text-mist-50 font-medium">
+              Define the baseline personality and behavioral rules for AI across all platform modules.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={toggleMode}
+              className="gap-2 text-slate-600 border-slate-200 hover:bg-gray-100 dark:border-slate-300 dark:text-slate-300 dark:hover:bg-gray-100 transition-colors"
+            >
+              <Type className="h-4 w-4" />
+              <span>{isRawMode ? 'WYSIWYG Editor' : 'Raw Markdown'}</span>
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={saveMutation.isPending}
+              className="gap-2 text-white  bg-[#FCCF3C] shadow-md transition-all"
+            >
+              {saveMutation.isPending ? (
+                <Loader2 className="animate-spin h-4 w-4" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              <span>Save Changes</span>
+            </Button>
           </div>
         </div>
 
-        {/* Tips */}
-        <div className="mt-8 p-4 bg-gray-50 rounded-lg border">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Markdown Tips:</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
-            <div className="space-y-1">
-              <p><code># Heading 1</code></p>
-              <p><code>## Heading 2</code></p>
-              <p><code>**bold text**</code></p>
-              <p><code>*italic text*</code></p>
+        <Card className="border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+          <CardContent className="p-0">
+            {/* Editor Area */}
+            <div className="relative">
+              {isRawMode ? (
+                <textarea
+                  value={rawMarkdown}
+                  onChange={(e) => setRawMarkdown(e.target.value)}
+                  className="w-full min-h-[500px] p-6 text-slate-800 dark:text-slate-200 font-mono text-sm bg-transparent focus:outline-none placeholder-slate-400"
+                  placeholder="Enter baseline instructions in markdown..."
+                  spellCheck="false"
+                />
+              ) : (
+                <div className="editor-container">
+                  <style jsx global>{`
+                      .rdw-editor-main {
+                        padding: 1.5rem !important;
+                        min-height: 500px !important;
+                        color: inherit !important;
+                      }
+                      .rdw-editor-wrapper {
+                        background: transparent !important;
+                      }
+                      .rdw-toolbar-wrapper {
+                        border-bottom: 1px solid rgba(0,0,0,0.05) !important;
+                        background: rgba(255,255,255,0.5) !important;
+                        padding: 0.5rem 1rem !important;
+                      }
+
+                      /* DARK MODE — editor body */
+                      .dark .rdw-editor-toolbar {
+                        background: #000000 !important;
+                        color: #ffffff !important;
+                        padding-bottom:10px !important;
+                        border:none !important;
+                        border-bottom: 1px solid #ddc165 !important;
+                      }
+                      .dark .rdw-toolbar-wrapper {
+                        background: #000000 !important;
+                        border-color: #ddc165 !important;
+                      }
+
+                      .dark .rdw-editor-wrapper {
+                        background: #000000 !important;
+                      }
+                     
+
+                      /* DARK MODE — toolbar buttons */
+                      .dark .rdw-option-wrapper {
+                        background: #000000 !important;
+                        border-color: rgba(220, 193, 101, 0.3) !important;
+                      }
+                      .dark .rdw-option-wrapper img {
+                        filter: invert(1) !important;
+                      }
+                      .dark .rdw-option-wrapper:hover {
+                        background: #FCCF3C !important;
+                        border-color: #FCCF3C !important;
+                      }
+                      .dark .rdw-option-wrapper:hover img {
+                        filter: invert(0) !important;
+                      }
+                      .dark .rdw-option-active {
+                        background: #ddc165 !important;
+                        border-color: #FCCF3C !important;
+                      }
+
+                      /* DARK MODE — dropdowns */
+                      .dark .rdw-dropdown-wrapper {
+                        background: #000000 !important;
+                        border-color: rgba(220, 193, 101, 0.4) !important;
+                        color: #ffffff !important;
+                      }
+                      .dark .rdw-dropdown-carettoopen {
+                        border-top-color: #FCCF3C !important;
+                      }
+                      .dark .rdw-dropdown-carettoclose {
+                        border-bottom-color: #FCCF3C !important;
+                      }
+                      .dark .rdw-dropdown-optionwrapper {
+                        background: #000000 !important;
+                        color: #ffffff !important;
+                        border-color: rgba(220, 193, 101, 0.4) !important;
+                      }
+                      .dark .rdw-dropdown-optionwrapper li:hover {
+                        background: #FCCF3C !important;
+                        color: #000000 !important;
+                      }
+
+                      /* DARK MODE — placeholder */
+                      .dark .public-DraftEditorPlaceholder-root {
+                        color: rgba(220, 193, 101, 0.5) !important;
+                      }
+
+                      /* DARK MODE — editor focus border */
+                      .dark .rdw-editor-wrapper:focus-within {
+                        outline: 1px solid #ddc165 !important;
+                      }
+                      `}</style>  
+                  <Editor
+                    editorState={editorState}
+                    onEditorStateChange={setEditorState}
+                    placeholder="Start typing your baseline AI behaviors..."
+                  />
+                </div>
+              )}
             </div>
-            <div className="space-y-1">
-              <p><code>- Bullet point</code></p>
-              <p><code>1. Numbered item</code></p>
-              <p><code>---</code> (horizontal rule)</p>
-              <p>Two newlines = paragraph break</p>
+
+            {/* Bottom Bar */}
+            <div className="border-t border-slate-100 dark:border-white/5 p-4 bg-slate-50/50 dark:bg-slate-900/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-6">
+                <Button
+                  variant="ghost"
+                  onClick={handleReset}
+                  className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white text-xs font-bold uppercase tracking-widest px-3 py-1.5"
+                >
+                  <RefreshCw className="mr-2 h-3 w-3" />
+                  Reset to Original
+                </Button>
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-[#ddc165] animate-pulse" />
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                    {getCharacterCount()} Characters
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopy}
+                  className="h-9 gap-2 border-slate-200 dark:border-[#FCCF3C] hover:bg-white dark:hover:bg-white/10 dark:text-[#FCCF3C] dark:hover:bg-[#FCCF3C] dark:hover:text-white transition-colors"
+                >
+                  <Copy className="h-4 w-4" />
+                  <span>Copy</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownload}
+                  className="h-9 gap-2 border-slate-200 dark:border-[#FCCF3C] hover:bg-white dark:hover:bg-white/10 dark:text-[#FCCF3C] dark:hover:bg-[#FCCF3C] dark:hover:text-white transition-colors"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Download .md</span>
+                </Button>
+              </div>
             </div>
-          </div>
+          </CardContent>
+        </Card>
+
+        {/* Documentation Tips */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="border-slate-200 dark:border-slate-800 bg-white/30 dark:bg-slate-900/30">
+            <CardHeader className="p-4 pb-2">
+              <CardTitle className="text-[11px] font-black uppercase tracking-[0.2em] text-[#ddc165]">Formatting Tips</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-slate-600 dark:text-slate-400 font-medium">
+                <p><code># Heading</code></p>
+                <p><code>- List Item</code></p>
+                <p><code>**Bold**</code></p>
+                <p><code>1. Ordered</code></p>
+                <p><code>*Italic*</code></p>
+                <p><code>---</code> Divider</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200 dark:border-slate-800 bg-white/30 dark:bg-slate-900/30">
+            <CardHeader className="p-4 pb-2">
+              <CardTitle className="text-[11px] font-black uppercase tracking-[0.2em] text-[#ddc165]">Best Practices</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <ul className="text-xs text-slate-600 dark:text-slate-400 font-medium space-y-1">
+                <li>• Be explicit about the professional tone.</li>
+                <li>• Define clear constraints (what NOT to do).</li>
+                <li>• Use markdown to structure hierarchy.</li>
+              </ul>
+            </CardContent>
+          </Card>
         </div>
 
       </div>

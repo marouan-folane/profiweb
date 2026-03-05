@@ -28,18 +28,24 @@ export const menusConfig = {
       ]
     },
     {
-      title: "Templates",
-      icon: UserCog,
+      title: "AI Studio",
+      icon: Globe,
       roles: ["superadmin", "admin", "manager"],
       child: [
         {
-          title: "List",
+          title: "Global AI Interactions",
+          icon: Globe,
+          href: "/templates/global-interactions",
+          roles: ["superadmin", "admin", "manager"],
+        },
+        {
+          title: "List of design templates",
           icon: List,
           href: "/templates/list",
           roles: ["superadmin", "admin", "manager"],
         },
         {
-          title: "Create",
+          title: "Create design template",
           icon: UserPlus,
           href: "/templates/new",
           roles: ["superadmin", "admin", "manager"],
@@ -50,7 +56,6 @@ export const menusConfig = {
           href: "/templates/global-interactions",
           roles: ["superadmin", "admin", "manager"],
         },
-
       ]
     },
     {
@@ -75,24 +80,13 @@ export const menusConfig = {
     {
       title: "Clients",
       icon: UsersIcon,
+      href: "/clients",
       roles: ["superadmin", "admin", "manager"],
       child: [
         {
           title: "List",
           icon: List,
           href: "/clients",
-          roles: ["superadmin", "admin", "manager"],
-        },
-      ]
-    }, {
-      title: "Questions",
-      icon: List,
-      roles: ["superadmin", "admin", "manager"],
-      child: [
-        {
-          title: "List",
-          icon: List,
-          href: "/questions",
           roles: ["superadmin", "admin", "manager"],
         },
       ]

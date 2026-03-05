@@ -1,9 +1,10 @@
 "use client";
 import * as React from "react";
 
-import { Search, Filter, Plus, UserX, UserCheck, Trash2, ChevronDown, MoreHorizontal } from "lucide-react";
+import { Search, Filter, Plus, UserX, UserCheck, Trash2, ChevronDown, MoreHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -299,79 +300,82 @@ export function UserManagementTable() {
     }
 
     return (
-        <Card className="border-gray-200 shadow-sm">
-            <CardHeader className="border-b border-gray-100 pb-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                        <CardTitle className="text-2xl text-gray-900">User Management</CardTitle>
-                        <CardDescription className="text-gray-500">
-                            Manage your team members and their account permissions
-                        </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            size="sm"
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
-                            onClick={() => window.location.href = "/users/new"}
-                        >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add User
-                        </Button>
-                    </div>
-                </div>
-            </CardHeader>
-
-            <CardContent className="p-6">
-                {/* Bulk Actions */}
-                {selectedRows.size > 0 && (
-                    <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div className="text-sm text-blue-700 font-medium">
-                                {selectedRows.size} user(s) selected
-                            </div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="border-amber-300 text-amber-700 hover:bg-amber-50"
-                                    onClick={handleBulkDeactivate}
-                                    disabled={deactivateMutation.isPending}
-                                >
-                                    <UserX className="mr-2 h-4 w-4" />
-                                    Deactivate Selected
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="border-green-300 text-green-700 hover:bg-green-50"
-                                    onClick={handleBulkActivate}
-                                    disabled={activateMutation.isPending}
-                                >
-                                    <UserCheck className="mr-2 h-4 w-4" />
-                                    Activate Selected
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="border-red-300 text-red-700 hover:bg-red-50"
-                                    onClick={handleBulkDelete}
-                                    disabled={deleteMutation.isPending}
-                                >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete Selected
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-gray-600"
-                                    onClick={() => setSelectedRows(new Set())}
-                                >
-                                    Clear Selection
-                                </Button>
-                            </div>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-950 dark:to-slate-900 p-6">
+            <Card className="border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <CardHeader className="border-b border-slate-100 dark:border-white/5 px-4 py-6 sm:px-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                        <div className="text-center sm:text-left">
+                            <CardTitle className="text-4xl sm:text-3xl md:text-4xl font-bold bg-clip-text dark:from-white dark:to-slate-400  mb-2 tracking-tight capitalize">
+                                User Management
+                            </CardTitle>
+                            <CardDescription className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-sm mx-auto sm:mx-0">
+                                Manage your team members and their account permissions
+                            </CardDescription>
+                        </div>
+                        <div className="flex items-center justify-center sm:justify-end">
+                            <Button
+                                size="sm"
+                                className="w-full sm:w-auto h-11 gap-2 text-white bg-[#FCCF3C] hover:bg-[#ddc165] font-bold text-xs uppercase tracking-widest px-8 shadow-lg shadow-yellow-500/10"
+                                onClick={() => window.location.href = "/users/new"}
+                            >
+                                <Plus className="h-4 w-4" />
+                                <span>Add User</span>
+                            </Button>
                         </div>
                     </div>
-                )}
+                </CardHeader>
+
+                <CardContent className="p-6">
+                    {/* Bulk Actions */}
+                    {selectedRows.size > 0 && (
+                        <div className="mb-6 p-4 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-900/30">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+                                    {selectedRows.size} user{selectedRows.size !== 1 ? 's' : ''} selected
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/20"
+                                        onClick={handleBulkDeactivate}
+                                        disabled={deactivateMutation.isPending}
+                                    >
+                                        <UserX className="mr-2 h-4 w-4" />
+                                        Deactivate Selected
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-green-300 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950/20"
+                                        onClick={handleBulkActivate}
+                                        disabled={activateMutation.isPending}
+                                    >
+                                        <UserCheck className="mr-2 h-4 w-4" />
+                                        Activate Selected
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-red-300 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/20"
+                                        onClick={handleBulkDelete}
+                                        disabled={deleteMutation.isPending}
+                                    >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete Selected
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-gray-600 dark:text-gray-400"
+                                        onClick={() => setSelectedRows(new Set())}
+                                    >
+                                        Clear Selection
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                 {/* Filters and Search */}
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
@@ -408,9 +412,9 @@ export function UserManagementTable() {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Roles</SelectItem>
-                                {uniqueRoleOptions.map((role) => (
-                                    <SelectItem key={role.value} value={role.value}>
-                                        {role.label}
+                                {uniqueRoles.map((role) => (
+                                    <SelectItem key={role} value={role.toLowerCase()}>
+                                        {role}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -486,7 +490,7 @@ export function UserManagementTable() {
                                                 }
                                                 className="font-medium"
                                             >
-                                                {user.fullRoleName}
+                                                {user.role}
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
@@ -580,64 +584,65 @@ export function UserManagementTable() {
                         {selectedRows.size} of {filteredData.length} user(s) selected.
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1 text-sm text-gray-600 mr-4">
-                            <span>Rows per page</span>
-                            <Select
-                                value={`${rowsPerPage}`}
-                                onValueChange={(value) => {
-                                    setRowsPerPage(Number(value));
-                                    setCurrentPage(1);
-                                }}
-                            >
-                                <SelectTrigger className="h-8 w-16 border-gray-300">
-                                    <SelectValue placeholder={rowsPerPage} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {[10, 20, 30, 40, 50].map((pageSize) => (
-                                        <SelectItem key={pageSize} value={`${pageSize}`}>
-                                            {pageSize}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                    {/* Pagination */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-slate-100 dark:border-white/5">
+                        <div className="text-[11px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                            {selectedRows.size} of {filteredData.length} user{filteredData.length !== 1 ? 's' : ''} selected.
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                                disabled={currentPage === 1}
-                                className="h-8 w-8 p-0 border-gray-300 hover:bg-gray-50"
-                            >
-                                <span className="sr-only">Go to previous page</span>
-                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                </svg>
-                            </Button>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wider mr-4">
+                                <span>Rows:</span>
+                                <Select
+                                    value={`${rowsPerPage}`}
+                                    onValueChange={(value) => {
+                                        setRowsPerPage(Number(value));
+                                        setCurrentPage(1);
+                                    }}
+                                >
+                                    <SelectTrigger className="h-8 w-16 border-slate-200 dark:border-slate-700 bg-transparent">
+                                        <SelectValue placeholder={rowsPerPage} />
+                                    </SelectTrigger>
+                                    <SelectContent className="dark:bg-slate-900 border-white/10">
+                                        {[10, 20, 30, 40, 50].map((pageSize) => (
+                                            <SelectItem key={pageSize} value={`${pageSize}`}>
+                                                {pageSize}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
-                            <span className="text-sm text-gray-600">
-                                Page {currentPage} of {totalPages}
-                            </span>
+                            <div className="flex items-center gap-3">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                    disabled={currentPage === 1}
+                                    className="h-9 w-9 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors"
+                                >
+                                    <ChevronLeft className="h-5 w-5" />
+                                </Button>
 
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                                disabled={currentPage === totalPages}
-                                className="h-8 w-8 p-0 border-gray-300 hover:bg-gray-50"
-                            >
-                                <span className="sr-only">Go to next page</span>
-                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                            </Button>
+                                <span className="text-[11px] font-black text-slate-900 dark:text-slate-300 uppercase tracking-tighter">
+                                    Page {currentPage} / {totalPages}
+                                </span>
+
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                    disabled={currentPage === totalPages || totalPages === 0}
+                                    className="h-9 w-9 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors"
+                                >
+                                    <ChevronRight className="h-5 w-5" />
+                                </Button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </CardContent>
-        </Card>
+                </CardContent>
+            </Card>
+        </div>
     );
 }
 

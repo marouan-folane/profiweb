@@ -55,7 +55,7 @@ export const hasRequiredRole = (userRole, requiredRole) => {
 export const RoleBadge = ({ role }) => {
   const getRoleColor = (role) => {
     switch (role) {
-      case 'superadmin': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'superadmin': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'admin': return 'bg-red-100 text-red-800 border-red-200';
       case 'd.s': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'd.i': return 'bg-green-100 text-green-800 border-green-200';
@@ -115,7 +115,7 @@ const NavTools = ({ isDesktop, isMobile, sidebarType, userRole }) => {
       {/* Example: Display role badge for superadmin */}
       {isDesktop && userRole === 'superadmin' && (
         <div className="flex items-center gap-2">
-          <div className="text-xs font-medium text-purple-600">⚡ Super Admin Mode</div>
+          <div className="text-xs font-medium text-yellow-600">⚡ Super Admin Mode</div>
           <RoleBadge role={userRole} />
         </div>
       )}

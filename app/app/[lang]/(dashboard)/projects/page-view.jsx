@@ -339,7 +339,7 @@ const ProjectCalendar = ({ project, onDateSave }) => {
         <Button
           variant="outline"
           className={cn(
-            "w-full justify-start text-left font-normal gap-2 text-sm border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800",
+            "w-full justify-start text-left font-normal gap-2 text-sm border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 hover:text-[#FCCF3C] dark:hover:text-[#FCCF3C]",
             !selectedDate && "text-slate-500"
           )}
           size="sm"
@@ -415,7 +415,7 @@ const ProjectCalendar = ({ project, onDateSave }) => {
                   <Button
                     size="sm"
                     onClick={handleTimeSelect}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+                    className="flex-1 text-white bg-[#FCCF3C] hover:bg-[#ddc165]"
                   >
                     <Icon icon="lucide:check" className="w-3 h-3 mr-2" />
                     Set Time
@@ -1221,22 +1221,24 @@ const ProjectsPage = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text text-transparent mb-2">
+      <div className="flex flex-col xl:flex-row justify-between items-center xl:items-center mb-10 gap-6 text-center xl:text-left">
+        <div className="w-full">
+          <h1 className="text-3xl sm:text-4xl xl:text-5xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">
             Projects
           </h1>
-          <p className="text-slate-600">Manage and track all agency projects in one place</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base max-w-md mx-auto xl:mx-0 font-medium">
+            Manage and track all agency projects in one central hub
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
-          {["superadmin", "admin", "manager", "d.s"].includes(userRole) && (
+          {["superadmin", "d.s"].includes(session?.user?.role) && (
             <Button
-              className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+              className="w-full sm:w-auto h-12 px-8 gap-2 text-white font-bold bg-[#FCCF3C] hover:bg-[#ddc165]"
               onClick={() => router.push('/projects/new')}
             >
-              <Icon icon="heroicons:plus" className="w-4 h-4" />
-              New Project
+              <Icon icon="heroicons:plus" className="w-5 h-5 transition-transform group-hover:rotate-90" />
+              <span>New Project</span>
             </Button>
           )}
         </div>
@@ -1249,9 +1251,8 @@ const ProjectsPage = () => {
             value="active"
             className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:shadow-sm"
           >
-            <Icon icon="lucide:folder-open" className="w-4 h-4 mr-2" />
             Active Projects
-            <span className="ml-2 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs font-medium px-2 py-0.5 rounded-full">
+            <span className="ml-2 bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 text-xs font-medium px-2 py-0.5 rounded-full">
               {activeProjects.length}
             </span>
           </TabsTrigger>
@@ -1339,6 +1340,7 @@ const ProjectsPage = () => {
       {/* Projects Table */}
       <Card className="border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
         <CardContent className="p-0">
+
           {loading ? (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -1369,7 +1371,8 @@ const ProjectsPage = () => {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              {/* ─── DESKTOP TABLE (xl and above) ─── */}
+              <div className="hidden xl:block overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-slate-50/50 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-white/5">
                     <tr>
@@ -1402,18 +1405,17 @@ const ProjectsPage = () => {
                         </th>
                       )}
 
-                      {["superadmin", "admin", "manager"].includes(userRole) && (
+                      {["superadmin"].includes(session?.user?.role) && (
                         <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                           Notes
                         </th>
                       )}
 
-                      {["superadmin", "admin", "manager"].includes(userRole) && (
+                      {["superadmin", "d.i", "d.c", "d.d", "d.it", "d.in", "c.m"].includes(session?.user?.role) && (
                         <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                           Actions
                         </th>
                       )}
-
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-slate-900/40 divide-y divide-slate-100 dark:divide-white/5">
@@ -1427,7 +1429,7 @@ const ProjectsPage = () => {
                         )}
                       >
                         <td className="py-5 px-6">
-                          <div className="font-bold text-slate-900 dark:text-slate-100 text-base mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors tracking-tight">
+                          <div className="font-bold text-slate-900 dark:text-slate-100 text-base mb-1 group-hover:text-[#FCCF3C] dark:group-hover:text-[#FCCF3C] transition-colors tracking-tight">
                             {project.title}
                           </div>
                           <div className="text-sm text-slate-500 dark:text-slate-400 line-clamp-1 mb-3">
@@ -1495,7 +1497,7 @@ const ProjectsPage = () => {
 
                         <td className="py-5 px-6">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-xs shadow-sm shadow-blue-500/20">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-500 to-yellow-300 flex items-center justify-center text-white font-bold text-xs shadow-sm shadow-yellow-500/20">
                               {project.client?.name?.charAt(0) || 'C'}
                             </div>
                             <div>
@@ -1554,7 +1556,7 @@ const ProjectsPage = () => {
                             )}
                           </div>
                         </td>
-                        {["superadmin", "admin", "manager", "c.m"].includes(userRole) && (
+                        {["superadmin", "c.m"].includes(session?.user?.role) && (
                           <td className="py-5 px-6">
                             {project.controlStatus === 'confirmed' ? (
                               <Badge color="success" variant="soft" className="font-bold flex items-center w-fit gap-1">
@@ -1562,7 +1564,7 @@ const ProjectsPage = () => {
                                 <span>Finalized</span>
                               </Badge>
                             ) : (
-                              <Badge color="secondary" variant="soft" className="font-bold flex items-center w-fit gap-1 opacity-60">
+                              <Badge color="secondary" variant="soft" className="font-bold flex items-center w-fit gap-1 dark:opacity-90 opacity-60">
                                 <Icon icon="lucide:clock" className="w-3 h-3" />
                                 <span>Pending</span>
                               </Badge>
@@ -1584,7 +1586,7 @@ const ProjectsPage = () => {
                               </div>
                             ) : (
                               <button
-                                className="flex items-center gap-2 text-slate-400 dark:text-slate-600 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                className="flex items-center gap-2 text-slate-400 dark:text-slate-300 hover:text-[#FCCF3C] dark:hover:text-[#FCCF3C] transition-colors"
                                 onClick={() => handleOpenNoteDialog(project._id, project.title)}
                               >
                                 <Icon icon="lucide:plus-circle" className="w-4 h-4" />
@@ -1594,7 +1596,6 @@ const ProjectsPage = () => {
                           </td>
                         )}
 
-
                         {["superadmin", "admin", "manager", "d.i", "d.c", "d.d", "d.it", "d.in", "c.m", "d.s", "d.inf"].includes(userRole) && (
                           <td className="py-5 px-6">
                             <div className="flex items-center gap-1">
@@ -1603,7 +1604,7 @@ const ProjectsPage = () => {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-slate-500 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/10 dark:hover:text-blue-400"
+                                    className="h-8 w-8 text-slate-600 dark:text-slate-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/10 dark:hover:text-blue-400"
                                     onClick={() => router.push(`/projects/${project._id}`)}
                                     title="View Project"
                                   >
@@ -1614,17 +1615,16 @@ const ProjectsPage = () => {
                                       <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-slate-500 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10 dark:hover:text-amber-400"
+                                        className="h-8 w-8 text-slate-600 dark:text-slate-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10 dark:hover:text-amber-400"
                                         onClick={() => handleOpenArchiveDialog(project)}
                                         title="Archive Project"
                                       >
                                         <Icon icon="lucide:archive" className="w-4 h-4" />
                                       </Button>
-
                                       <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-slate-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                                        className="h-8 w-8 text-slate-600 dark:text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                                         onClick={() => handleOpenDeleteDialog(project)}
                                         title="Delete Permanently"
                                       >
@@ -1677,9 +1677,318 @@ const ProjectsPage = () => {
                 </table>
               </div>
 
-              {/* Pagination */}
+              {/* ─── MOBILE / TABLET CARD VIEW ─── */}
+              <div className="xl:hidden grid grid-cols-1 md:grid-cols-2 gap-6 p-4 sm:p-6">
+                {currentProjects.map((project) => (
+                  <div
+                    key={project._id}
+                    className={cn(
+                      "p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300",
+                      activeTab === 'archived' && "opacity-80"
+                    )}
+                  >
+                    {/* Card Header */}
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-slate-900 dark:text-slate-100 text-lg leading-tight mb-1 truncate group-hover:text-[#FCCF3C]">
+                          {project.title}
+                        </h3>
+
+                      </div>
+
+                      {/* Priority Badge */}
+                      <Badge
+                        color={getPriorityColor(project.priority)}
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 dark:bg-slate-950 dark:border-white/10 dark:text-slate-300 font-bold uppercase text-[9px] tracking-widest px-2 shadow-sm"
+                      >
+                        {PRIORITY_MAP[project.priority] || project.priority}
+                      </Badge>
+                    </div>
+
+                    {/* Tags */}
+                    {project.tags?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-5">
+                        {project.tags?.slice(0, 3).map((tag, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center px-2 py-0.5 rounded-lg text-[9px] font-bold bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-white/10 uppercase tracking-widest"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                        {project.tags?.length > 3 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[9px] font-bold bg-slate-50 dark:bg-white/5 text-slate-400">
+                            +{project.tags.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Info Grid - Simplified without borders */}
+                    <div className="grid grid-cols-2 gap-y-5 gap-x-4 mb-6">
+                      {/* Client */}
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#FCCF3C] to-[#ddc165] flex items-center justify-center text-white font-bold text-[10px] shrink-0 shadow-sm shadow-yellow-500/10">
+                            {project.client?.name?.charAt(0) || 'C'}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                              {project.client?.name || 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Category */}
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex h-7 items-center">
+                          <CategoryBadge category={project.category} />
+                        </div>
+                      </div>
+
+                      {/* Date */}
+                      <div className="flex items-center gap-4 pt-4 mt-4 border-t border-slate-100 dark:border-white/5">
+                        <div className="flex items-center gap-2.5">
+                          <Icon icon="lucide:calendar" className="w-4 h-4 text-slate-400" />
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                              {activeTab === 'active' ? 'Due Date' : 'Archived'}
+                            </span>
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                              {activeTab === 'active'
+                                ? formatDate(project.endDate)
+                                : formatDate(project.archivedAt || project.updatedAt)
+                              }
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="ml-auto">
+                          {["superadmin", "c.m"].includes(session?.user?.role) && (
+                            project.controlStatus === 'confirmed' ? (
+                              <Badge color="success" variant="soft" className="font-bold flex items-center w-fit gap-1 px-3 h-7">
+                                <Icon icon="lucide:check-circle" className="w-3 h-3" />
+                                <span>Finalized</span>
+                              </Badge>
+                            ) : (
+                              <Badge color="secondary" variant="soft" className="font-bold flex items-center shadow-sm w-fit gap-1 dark:opacity-90 opacity-60 px-3 h-7">
+                                <Icon icon="lucide:clock" className="w-3 h-3" />
+                                <span>Pending</span>
+                              </Badge>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Role-specific Status Row */}
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                      {session?.user?.role === "d.it" && (
+                        <div className={cn(
+                          "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider",
+                          getProjectPhase(project).color
+                        )}>
+                          {getProjectPhase(project).label}
+                        </div>
+                      )}
+
+                      {session?.user?.role === "d.s" && (
+                        project.completedDepartments?.includes("sales") ? (
+                          <Badge color="success" variant="soft" className="dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20">
+                            <span className="inline-flex items-center gap-1">
+                              <Icon icon="lucide:check-circle" className="w-3 h-3" />
+                              Sales Completed
+                            </span>
+                          </Badge>
+                        ) : (
+                          <Badge color="destructive" variant="soft" className="dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20">
+                            <span className="inline-flex items-center gap-1">
+                              <Icon icon="lucide:x-circle" className="w-3 h-3" />
+                              Sales Pending
+                            </span>
+                          </Badge>
+                        )
+                      )}
+
+                      {session?.user?.role === "d.i" && (
+                        project.infoStatus === 'completed' ? (
+                          <Badge color="success" variant="soft" className="dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20">
+                            <span className="inline-flex items-center gap-1">
+                              <Icon icon="lucide:check-circle" className="w-3 h-3" />
+                              Info Completed
+                            </span>
+                          </Badge>
+                        ) : (
+                          <Badge color="warning" variant="soft" className="dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">
+                            <span className="inline-flex items-center gap-1">
+                              <Icon icon="lucide:clock" className="w-3 h-3" />
+                              Info Pending
+                            </span>
+                          </Badge>
+                        )
+                      )}
+
+                      {session?.user?.role === "d.c" && (
+                        project.contentStatus === 'completed' ? (
+                          <Badge color="success" variant="soft" className="dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20">
+                            <span className="inline-flex items-center gap-1">
+                              <Icon icon="lucide:check-circle" className="w-3 h-3" />
+                              Content Completed
+                            </span>
+                          </Badge>
+                        ) : project.contentStatus === 'checklist_validated' ? (
+                          <Badge color="warning" variant="soft" className="dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20">
+                            <span className="inline-flex items-center gap-1">
+                              <Icon icon="lucide:list-checks" className="w-3 h-3" />
+                              Checklist Done
+                            </span>
+                          </Badge>
+                        ) : (
+                          <Badge color="warning" variant="soft" className="dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">
+                            <span className="inline-flex items-center gap-1">
+                              <Icon icon="lucide:clock" className="w-3 h-3" />
+                              Content Pending
+                            </span>
+                          </Badge>
+                        )
+                      )}
+
+                      {session?.user?.role === "d.d" && (
+                        project.designStatus === 'completed' ? (
+                          <Badge color="success" variant="soft" className="dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20">
+                            <span className="inline-flex items-center gap-1">
+                              <Icon icon="lucide:check-circle" className="w-3 h-3" />
+                              Design Completed
+                            </span>
+                          </Badge>
+                        ) : (
+                          <Badge color="warning" variant="soft" className="dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20">
+                            <span className="inline-flex items-center gap-1">
+                              <Icon icon="lucide:clock" className="w-3 h-3" />
+                              Design Pending
+                            </span>
+                          </Badge>
+                        )
+                      )}
+
+
+                    </div>
+
+                    {/* Notes (superadmin only) */}
+                    {["superadmin"].includes(session?.user?.role) && (
+                      <div className="mb-3">
+                        {project.note ? (
+                          <div
+                            className="flex items-center gap-2 cursor-pointer bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/20 rounded-lg px-3 py-2"
+                            onClick={() => handleOpenNoteDialog(project._id, project.title, project.note)}
+                          >
+                            <Icon icon="lucide:sticky-note" className="w-4 h-4 text-amber-500 shrink-0" />
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 line-clamp-1">
+                              {project.note}
+                            </span>
+                          </div>
+                        ) : (
+                          <button
+                            className="flex items-center gap-2 text-slate-400 dark:text-slate-500 hover:text-[#FCCF3C] dark:hover:text-[#FCCF3C] transition-colors w-full border border-dashed border-slate-200 dark:border-white/10 rounded-lg px-3 py-2"
+                            onClick={() => handleOpenNoteDialog(project._id, project.title)}
+                          >
+                            <Icon icon="lucide:plus-circle" className="w-4 h-4" />
+                            <span className="text-xs font-bold">Add note</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Date Picker (superadmin / d.s on active tab) */}
+                    {activeTab === 'active' && ["superadmin", "d.s"].includes(session?.user?.role) && (
+                      <div className="mb-3">
+                        <ProjectCalendar
+                          project={project}
+                          onDateSave={handleSaveProjectDate}
+                        />
+                      </div>
+                    )}
+
+                    {/* Actions Footer */}
+                    {["superadmin", "d.i", "d.c", "d.d", "d.it", "d.in", "c.m"].includes(session?.user?.role) && (
+                      <div className="flex items-center gap-2 pt-3 border-t border-slate-100 dark:border-white/5">
+                        {activeTab === 'active' ? (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 h-9 text-slate-400 gap-1.5 text-xs font-semibold border-slate-200 dark:border-white/10 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-500/10 dark:hover:text-blue-400"
+                              onClick={() => router.push(`/projects/${project._id}`)}
+                            >
+                              <Icon icon="lucide:eye" className="w-3.5 h-3.5" />
+                              View
+                            </Button>
+                            {["superadmin"].includes(session?.user?.role) && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-9 w-9 p-0 text-slate-400 border-slate-200 dark:border-white/10 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 dark:hover:bg-amber-500/10 dark:hover:text-amber-400"
+                                  onClick={() => handleOpenArchiveDialog(project)}
+                                  title="Archive Project"
+                                >
+                                  <Icon icon="lucide:archive" className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-9 w-9 p-0 text-slate-400 border-slate-200 dark:border-white/10 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                                  onClick={() => handleOpenDeleteDialog(project)}
+                                  title="Delete Permanently"
+                                >
+                                  <Icon icon="lucide:trash-2" className="w-3.5 h-3.5" />
+                                </Button>
+                              </>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 h-9 text-slate-400 gap-1.5 text-xs font-semibold border-slate-200 dark:border-white/10 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-500/10 dark:hover:text-blue-400"
+                              onClick={() => router.push(`/projects/${project._id}/overview`)}
+                            >
+                              <Icon icon="lucide:eye" className="w-3.5 h-3.5" />
+                              View
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-9 w-9 p-0 text-slate-400 border-slate-200 dark:border-white/10 hover:bg-green-50 hover:text-green-600 hover:border-green-200 dark:hover:bg-green-500/10 dark:hover:text-green-400"
+                              onClick={() => handleOpenRestoreDialog(project)}
+                              title="Restore Project"
+                            >
+                              <Icon icon="lucide:rotate-ccw" className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-9 w-9 p-0 text-slate-400 border-slate-200 dark:border-white/10 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                              onClick={() => handleOpenDeleteDialog(project)}
+                              title="Delete Permanently"
+                            >
+                              <Icon icon="lucide:trash-2" className="w-3.5 h-3.5" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination (unchanged — shared for both views) */}
               {pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-slate-700 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+                <div className="flex items-center justify-between px-4 xl:px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
                   <div className="text-sm text-slate-600">
                     Showing {(currentFilters.page - 1) * currentFilters.limit + 1} to{' '}
                     {Math.min(currentFilters.page * currentFilters.limit, pagination.totalItems)} of{' '}

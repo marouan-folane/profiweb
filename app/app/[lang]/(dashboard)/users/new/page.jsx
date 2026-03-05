@@ -123,7 +123,7 @@ const CreateUserForm = () => {
   return (
     <Card className="max-w-2xl mx-auto p-6">
       <div className="mb-8">
-        <h2 className="text-2xl font-bold tracking-tight">Create New User</h2>
+        <h2 className="text-2xl font-bold tracking-tight text-yellow-800 dark:text-yellow-200">Create New User</h2>
         <p className="text-muted-foreground mt-2">
           Fill in the details below to create a new user account.
         </p>
@@ -402,6 +402,7 @@ const CreateUserForm = () => {
           <Button
             type="button"
             variant="outline"
+            className="text-black border-black "
             onClick={() => {
               setFormData({
                 username: '',
