@@ -716,7 +716,7 @@ export default function QuestionsManagementPage() {
                 </div>
                 <div className="flex items-center gap-3">
                     <button onClick={openAddNew}
-                        className="flex items-center gap-2.5 px-7 py-3.5 bg-[#0071E3] text-white text-[15px] font-bold rounded-full shadow-lg shadow-[#0071E3]/20 hover:bg-[#0077ED] active:scale-95 transition-all">
+                        className="flex items-center gap-2.5 px-7 py-3.5 bg-[#fccf3c] text-white text-[15px] font-bold rounded-full shadow-lg shadow-[#fccf3c]/20 hover:bg-[#fccf3c]/80 active:scale-95 transition-all">
                         <Icon icon="lucide:plus" className="w-5 h-5" />
                         Create Question
                     </button>

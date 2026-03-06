@@ -1227,7 +1227,7 @@ const ProjectsPage = () => {
 
       <div className="flex flex-col xl:flex-row justify-between items-center xl:items-center mb-10 gap-6 text-center xl:text-left">
         <div className="w-full">
-          <h1 className="text-3xl sm:text-4xl xl:text-5xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">
+          <h1 className="text-4xl sm:text-3xl md:text-4xl font-bold bg-clip-text dark:from-white dark:to-slate-400  mb-2 tracking-tight capitalize">
             Projects
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base max-w-md mx-auto xl:mx-0 font-medium">
@@ -1238,10 +1238,10 @@ const ProjectsPage = () => {
         <div className="flex items-center gap-3">
           {["superadmin", "d.s"].includes(session?.user?.role) && (
             <Button
-              className="w-full sm:w-auto h-12 px-8 gap-2 text-white font-bold bg-[#FCCF3C] hover:bg-[#ddc165]"
+              className="w-full sm:w-auto gap-2 text-white bg-[#FCCF3C] hover:bg-[#ddc165] transition-all duration-300 shadow-lg shadow-yellow-500/20"
               onClick={() => router.push('/projects/new')}
             >
-              <Icon icon="heroicons:plus" className="w-5 h-5 transition-transform group-hover:rotate-90" />
+              <Icon icon="heroicons:plus" className="w-5 h-5" />
               <span>New Project</span>
             </Button>
           )}

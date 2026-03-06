@@ -1405,10 +1405,10 @@ const QuestionsTab = ({ setFormSubmitted }) => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-center">
+      <div className="flex justify-center items-center min-h-[400px]">
+        <div className="text-center p-6">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading project data...</p>
+          <p className="text-gray-600 font-medium">Loading project questionnaire...</p>
         </div>
       </div>
     );
@@ -1417,19 +1417,17 @@ const QuestionsTab = ({ setFormSubmitted }) => {
   // Error state
   if (!projectData && !isLoading) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-        <div className="text-red-600 mb-2">
-          <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+      <div className="bg-red-50 border border-red-200 rounded-xl p-6 md:p-8 text-center max-w-lg mx-auto my-8">
+        <div className="text-red-500 mb-4 flex justify-center">
+          <Icon icon="lucide:alert-circle" className="w-12 h-12" />
         </div>
-        <h3 className="text-lg font-semibold text-red-900 mb-2">Error Loading Project</h3>
-        <p className="text-red-700 mb-4">Failed to load project data. Please try again.</p>
+        <h3 className="text-lg md:text-xl font-bold text-red-900 mb-2">Error Loading Project</h3>
+        <p className="text-red-700 mb-6">Failed to load project data. Please try again or contact support.</p>
         <button
           onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+          className="px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all active:scale-95 shadow-lg shadow-red-200 font-bold"
         >
-          Retry
+          Retry Connection
         </button>
       </div>
     );
@@ -1438,66 +1436,57 @@ const QuestionsTab = ({ setFormSubmitted }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Project Questionnaire</h2>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">Project Questionnaire</h2>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-2">
             {(formData.templateName || projectData?.data?.project?.templateName) && (
-              <div className="text-indigo-600 font-bold italic text-sm flex items-center gap-1 px-2 py-0.5 bg-indigo-50 border border-indigo-100 rounded">
+              <div className="text-indigo-600 font-bold italic text-xs md:text-sm flex items-center gap-1.5 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-lg">
+                <Icon icon="lucide:layout" className="w-3.5 h-3.5" />
                 Template: {formData.templateName || projectData.data.project.templateName}
               </div>
             )}
-            <p className="text-gray-600 text-sm">
-              {(formData.templateName || projectData?.data?.project?.templateName) ? "Detailed configurations for the selected template" : "Fill out the project questionnaire"}
+            <p className="text-gray-500 text-xs md:text-sm">
+              {(formData.templateName || projectData?.data?.project?.templateName) ? "Detailed configurations for the selected template" : "Fill out the project questionnaire to get started"}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
 
           {/* Auto-save status pill */}
           {saveStatus === 'saving' && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-100 select-none">
-              <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Saving…
+            <span className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100 select-none">
+              <Icon icon="lucide:loader-2" className="animate-spin h-3.5 w-3.5" />
+              Saving Progress…
             </span>
           )}
           {saveStatus === 'saved' && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-green-50 text-green-600 border border-green-100 select-none">
-              <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-              </svg>
-              Saved
+            <span className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-green-50 text-green-600 border border-green-100 select-none">
+              <Icon icon="lucide:check-circle" className="h-3.5 w-3.5" />
+              Progress Saved
             </span>
           )}
           {saveStatus === 'error' && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-red-50 text-red-600 border border-red-100 select-none">
-              <span className="h-2 w-2 rounded-full bg-red-500"></span>
+            <span className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-red-50 text-red-600 border border-red-100 select-none">
+              <Icon icon="lucide:alert-circle" className="h-3.5 w-3.5" />
               Save failed
             </span>
           )}
 
           <button
             onClick={handleRefreshQuestions}
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-2 transition-colors"
+            className="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95 text-sm font-semibold w-full sm:w-auto"
             disabled={isLoading}
           >
             {isRefreshing ? (
               <>
-                <svg className="animate-spin h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
+                <Icon icon="lucide:loader-2" className="animate-spin h-4 w-4 text-gray-500" />
                 Refreshing...
               </>
             ) : (
               <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
+                <Icon icon="lucide:refresh-cw" className="w-4 h-4 text-gray-500" />
                 Refresh Questions
               </>
             )}
@@ -1537,14 +1526,14 @@ const QuestionsTab = ({ setFormSubmitted }) => {
 
       {/* ── Main Questionnaire Content (Hidden for Sales) ─────────────────────────── */}
       {isSalesDept ? (
-        <div className="bg-white rounded-xl border border-blue-100 p-12 text-center shadow-sm">
-          <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-500">
-            <Icon icon="lucide:user-check" className="w-8 h-8" />
+        <div className="bg-white rounded-2xl border border-blue-100 p-8 md:p-16 text-center shadow-sm">
+          <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-500 shadow-inner">
+            <Icon icon="lucide:user-check" className="w-10 h-10" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Project Created</h2>
-          <p className="text-gray-600 max-w-md mx-auto">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-3 tracking-tight">Project Successfully Created</h2>
+          <p className="text-gray-500 max-w-md mx-auto leading-relaxed text-sm md:text-base">
             As a member of the Sales Department, you have successfully created this project.
-            The detailed questionnaire is managed by the Information Department.
+            The detailed configuration questionnaire is now managed by the <span className="text-indigo-600 font-bold">Information Department</span>.
           </p>
         </div>
       ) : (

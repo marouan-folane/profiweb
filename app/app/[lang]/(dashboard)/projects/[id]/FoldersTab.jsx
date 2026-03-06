@@ -701,7 +701,7 @@ const FoldersTab = ({ projectId }) => {
 
             {/* ── Clickable Header ── */}
             <div
-              className="flex items-center justify-between p-6 cursor-pointer select-none"
+              className="flex flex-col md:flex-row md:items-center md:justify-between p-4 md:p-6 cursor-pointer select-none gap-4"
               onClick={() => setIsContentPanelOpen(prev => !prev)}
             >
               <div className="flex items-center gap-3">
@@ -709,28 +709,28 @@ const FoldersTab = ({ projectId }) => {
                   <Icon icon="lucide:file-up" className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-indigo-900">Structured Content Submission</h3>
-                  <p className="text-indigo-700 text-sm">Upload JSON and paste formatted text for integration</p>
+                  <h3 className="text-base md:text-lg font-bold text-indigo-900 leading-tight">Structured Content Submission</h3>
+                  <p className="text-indigo-700 text-xs md:text-sm">Upload JSON and paste formatted text for integration</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between md:justify-end gap-3" onClick={e => e.stopPropagation()}>
                 {/* Integration Confirmation Button */}
                 {userRole === 'd.in' && project?.contentStatus === 'checklist_validated' && project?.itStatus === 'setup_validated' && (
                   <button
                     onClick={() => setIsIntegrationModalOpen(true)}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 shadow-lg transition-all active:scale-95 group"
+                    className="flex items-center justify-center gap-2 px-4 md:px-6 py-2 md:py-2.5 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 shadow-lg transition-all active:scale-95 group text-sm md:text-base flex-1 md:flex-none"
                   >
-                    <Icon icon="lucide:check-circle-2" className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    <Icon icon="lucide:check-circle-2" className="w-4 h-4 md:w-5 md:h-5 group-hover:scale-110 transition-transform" />
                     Finalize Integration
                   </button>
                 )}
 
                 {/* Integration Done badge */}
                 {project?.itStatus === 'integration_completed' && (
-                  <div className="flex items-center gap-2 px-6 py-2.5 bg-green-50 text-green-700 rounded-xl font-bold border border-green-200">
-                    <Icon icon="lucide:check-circle-2" className="w-5 h-5" />
-                    Integration Done
+                  <div className="flex items-center gap-2 px-3 md:px-6 py-1.5 md:py-2.5 bg-green-50 text-green-700 rounded-xl font-bold border border-green-200 text-xs md:text-sm">
+                    <Icon icon="lucide:check-circle-2" className="w-4 h-4 md:w-5 md:h-5" />
+                    Done
                   </div>
                 )}
 
@@ -929,34 +929,28 @@ const FoldersTab = ({ projectId }) => {
         )}
 
         {/* Project Folders Section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
           {/* Header: title, count, and Add Folder */}
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-4">
-              <h3 className="text-lg font-semibold text-gray-900">Project Folders</h3>
-              <span className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
-                {allProjectFolders.filter(folder => {
-                  const isOwner = folder.user === session?.user?.id || folder.user?._id === session?.user?.id;
-                  if (['superadmin', 'admin', 'manager', 'c.m'].includes(userRole)) return true;
-                  const folderName = folder.name?.toLowerCase();
-                  if (userRole === 'd.it') return isOwner || folderName === "structured content json";
-                  if (userRole === 'd.d') return isOwner || folderName === "generated instructions pdf" || folderName === "design assets";
-                  if (userRole === 'd.in') return isOwner || folderName === "structured content json" || folderName === "generated instructions pdf";
-                  return true;
-                }).length} folders
-              </span>
-              {foldersLocked && (
-                <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full font-medium">
-                  <Icon icon="lucide:lock" className="w-3 h-3" />
-                  Locked — Content Finalized
-                </span>
-              )}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 flex-shrink-0">
+                <Icon icon="carbon:folder" className="w-6 h-6" />
+              </div>
+              <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                <h2 className="text-lg md:text-xl font-bold text-gray-900 leading-tight">Project Folders</h2>
+                {foldersLocked && (
+                  <span className="inline-flex items-center gap-1 text-[10px] md:text-xs font-bold uppercase tracking-wider px-2 py-0.5 bg-amber-50 text-amber-600 border border-amber-100 rounded">
+                    <Icon icon="lucide:lock" className="w-3 h-3" />
+                    Locked — Content Finalized
+                  </span>
+                )}
+              </div>
             </div>
             {/* Add Folder — hidden when locked or IT dept */}
             {userRole !== 'd.it' && !foldersLocked && (
               <button
                 onClick={() => setIsCreateModalOpen(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 w-full md:w-auto"
               >
                 <Icon icon="carbon:folder-add" />
                 Add Folder
@@ -1091,21 +1085,21 @@ const FoldersTab = ({ projectId }) => {
           <div className="fixed inset-0 bg-black/50 bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
               {/* Modal Header */}
-              <div className="flex justify-between items-center p-6 border-b">
+              <div className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-6 border-b gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Icon icon="carbon:folder" className="w-6 h-6 text-blue-600" />
                   </div>
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-900">
+                  <div className="min-w-0">
+                    <h2 className="text-lg md:text-xl font-semibold text-gray-900 truncate">
                       {selectedFolder.name}
                     </h2>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-xs md:text-sm text-gray-500">
                       {filesList.length} file{filesList.length !== 1 ? 's' : ''} in this folder
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center justify-between md:justify-end gap-3 md:gap-4">
                   <input
                     type="file"
                     multiple
@@ -1117,7 +1111,7 @@ const FoldersTab = ({ projectId }) => {
                     <button
                       onClick={() => fileInputRef.current.click()}
                       disabled={uploadMutation.isPending}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-sm md:text-base flex-1 md:flex-none"
                     >
                       {uploadMutation.isPending ? (
                         <Icon icon="carbon:circle-dash" className="animate-spin" />
@@ -1128,14 +1122,14 @@ const FoldersTab = ({ projectId }) => {
                     </button>
                   )}
                   {foldersLocked && userRole !== 'd.it' && !isGeneratedFolder && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-sm font-medium">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs md:text-sm font-medium">
                       <Icon icon="lucide:lock" className="w-3.5 h-3.5" />
                       Upload locked
                     </span>
                   )}
                   <button
                     onClick={closeModal}
-                    className="text-gray-400 hover:text-gray-600 text-2xl"
+                    className="text-gray-400 hover:text-gray-600 text-2xl p-1"
                   >
                     &times;
                   </button>
@@ -1222,21 +1216,21 @@ const FoldersTab = ({ projectId }) => {
               </div>
 
               {/* Modal Footer */}
-              <div className="border-t p-4 flex justify-between items-center">
-                <div className="text-sm text-gray-500">
+              <div className="border-t p-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="text-sm text-gray-500 order-2 md:order-1">
                   Showing {filesList.length} file{filesList.length !== 1 ? 's' : ''}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full md:w-auto order-1 md:order-2">
                   <button
                     onClick={closeModal}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="flex-1 md:flex-none px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors text-sm"
                   >
                     Close
                   </button>
                   <button
                     onClick={() => refetchFiles()}
                     disabled={isLoadingFiles}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                    className="flex-1 md:flex-none px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
                   >
                     <Icon icon="carbon:renew" className={isLoadingFiles ? "animate-spin" : ""} />
                     Refresh

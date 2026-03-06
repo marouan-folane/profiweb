@@ -141,9 +141,9 @@ const TemplateListPage = () => {
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-12 group">
           <div className="text-center lg:text-left">
-            <h1 className="text-4xl sm:text-3xl md:text-4xl font-bold tracking-tight capitalize">
+            <CardTitle className="text-4xl sm:text-3xl md:text-4xl font-bold bg-clip-text dark:from-white dark:to-slate-400  mb-2 tracking-tight capitalize">
               Template Library ( {stats.total} )
-            </h1>
+            </CardTitle>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium max-w-xl mx-auto lg:mx-0">
               Manage and deploy your high-performance baseline templates.
             </p>
