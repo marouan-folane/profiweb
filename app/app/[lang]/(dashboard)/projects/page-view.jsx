@@ -1002,10 +1002,12 @@ const ProjectsPage = () => {
                     <p className="font-medium text-slate-900">{projectToArchiveClient}</p>
                   </div>
 
-                  <div className="bg-white/50 p-3 rounded-lg border border-red-100">
-                    <p className="text-xs text-slate-500 mb-1">Budget</p>
-                    <p className="font-medium text-slate-900">{projectToArchiveBudget}</p>
-                  </div>
+                  {['superadmin', 'admin'].includes(userRole) && (
+                    <div className="bg-white/50 p-3 rounded-lg border border-red-100">
+                      <p className="text-xs text-slate-500 mb-1">Budget</p>
+                      <p className="font-medium text-slate-900">{projectToArchiveBudget}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1146,10 +1148,12 @@ const ProjectsPage = () => {
                       <Icon icon="lucide:user" className="w-4 h-4" />
                       Client: {projectToDeleteClient}
                     </li>
-                    <li className="flex items-center gap-2">
-                      <Icon icon="lucide:dollar-sign" className="w-4 h-4" />
-                      Budget: {projectToDeleteBudget}
-                    </li>
+                    {['superadmin', 'admin'].includes(userRole) && (
+                      <li className="flex items-center gap-2">
+                        <Icon icon="lucide:dollar-sign" className="w-4 h-4" />
+                        Budget: {projectToDeleteBudget}
+                      </li>
+                    )}
                   </ul>
                 </div>
               </div>
@@ -1312,7 +1316,7 @@ const ProjectsPage = () => {
                       <SelectItem value="archivedAt">Date Archived</SelectItem>
                       <SelectItem value="createdAt">Date Created</SelectItem>
                       <SelectItem value="endDate">End Date</SelectItem>
-                      <SelectItem value="budget">Budget</SelectItem>
+                      {['superadmin', 'admin'].includes(userRole) && <SelectItem value="budget">Budget</SelectItem>}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1362,7 +1366,7 @@ const ProjectsPage = () => {
               {activeTab === 'active' && (["superadmin", "admin", "manager", "d.s"].includes(userRole)) && (
                 <Button
                   onClick={() => router.push('/projects/new')}
-                  className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+                  className="gap-2 bg-gradient-to-r from-yellow-600 "
                 >
                   <Icon icon="heroicons:plus" className="w-4 h-4" />
                   Create New Project
@@ -1395,7 +1399,9 @@ const ProjectsPage = () => {
                         <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Design Dept Status</th>
                       )}
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Priority</th>
-                      <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Budget</th>
+                      {['superadmin', 'admin'].includes(userRole) && (
+                        <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Budget</th>
+                      )}
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                         {activeTab === 'active' ? 'Due Date' : 'Archived Date'}
                       </th>
@@ -1528,11 +1534,13 @@ const ProjectsPage = () => {
                           </Badge>
                         </td>
 
-                        <td className="py-5 px-6">
-                          <div className="text-sm font-black text-slate-900 dark:text-blue-400 tracking-tight">
-                            {formatCurrency(project.budget, project.currency)}
-                          </div>
-                        </td>
+                        {['superadmin', 'admin'].includes(userRole) && (
+                          <td className="py-5 px-6">
+                            <div className="text-sm font-black text-slate-900 dark:text-blue-400 tracking-tight">
+                              {formatCurrency(project.budget, project.currency)}
+                            </div>
+                          </td>
+                        )}
 
                         <td className="py-5 px-6">
                           <div className="space-y-2">

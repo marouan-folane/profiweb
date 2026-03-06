@@ -9,7 +9,7 @@ const AIWorkInstructions = ({
 }) => {
   return (
     <div className="bg-white rounded-lg border border-gray-200 mb-6">
-      <div className="bg-indigo-600 px-6 py-4">
+      <div className="bg-yellow-500 px-6 py-4">
         <h3 className="text-lg font-semibold text-white">AI Work Instructions</h3>
       </div>
       <div className="p-6 space-y-4">
