@@ -4,6 +4,7 @@ import {
   List,
   UserCog,
   Globe,
+  Palette,
 } from "lucide-react";
 
 export const menusConfig = {
@@ -50,7 +51,25 @@ export const menusConfig = {
           href: "/templates/new",
           roles: ["superadmin", "admin", "manager"],
         },
-
+      ]
+    },
+    {
+      title: "Design",
+      icon: Palette,
+      roles: ["superadmin", "admin", "manager", "d.it"],
+      child: [
+        {
+          title: "List of Designs",
+          icon: List,
+          href: "/templates/list",
+          roles: ["superadmin", "admin", "manager", "d.it"],
+        },
+        {
+          title: "Create Design",
+          icon: UserPlus,
+          href: "/templates/new",
+          roles: ["superadmin", "admin", "manager", "d.it"],
+        },
       ]
     },
     {

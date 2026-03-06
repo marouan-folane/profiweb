@@ -684,20 +684,20 @@ const FoldersTab = ({ projectId }) => {
   return (
     <>
       <div className="space-y-6">
-        {/* Integration Department Restriction Message */}
+{/* Integration Department Restriction Message */}
         {userRole === 'd.in' && !project?.isContentReady && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-8 text-center mb-6">
-            <Icon icon="lucide:clock" className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-amber-900 mb-2">Waiting for Structured Content</h3>
-            <p className="text-amber-700 max-w-md mx-auto">
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-lg p-8 text-center mb-6">
+            <Icon icon="lucide:clock" className="w-16 h-16 text-amber-500 dark:text-amber-400 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-amber-900 dark:text-amber-100 mb-2">Waiting for Structured Content</h3>
+            <p className="text-amber-700 dark:text-amber-300 max-w-md mx-auto">
               The Integration Department cannot proceed until the Content Department has uploaded the structured JSON and formatted text content.
             </p>
           </div>
         )}
 
-        {/* Content Submission UI — D.C only */}
+{/* Content Submission UI — D.C only */}
         {userRole === 'd.c' && (
-          <div className="bg-indigo-50 border border-indigo-100 rounded-xl shadow-sm mb-8 overflow-hidden">
+          <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-xl shadow-sm mb-8 overflow-hidden">
 
             {/* ── Clickable Header ── */}
             <div
@@ -709,8 +709,8 @@ const FoldersTab = ({ projectId }) => {
                   <Icon icon="lucide:file-up" className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-base md:text-lg font-bold text-indigo-900 leading-tight">Structured Content Submission</h3>
-                  <p className="text-indigo-700 text-xs md:text-sm">Upload JSON and paste formatted text for integration</p>
+                  <h3 className="text-base md:text-lg font-bold text-indigo-900 dark:text-indigo-100 leading-tight">Structured Content Submission</h3>
+                  <p className="text-indigo-700 dark:text-indigo-300 text-xs md:text-sm">Upload JSON and paste formatted text for integration</p>
                 </div>
               </div>
 
@@ -928,18 +928,18 @@ const FoldersTab = ({ projectId }) => {
           </div>
         )}
 
-        {/* Project Folders Section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
+{/* Project Folders Section */}
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4 md:p-6">
           {/* Header: title, count, and Add Folder */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 flex-shrink-0">
+              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400 flex-shrink-0">
                 <Icon icon="carbon:folder" className="w-6 h-6" />
               </div>
               <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-                <h2 className="text-lg md:text-xl font-bold text-gray-900 leading-tight">Project Folders</h2>
-                {foldersLocked && (
-                  <span className="inline-flex items-center gap-1 text-[10px] md:text-xs font-bold uppercase tracking-wider px-2 py-0.5 bg-amber-50 text-amber-600 border border-amber-100 rounded">
+                <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">Project Folders</h2>
+{foldersLocked && (
+                  <span className="inline-flex items-center gap-1 text-[10px] md:text-xs font-bold uppercase tracking-wider px-2 py-0.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800/50 rounded">
                     <Icon icon="lucide:lock" className="w-3 h-3" />
                     Locked — Content Finalized
                   </span>
@@ -988,15 +988,15 @@ const FoldersTab = ({ projectId }) => {
                   return true;
                 })
                 .map((folder) => (
-                  <div
+<div
                     key={folder._id}
                     onClick={() => handleFolderClick(folder)}
-                    className="border border-gray-200 rounded-lg p-4 transition-all cursor-pointer group hover:border-blue-300 hover:shadow-lg hover:bg-blue-50"
+                    className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800/50 rounded-lg p-4 transition-all cursor-pointer group hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start">
-                          <h4 className="font-semibold text-gray-900 truncate text-lg flex-1">
+                          <h4 className="font-semibold text-gray-900 dark:text-gray-100 truncate text-lg flex-1">
                             {folder.name || 'Untitled Folder'}
                           </h4>
 
@@ -1017,17 +1017,17 @@ const FoldersTab = ({ projectId }) => {
                               </button>
                             )}
                         </div>
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+<div className="mt-2 flex items-center gap-2">
+                          <span className="text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 px-2 py-1 rounded-full">
                             Click to view files
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
                       <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2 text-gray-500">
+                        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
                           <Icon icon="carbon:calendar" />
                           <span>{new Date(folder.createdAt).toLocaleDateString()}</span>
                         </div>
@@ -1043,20 +1043,20 @@ const FoldersTab = ({ projectId }) => {
           )}
         </div>
 
-        {/* Create Folder Modal */}
+{/* Create Folder Modal */}
         {userRole !== 'd.it' && isCreateModalOpen && (
           <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg w-full max-w-md p-6">
-              <h2 className="text-xl font-semibold mb-4 text-gray-900">Create New Folder</h2>
+            <div className="bg-white dark:bg-slate-900 rounded-lg w-full max-w-md p-6">
+              <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Create New Folder</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Folder Name</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Folder Name</label>
                   <input
                     type="text"
                     value={newFolderName}
                     onChange={(e) => setNewFolderName(e.target.value)}
                     placeholder="Enter folder name..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100"
                   />
                 </div>
                 <div className="flex justify-end gap-3 mt-6">

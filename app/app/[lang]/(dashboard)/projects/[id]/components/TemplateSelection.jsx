@@ -19,9 +19,9 @@ const TemplateSelection = ({
   return (
     <div className="bg-white rounded-lg border border-gray-200 mb-8">
       <div className="bg-primary px-6 py-4">
-        <h3 className="text-lg font-semibold text-white">10. Select WordPress Template</h3>
+        <h3 className="text-lg font-semibold text-white">10. Select WordPress Template *</h3>
         <p className="text-sm text-primary-100 mt-1">
-          Choose a template to define your website's style
+          Choose a template to define your website's style (Required)
           {selectedTemplate && (
             <span className="ml-2 text-green-200">✓ Template selected</span>
           )}
@@ -52,7 +52,7 @@ const TemplateSelection = ({
                 <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
-                <span className="text-yellow-800">No template selected. The first template is selected by default.</span>
+                <span className="text-yellow-800 font-medium">Template selection is required. The first template is selected by default.</span>
               </div>
             </div>
           )}

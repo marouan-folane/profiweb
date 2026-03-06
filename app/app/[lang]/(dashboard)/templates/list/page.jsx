@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getTemplates, deleteTemplate } from "@/config/functions/template";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -37,6 +38,9 @@ const TemplateListPage = () => {
   const [templateToDelete, setTemplateToDelete] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const { data: session } = useSession();
+  const userRole = session?.user?.role;
+  const canDelete = ["superadmin", "admin"].includes(userRole);
 
   // Fetch templates using React Query
   const {
@@ -254,15 +258,17 @@ const TemplateListPage = () => {
                     <CardTitle className="text-semibold font-black text-slate-900 dark:text-white group-hover:text-[#ddc165] transition-colors line-clamp-1  uppercase tracking-tight mb-2">
                       {template.title}
                     </CardTitle>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openDeleteModal(template)}
-                      className="h-8 w-8 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                      title="Remove Blueprint"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {canDelete && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openDeleteModal(template)}
+                        className="h-8 w-8 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                        title="Remove Blueprint"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
 
                 </CardHeader>

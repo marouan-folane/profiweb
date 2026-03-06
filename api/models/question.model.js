@@ -55,6 +55,13 @@ const questionSchema = new mongoose.Schema({
     default: 'General'
   },
 
+  // Section order for overall section positioning
+  sectionOrder: {
+    type: Number,
+    required: true,
+    default: 0
+  },
+
   // Order within section
   order: {
     type: Number,
@@ -128,6 +135,7 @@ const questionSchema = new mongoose.Schema({
 // Index for faster queries
 questionSchema.index({ project: 1, questionKey: 1 }, { unique: true });
 questionSchema.index({ project: 1, section: 1, order: 1 });
+questionSchema.index({ project: 1, sectionOrder: 1 });
 questionSchema.index({ projectType: 1 });
 
 // Pre-save middleware to handle array answers for multiselect/checkbox

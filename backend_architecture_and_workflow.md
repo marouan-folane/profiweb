@@ -23,7 +23,7 @@ This document is a comprehensive guide to the Profiweb backend system. It covers
 | `superadmin` | Administration | Global management, template control, audit logs. |
 | `d.i` | Information | Initial data gathering, completing the project questionnaire. |
 | `d.c` | Content | Writing content, SEO optimization, content checklist validation. |
-| `d.it` | IT Setup | WP hosting, technical config, site setup checklist. |
+| `d.it` | IT Setup | WP hosting, technical config, site setup checklist, design template management. |
 | `d.in` | Integration | Merging content/design into the live site, integration checklist. |
 | `d.d` | Design | Visual UI/UX, brand identity, design checklist validation. |
 | `c.m` | Control Manager | Final quality review, confirming project as "Finished". |
@@ -119,6 +119,14 @@ Dynamic form instances for each project.
 - `translations`: Multi-language help text (En, Fr, Ar, De).
 - `isVisible`: Admin visibility toggle.
 
+### Template Model (`api/models/template.model.js`)
+Global design blueprints used by departments.
+- `title`: Unique template name.
+- `shortDesc`: Summary for list views.
+- `structure`: Instruction or block-based design logic.
+- `colors`: Associated brand palette.
+- `createdBy`: Reference to the creator.
+
 ---
 
 ## 6. Logic Location Map
@@ -127,3 +135,10 @@ If you need to change how the logic works:
 - **Dynamic Field Sync**: `api/services/questionService.js`.
 - **Global Question Templates**: `api/services/questionTemplateService.js`.
 - **Automatic PDF Generation**: `api/services/projectPDFService.js`.
+
+---
+
+## 7. Template Management Workflow
+Templates (Designs) can be managed by both Admins and the IT Setup department (`d.it`).
+- **Create/Edit**: Allowed for `superadmin`, `admin`, `manager`, and `d.it`.
+- **Delete**: Restricted to `superadmin` and `admin` only. IT department cannot purge templates.

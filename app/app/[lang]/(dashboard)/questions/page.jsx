@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Icon } from "@iconify/react";
 import { toast } from "react-hot-toast";
@@ -8,7 +8,7 @@ import { useSession } from "next-auth/react";
 import { api } from "@/config/axios.config";
 import {
     DndContext, PointerSensor, KeyboardSensor,
-    useSensor, useSensors, DragOverlay, closestCenter, useDroppable,
+    useSensor, useSensors, DragOverlay, closestCenter,
 } from "@dnd-kit/core";
 import {
     SortableContext, verticalListSortingStrategy,
@@ -37,6 +37,38 @@ const patchTemplate = ({ questionKey, data }) => api.patch(`/question-templates/
 const postTemplate = (data) => api.post("/question-templates", data).then(r => r.data);
 const deleteTemplate = (questionKey) => api.delete(`/question-templates/${questionKey}`).then(r => r.data);
 const seedTemplates = (questions) => api.post("/question-templates/seed", { questions }).then(r => r.data);
+
+// Section management API
+const reorderSections = (sectionIds) => api.post("/question-templates/reorder-sections", { sectionIds }).then(r => r.data);
+const createSection = (sectionId, sectionName, insertAfterSection) => api.post("/question-templates/create-section", { sectionId, sectionName, insertAfterSection }).then(r => r.data);
+const updateSectionOrder = (sectionId, newOrder) => api.patch(`/question-templates/sections/${sectionId}/order`, { newOrder }).then(r => r.data);
+
+// ── Helpers (defined outside component to avoid re-creation) ──────────────────
+const buildMap = (qs) => {
+    const m = new Map();
+    qs.forEach(q => {
+        if (!m.has(q.section)) m.set(q.section, { sectionId: q.section, sectionName: q.sectionName || q.section, questions: [] });
+        m.get(q.section).questions.push(q);
+    });
+    return m;
+};
+
+/**
+ * Custom collision detector: when dragging a SECTION, only consider other sections
+ * as droppables. This prevents question cards (which are also registered droppables
+ * via their own SortableContext) from intercepting section-vs-section collision.
+ */
+const sectionAwareCollision = (args) => {
+    const activeId = String(args.active.id);
+    if (activeId.startsWith('section-')) {
+        // Filter droppables to only section-* wrappers
+        const sectionOnly = args.droppableContainers.filter(
+            c => String(c.id).startsWith('section-')
+        );
+        return closestCenter({ ...args, droppableContainers: sectionOnly });
+    }
+    return closestCenter(args);
+};
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 const TYPES = ["text", "textarea", "select", "checkbox", "multiselect", "radio", "number", "email", "tel", "url", "date"];
@@ -198,22 +230,77 @@ function QuestionCard({ question, onEdit, onToggleVis, onDelete }) {
     );
 }
 
+// ── Insert Section Button (appears between sections) ──────────────────────────
+function InsertSectionButton({ afterSectionId, onClick }) {
+    const [hovered, setHovered] = useState(false);
+    return (
+        <div
+            className="relative flex items-center gap-3 py-1 group/insert"
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+        >
+            <div className={`flex-1 h-px transition-all duration-300 ${hovered ? 'bg-[#0071E3]/40' : 'bg-transparent'}`} />
+            <button
+                onClick={() => onClick(afterSectionId)}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-full border text-[12px] font-bold transition-all duration-300 whitespace-nowrap
+                    ${hovered
+                        ? 'border-[#0071E3] text-[#0071E3] bg-[#0071E3]/5 shadow-sm scale-100 opacity-100'
+                        : 'border-dashed border-[#D2D2D7] text-[#86868B] bg-transparent opacity-0 group-hover/insert:opacity-100 scale-95'}`}
+            >
+                <Icon icon="lucide:plus" className="w-3.5 h-3.5" />
+                Insert Section Here
+            </button>
+            <div className={`flex-1 h-px transition-all duration-300 ${hovered ? 'bg-[#0071E3]/40' : 'bg-transparent'}`} />
+        </div>
+    );
+}
+
 // ── Section Accordion ─────────────────────────────────────────────────────────
-function SectionAccordion({ sectionId, sectionName, questions, colorIdx, isExpanded, onToggleExpand, onEdit, onToggleVis, onDelete, onToggleSectionVis, onAddToSection, onDeleteSection }) {
-    const { setNodeRef, isOver } = useDroppable({ id: `section-drop-${sectionId}`, data: { sectionId } });
+function SectionAccordion({ sectionId, sectionName, questions, colorIdx, isExpanded, onToggleExpand, onEdit, onToggleVis, onDelete, onToggleSectionVis, onAddToSection, onDeleteSection, onMoveUp, onMoveDown, sectionIndex, totalSections }) {
+    // Apply sortable to the ENTIRE card wrapper so the whole card moves during drag
+    const { setNodeRef, isOver, attributes, listeners, transform, transition, isDragging } = useSortable({
+        id: `section-${sectionId}`,
+        data: { sectionId, type: 'section' }
+    });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+        zIndex: isDragging ? 999 : 'auto',
+    };
+
     const questionKeys = questions.map(q => q.questionKey);
     const visibleCount = questions.filter(q => q.isVisible !== false).length;
     const allVisible = questions.length === 0 || questions.every(q => q.isVisible !== false);
     const accentColor = SEC_COLORS[colorIdx % SEC_COLORS.length];
 
     return (
-        <div className={`group/section flex flex-col bg-white rounded-[24px] border border-[#E5E5E7] transition-all duration-500 overflow-hidden ${isOver ? "ring-2 ring-[#0071E3] ring-offset-2" : "hover:border-[#D2D2D7]"}`}>
-            {/* ── Section Header (Clickable for Expand) ── */}
+        // setNodeRef on the outer wrapper — the ENTIRE card is the draggable + droppable unit
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`group/section flex flex-col bg-white rounded-[24px] border transition-all duration-300 overflow-hidden
+                ${isDragging ? 'shadow-2xl shadow-black/20 border-[#0071E3]/30' : 'border-[#E5E5E7] hover:border-[#D2D2D7]'}
+                ${isOver && !isDragging ? 'ring-2 ring-[#0071E3] ring-offset-2' : ''}`}
+        >
+            {/* ── Section Header (Clickable for Expand, drag handle inside) ── */}
             <div
                 onClick={onToggleExpand}
-                className={`p-6 flex items-center justify-between cursor-pointer transition-colors ${isExpanded ? "bg-[#FBFBFD]" : "hover:bg-[#FBFBFD]"}`}
+                className={`p-6 flex items-center justify-between cursor-pointer transition-colors ${isExpanded ? 'bg-[#FBFBFD]' : 'hover:bg-[#FBFBFD]'}`}
             >
                 <div className="flex items-center gap-5 min-w-0">
+                    {/* Drag Handle — stopPropagation so click doesn't toggle expand */}
+                    <div
+                        {...attributes}
+                        {...listeners}
+                        className="flex-shrink-0 cursor-grab active:cursor-grabbing text-[#D2D2D7] hover:text-[#0071E3] transition-colors p-1 -ml-1"
+                        onClick={(e) => e.stopPropagation()}
+                        title="Drag to reorder section"
+                    >
+                        <Icon icon="lucide:grip-vertical" className="w-5 h-5" />
+                    </div>
+
                     <div className={`w-12 h-12 rounded-2xl ${accentColor} flex items-center justify-center shadow-lg shadow-black/5 flex-shrink-0 transition-transform duration-300 group-hover/section:scale-105`}>
                         <Icon icon="lucide:box" className="w-6 h-6 text-white" />
                     </div>
@@ -234,29 +321,50 @@ function SectionAccordion({ sectionId, sectionName, questions, colorIdx, isExpan
 
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={(e) => { e.stopPropagation(); onToggleSectionVis(sectionId, allVisible, questions); }}
-                        className={`p-2.5 rounded-full transition-all border ${allVisible ? "text-[#86868B] border-[#D2D2D7] hover:bg-white" : "text-[#0071E3] border-[#0071E3] bg-[#0071E3]/5"}`}
+                        onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
+                        disabled={sectionIndex === 0}
+                        className="p-2.5 rounded-full text-[#86868B] border border-[#D2D2D7] hover:text-[#0071E3] hover:border-[#0071E3] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        title="Move section up"
                     >
-                        <Icon icon={allVisible ? "lucide:eye" : "lucide:eye-off"} className="w-4 h-4" />
+                        <Icon icon="lucide:chevron-up" className="w-4 h-4" />
                     </button>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
+                        disabled={sectionIndex === totalSections - 1}
+                        className="p-2.5 rounded-full text-[#86868B] border border-[#D2D2D7] hover:text-[#0071E3] hover:border-[#0071E3] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        title="Move section down"
+                    >
+                        <Icon icon="lucide:chevron-down" className="w-4 h-4" />
+                    </button>
+
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onToggleSectionVis(sectionId, allVisible, questions); }}
+                        className={`p-2.5 rounded-full transition-all border ${allVisible ? 'text-[#86868B] border-[#D2D2D7] hover:bg-white' : 'text-[#0071E3] border-[#0071E3] bg-[#0071E3]/5'}`}
+                        title={allVisible ? 'Hide all questions in section' : 'Show all questions in section'}
+                    >
+                        <Icon icon={allVisible ? 'lucide:eye' : 'lucide:eye-off'} className="w-4 h-4" />
+                    </button>
+
                     {onDeleteSection && (
                         <button
                             onClick={(e) => { e.stopPropagation(); onDeleteSection({ sectionId, sectionName, questions }); }}
                             className="p-2.5 rounded-full text-red-500 border border-gray-100 hover:border-red-100 hover:bg-red-50/50 transition-all opacity-0 group-hover/section:opacity-100"
+                            title="Delete section"
                         >
                             <Icon icon="lucide:trash-2" className="w-4 h-4" />
                         </button>
                     )}
-                    <div className={`p-2 rounded-full transition-transform duration-500 ${isExpanded ? "rotate-180 bg-gray-100" : "bg-transparent text-[#86868B]"}`}>
+
+                    <div className={`p-2 rounded-full transition-transform duration-500 ${isExpanded ? 'rotate-180 bg-gray-100' : 'bg-transparent text-[#86868B]'}`}>
                         <Icon icon="lucide:chevron-down" className="w-5 h-5" />
                     </div>
                 </div>
             </div>
 
             {/* ── Expanded Content Area ── */}
-            <div className={`grid transition-all duration-500 ease-in-out ${isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+            <div className={`grid transition-all duration-500 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                 <div className="overflow-hidden bg-[#FBFBFD]/50 border-t border-[#F5F5F7]">
-                    <div ref={setNodeRef} className="p-4 sm:p-6">
+                    <div className="p-4 sm:p-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <SortableContext items={questionKeys} strategy={verticalListSortingStrategy}>
                                 {questions.map(q => (
@@ -524,8 +632,11 @@ export default function QuestionsManagementPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [filterSection, setFilterSection] = useState("all");
     const [activeDragItem, setActiveDragItem] = useState(null);
-    const [localSections, setLocalSections] = useState(null);
     const [expandedSections, setExpandedSections] = useState(new Set());
+    // Insert-section-between state
+    const [insertSectionModal, setInsertSectionModal] = useState(null); // { afterSectionId } | null
+    const [insertSectionDraft, setInsertSectionDraft] = useState({ id: '', name: '' });
+    const [isInsertingSec, setIsInsertingSec] = useState(false);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -557,8 +668,72 @@ export default function QuestionsManagementPage() {
         onError: () => toast.error("Seed failed"),
     });
 
+    // Section management mutations
+    const reorderSectionsMutation = useMutation({
+        mutationFn: reorderSections,
+        onSuccess: () => { queryClient.invalidateQueries(["question-templates"]); toast.success("Sections reordered!"); },
+        onError: () => toast.error("Failed to reorder sections"),
+    });
+
     const openEdit = (q) => { setEditingQ(q); setEditDraft({ ...q }); };
     const handleToggleVis = (qk, isVis) => updateMutation.mutate({ questionKey: qk, data: { isVisible: !isVis } });
+
+    // Section management handlers
+    const handleReorderSections = useCallback((newOrder) => {
+        reorderSectionsMutation.mutate(newOrder);
+    }, [reorderSectionsMutation]);
+
+    const handleMoveSection = (sectionId, direction) => {
+        const current = sectionIdsRef.current;
+        const currentIndex = current.indexOf(sectionId);
+        if (direction === 'up' && currentIndex > 0) {
+            const newOrder = [...current];
+            [newOrder[currentIndex], newOrder[currentIndex - 1]] = [newOrder[currentIndex - 1], newOrder[currentIndex]];
+            setOrderedSectionIds(newOrder);
+            handleReorderSections(newOrder);
+        } else if (direction === 'down' && currentIndex < current.length - 1) {
+            const newOrder = [...current];
+            [newOrder[currentIndex], newOrder[currentIndex + 1]] = [newOrder[currentIndex + 1], newOrder[currentIndex]];
+            setOrderedSectionIds(newOrder);
+            handleReorderSections(newOrder);
+        }
+    };
+
+    const handleToggleSectionExpand = (action) => {
+        if (action === 'all') {
+            setExpandedSections(new Set(sectionIdsRef.current));
+        } else if (action === 'none') {
+            setExpandedSections(new Set());
+        } else {
+            setExpandedSections(prev => {
+                const next = new Set(prev);
+                next.has(action) ? next.delete(action) : next.add(action);
+                return next;
+            });
+        }
+    };
+
+    const handleMoveSectionUp = (sectionId) => {
+        const current = sectionIdsRef.current;
+        const currentIndex = current.indexOf(sectionId);
+        if (currentIndex > 0) {
+            const newOrder = [...current];
+            [newOrder[currentIndex], newOrder[currentIndex - 1]] = [newOrder[currentIndex - 1], newOrder[currentIndex]];
+            setOrderedSectionIds(newOrder);
+            handleReorderSections(newOrder);
+        }
+    };
+
+    const handleMoveSectionDown = (sectionId) => {
+        const current = sectionIdsRef.current;
+        const currentIndex = current.indexOf(sectionId);
+        if (currentIndex < current.length - 1) {
+            const newOrder = [...current];
+            [newOrder[currentIndex], newOrder[currentIndex + 1]] = [newOrder[currentIndex + 1], newOrder[currentIndex]];
+            setOrderedSectionIds(newOrder);
+            handleReorderSections(newOrder);
+        }
+    };
     const handleDeleteSection = () => {
         if (!deletingSection || !deletingSection.questions.length) {
             setDeletingSection(null);
@@ -605,86 +780,154 @@ export default function QuestionsManagementPage() {
 
     const allQuestions = templatesData?.data?.templates || [];
 
+    // ── Section IDs derived from ALL questions (unfiltered) — used for DnD reordering
+    // This MUST come from allQuestions, not filtered, so indexOf never returns -1 during drag
+    const allQSectionMap = useMemo(() => buildMap(allQuestions), [allQuestions]);
+    const allQSectionIds = useMemo(() => [...allQSectionMap.keys()], [allQSectionMap]);
+
     // Calculate comprehensive section list from DB + Static Registry
-    const allSectionIds = [...new Set([
+    const allSectionIds = useMemo(() => [...new Set([
         ...allQuestions.map(q => q.section),
         ...QUESTION_REGISTRY.map(q => q.section)
-    ])].filter(Boolean);
+    ])].filter(Boolean), [allQuestions]);
 
-    const allSectionNames = [...new Set([
+    const allSectionNames = useMemo(() => [...new Set([
         ...allQuestions.map(q => q.sectionName),
         ...QUESTION_REGISTRY.map(q => q.sectionName)
-    ])].filter(Boolean);
+    ])].filter(Boolean), [allQuestions]);
 
     const sectionsData = { ids: allSectionIds, names: allSectionNames };
 
-    const buildMap = (qs) => {
-        const m = new Map();
-        qs.forEach(q => {
-            if (!m.has(q.section)) m.set(q.section, { sectionId: q.section, sectionName: q.sectionName || q.section, questions: [] });
-            m.get(q.section).questions.push(q);
-        });
-        return m;
-    };
+    // ── orderedSectionIds: starts as allQSectionIds, updates optimistically on drag ──
+    const [orderedSectionIds, setOrderedSectionIds] = useState(null);
+    // Use orderedSectionIds when set (after first drag), otherwise allQSectionIds
+    const effectiveSectionIds = orderedSectionIds || allQSectionIds;
 
-    const sourceQuestions = localSections ? [...localSections.values()].flatMap(s => s.questions) : allQuestions;
-    const filtered = sourceQuestions.filter(q => {
+    // Keep a ref always pointing to the latest effectiveSectionIds — zero stale-closure risk
+    const sectionIdsRef = useRef(effectiveSectionIds);
+    sectionIdsRef.current = effectiveSectionIds;
+
+    // Filtered questions for display (search/section filter)
+    const sourceQuestions = useMemo(() => {
+        // Use effectiveSectionIds order to preserve user's drag order
+        const qBySection = buildMap(allQuestions);
+        return effectiveSectionIds.flatMap(sid => (qBySection.get(sid)?.questions || []));
+    }, [allQuestions, effectiveSectionIds]);
+
+    const filtered = useMemo(() => sourceQuestions.filter(q => {
         const s = !searchQuery || q.question?.toLowerCase().includes(searchQuery.toLowerCase()) || q.questionKey?.toLowerCase().includes(searchQuery.toLowerCase());
-        const sec = filterSection === "all" || q.section === filterSection;
+        const sec = filterSection === 'all' || q.section === filterSection;
         return s && sec;
-    });
+    }), [sourceQuestions, searchQuery, filterSection]);
 
-    const sectionMap = buildMap(filtered);
-    const sectionIds = [...sectionMap.keys()];
+    const sectionMap = useMemo(() => buildMap(filtered), [filtered]);
+    // Display section IDs (filtered)
+    const displaySectionIds = useMemo(() => [...sectionMap.keys()], [sectionMap]);
 
-    // DnD
+    // Keep sectionMap ref fresh
+    const sectionMapRef = useRef(sectionMap);
+    sectionMapRef.current = sectionMap;
+
+    // DnD handlers — use refs so callbacks never capture stale values
     const handleDragStart = useCallback(({ active }) => {
-        const q = allQuestions.find(q => q.questionKey === active.id);
-        setActiveDragItem(q || null);
-        if (!localSections) setLocalSections(buildMap(allQuestions));
-    }, [allQuestions, localSections]);
+        const activeId = String(active.id);
+        if (activeId.startsWith('section-')) {
+            const sectionId = activeId.replace(/^section-/, '');
+            setActiveDragItem({ type: 'section', id: sectionId });
+        } else {
+            const q = allQuestions.find(q => q.questionKey === activeId);
+            setActiveDragItem({ type: 'question', data: q || null });
+        }
+    }, [allQuestions]);
 
     const handleDragEnd = useCallback(({ active, over }) => {
+        const activeId = String(active.id);
+        const overId = over ? String(over.id) : null;
+
         setActiveDragItem(null);
-        if (!active || !over) return;
-        const activeKey = active.id;
-        const overId = String(over.id);
+        if (!overId || activeId === overId) return;
 
-        setLocalSections(prev => {
-            if (!prev) return prev;
-            const updated = new Map([...prev].map(([k, s]) => [k, { ...s, questions: [...s.questions] }]));
-            let srcId = null, srcQ = null;
-            for (const [sid, sec] of updated) {
-                const q = sec.questions.find(q => q.questionKey === activeKey);
-                if (q) { srcId = sid; srcQ = q; break; }
+        // Helper: strip 'section-' prefix
+        const toSec = (id) => id?.startsWith('section-') ? id.replace(/^section-/, '') : null;
+
+        const activeSectionId = toSec(activeId);
+        const overSectionId = toSec(overId);
+
+        // ── Section reorder ─────────────────────────────────────────────────────
+        if (activeSectionId) {
+            // READ from ref — always has the latest order, no stale closure issue
+            const current = sectionIdsRef.current;
+
+            // Resolve the target section:
+            // • Primary: overId is 'section-X' → overSectionId already set
+            // • Fallback: overId is a question key (pointer inside an expanded section)
+            //   → look up which section that question belongs to
+            let resolvedOverSection = overSectionId;
+            if (!resolvedOverSection) {
+                const overQ = allQuestions.find(q => q.questionKey === overId);
+                if (overQ) resolvedOverSection = overQ.section;
             }
-            if (!srcId || !srcQ) return prev;
 
-            let tgtId = overId.startsWith("section-drop-")
-                ? overId.replace("section-drop-", "")
-                : (() => { for (const [sid, sec] of updated) { if (sec.questions.find(q => q.questionKey === overId)) return sid; } return null; })();
-            if (!tgtId) return prev;
+            if (!resolvedOverSection || activeSectionId === resolvedOverSection) return;
 
-            const src = updated.get(srcId); const tgt = updated.get(tgtId);
-            if (!src || !tgt) return prev;
+            const oldIndex = current.indexOf(activeSectionId);
+            const newIndex = current.indexOf(resolvedOverSection);
+            if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
+            const newOrder = arrayMove(current, oldIndex, newIndex);
+            // Immediate optimistic update — UI reorders before API responds
+            setOrderedSectionIds(newOrder);
+            // Persist to server
+            handleReorderSections(newOrder);
+            return;
+        }
 
-            if (srcId === tgtId) {
-                const oi = src.questions.findIndex(q => q.questionKey === activeKey);
-                const ni = src.questions.findIndex(q => q.questionKey === overId);
-                if (oi === -1 || ni === -1 || oi === ni) return prev;
-                src.questions = arrayMove(src.questions, oi, ni);
-            } else {
-                src.questions = src.questions.filter(q => q.questionKey !== activeKey);
-                const movedQ = { ...srcQ, section: tgtId, sectionName: tgt.sectionName };
-                const overIdx = tgt.questions.findIndex(q => q.questionKey === overId);
-                if (overIdx >= 0) tgt.questions.splice(overIdx, 0, movedQ);
-                else tgt.questions.push(movedQ);
-                updateMutation.mutate({ questionKey: activeKey, data: { section: tgtId, sectionName: tgt.sectionName } });
-                toast.success(`Moved → ${tgt.sectionName}`, { icon: "↗️" });
+        // ── Question moved into another section ─────────────────────────────────
+        if (!activeSectionId) {
+            const activeQ = allQuestions.find(q => q.questionKey === activeId);
+            if (!activeQ) return;
+            // Target section: either the section the user hovered over, or derived from the over-question's section
+            let targetSectionId = overSectionId;
+            if (!targetSectionId) {
+                const overQ = allQuestions.find(q => q.questionKey === overId);
+                if (overQ) targetSectionId = overQ.section;
             }
-            return updated;
-        });
-    }, [updateMutation]);
+            if (!targetSectionId || activeQ.section === targetSectionId) return;
+            const curMap = sectionMapRef.current;
+            if (!curMap.has(targetSectionId)) return;
+            updateMutation.mutate({ questionKey: activeQ.questionKey, data: { section: targetSectionId, sectionName: curMap.get(targetSectionId).sectionName } });
+        }
+    }, [allQuestions, handleReorderSections, updateMutation]);
+
+    // ── Insert Section Between ───────────────────────────────────────────────────
+    const openInsertSection = (afterSectionId) => {
+        setInsertSectionModal({ afterSectionId });
+        setInsertSectionDraft({ id: '', name: '' });
+    };
+
+    const handleInsertSection = async () => {
+        const { id, name } = insertSectionDraft;
+        if (!id.trim() || !name.trim()) {
+            toast.error('Section ID and Name are required');
+            return;
+        }
+        if (sectionIds.includes(id.trim())) {
+            toast.error('A section with this ID already exists');
+            return;
+        }
+        setIsInsertingSec(true);
+        try {
+            await createSection(id.trim(), name.trim(), insertSectionModal.afterSectionId);
+            await queryClient.invalidateQueries(['question-templates']);
+            toast.success(`Section "${name.trim()}" created! Add the first question below.`);
+            setInsertSectionModal(null);
+            // Sections only appear in the DB once they have a question — open add-question modal immediately
+            openAddToSection(id.trim(), name.trim());
+        } catch (e) {
+            toast.error('Failed to create section');
+        } finally {
+            setIsInsertingSec(false);
+        }
+    };
 
     if (isLoading) return (
         <div className="flex flex-col items-center justify-center h-64 gap-3">
@@ -695,7 +938,7 @@ export default function QuestionsManagementPage() {
         </div>
     );
 
-    const activeMeta = activeDragItem ? tm(activeDragItem.type) : null;
+    const activeMeta = activeDragItem && activeDragItem.type === 'question' ? tm(activeDragItem.data?.type) : null;
     const totalVisible = allQuestions.filter(q => q.isVisible !== false).length;
 
     return (
@@ -774,16 +1017,16 @@ export default function QuestionsManagementPage() {
                 </div>
                 <div>
                     <p className="text-[15px] font-bold text-[#1D1D1F]">Workflow Management</p>
-                    <p className="text-[14px] text-[#86868B]">Drag items to reorder inside sections or drop them into other sections to move them.</p>
+                    <p className="text-[14px] text-[#86868B]">Drag items to reorder inside sections or drop them into other sections to move them. Drag sections by the grip handle to reorder sections.</p>
                 </div>
             </div>
 
             {/* ── Kanban Grid ── */}
-            <DndContext sensors={sensors} collisionDetection={closestCenter}
+            <DndContext sensors={sensors} collisionDetection={sectionAwareCollision}
                 onDragStart={handleDragStart} onDragEnd={handleDragEnd}
                 onDragCancel={() => setActiveDragItem(null)}>
 
-                {sectionIds.length === 0 ? (
+                {displaySectionIds.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-24 text-gray-400">
                         <div className="w-20 h-20 rounded-3xl bg-yellow-100 flex items-center justify-center mb-4">
                             <Icon icon="lucide:inbox" className="w-10 h-10 text-yellow-400" />
@@ -792,56 +1035,83 @@ export default function QuestionsManagementPage() {
                         <p className="text-sm mt-1">{allQuestions.length === 0 ? "Click 'Seed from Registry' to initialize." : "No results matching your filters."}</p>
                     </div>
                 ) : (
-                    <div className="space-y-2">
-                        {/* Expand / Collapse all */}
-                        <div className="flex items-center justify-end gap-3 px-2">
-                            <button onClick={() => setExpandedSections(new Set(sectionIds))}
-                                className="text-[13px] font-bold text-[#0071E3] hover:text-[#0077ED] px-4 py-2 bg-white rounded-full border border-[#D2D2D7] shadow-sm transition-all">
-                                Expand All
-                            </button>
-                            <button onClick={() => setExpandedSections(new Set())}
-                                className="text-[13px] font-bold text-[#86868B] hover:text-[#1D1D1F] px-4 py-2 bg-white rounded-full border border-[#D2D2D7] shadow-sm transition-all">
-                                Collapse All
-                            </button>
+                    <SortableContext items={displaySectionIds.map(id => `section-${id}`)} strategy={verticalListSortingStrategy}>
+                        <div className="space-y-1">
+                            {/* Expand / Collapse all */}
+                            <div className="flex items-center justify-end gap-3 px-2 pb-2">
+                                <button onClick={() => setExpandedSections(new Set(displaySectionIds))}
+                                    className="text-[13px] font-bold text-[#0071E3] hover:text-[#0077ED] px-4 py-2 bg-white rounded-full border border-[#D2D2D7] shadow-sm transition-all">
+                                    Expand All
+                                </button>
+                                <button onClick={() => setExpandedSections(new Set())}
+                                    className="text-[13px] font-bold text-[#86868B] hover:text-[#1D1D1F] px-4 py-2 bg-white rounded-full border border-[#D2D2D7] shadow-sm transition-all">
+                                    Collapse All
+                                </button>
+                            </div>
+
+                            {/* First: insert before the very first section */}
+                            <InsertSectionButton afterSectionId={null} onClick={() => openInsertSection(null)} />
+
+                            {displaySectionIds.map((sid, idx) => {
+                                const sec = sectionMap.get(sid);
+                                return (
+                                    <div key={sid}>
+                                        <SectionAccordion
+                                            sectionId={sid}
+                                            sectionName={sec.sectionName}
+                                            questions={sec.questions}
+                                            colorIdx={idx}
+                                            isExpanded={expandedSections.has(sid)}
+                                            onToggleExpand={() => setExpandedSections(prev => {
+                                                const next = new Set(prev);
+                                                next.has(sid) ? next.delete(sid) : next.add(sid);
+                                                return next;
+                                            })}
+                                            onEdit={openEdit}
+                                            onToggleVis={handleToggleVis}
+                                            onDelete={q => setDeletingQ(q)}
+                                            onToggleSectionVis={handleSectionVis}
+                                            onDeleteSection={setDeletingSection}
+                                            onAddToSection={openAddToSection}
+                                            onMoveUp={() => handleMoveSectionUp(sid)}
+                                            onMoveDown={() => handleMoveSectionDown(sid)}
+                                            sectionIndex={idx}
+                                            totalSections={displaySectionIds.length}
+                                        />
+                                        {/* Insert section AFTER this section */}
+                                        <InsertSectionButton afterSectionId={sid} onClick={() => openInsertSection(sid)} />
+                                    </div>
+                                );
+                            })}
                         </div>
-                        {sectionIds.map((sid, idx) => {
-                            const sec = sectionMap.get(sid);
-                            return (
-                                <SectionAccordion
-                                    key={sid}
-                                    sectionId={sid}
-                                    sectionName={sec.sectionName}
-                                    questions={sec.questions}
-                                    colorIdx={idx}
-                                    isExpanded={expandedSections.has(sid)}
-                                    onToggleExpand={() => setExpandedSections(prev => {
-                                        const next = new Set(prev);
-                                        next.has(sid) ? next.delete(sid) : next.add(sid);
-                                        return next;
-                                    })}
-                                    onEdit={openEdit}
-                                    onToggleVis={handleToggleVis}
-                                    onDelete={q => setDeletingQ(q)}
-                                    onToggleSectionVis={handleSectionVis}
-                                    onDeleteSection={setDeletingSection}
-                                    onAddToSection={openAddToSection}
-                                />
-                            );
-                        })}
-                    </div>
+                    </SortableContext>
                 )}
 
                 <DragOverlay dropAnimation={{ duration: 180 }}>
-                    {activeDragItem && activeMeta ? (
-                        <div className="bg-white border border-[#D2D2D7] rounded-[20px] px-5 py-4 shadow-[0_20px_50px_rgba(0,0,0,0.15)] max-w-xs rotate-[2deg] cursor-grabbing">
-                            <div className="flex items-center gap-3">
-                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-bold ${activeMeta.pill}`}>
-                                    <Icon icon={activeMeta.icon} className="w-3 h-3" />{activeMeta.label}
-                                </span>
-                                <p className="text-[14px] font-bold text-[#1D1D1F] truncate">{activeDragItem.question}</p>
+                    {activeDragItem ? (
+                        activeDragItem.type === 'section' ? (
+                            <div className="bg-white border border-[#D2D2D7] rounded-[20px] px-5 py-4 shadow-[0_20px_50px_rgba(0,0,0,0.15)] max-w-xs rotate-[2deg] cursor-grabbing">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
+                                        <Icon icon="lucide:layout-grid" className="w-4 h-4 text-white" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[14px] font-bold text-[#1D1D1F] truncate">Section: {activeDragItem.id}</p>
+                                        <p className="text-[11px] font-mono text-[#86868B]">Reordering section</p>
+                                    </div>
+                                </div>
                             </div>
-                            <p className="text-[11px] font-mono text-[#86868B] mt-1">{activeDragItem.questionKey}</p>
-                        </div>
+                        ) : activeDragItem.data && activeMeta ? (
+                            <div className="bg-white border border-[#D2D2D7] rounded-[20px] px-5 py-4 shadow-[0_20px_50px_rgba(0,0,0,0.15)] max-w-xs rotate-[2deg] cursor-grabbing">
+                                <div className="flex items-center gap-3">
+                                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-bold ${activeMeta.pill}`}>
+                                        <Icon icon={activeMeta.icon} className="w-3 h-3" />{activeMeta.label}
+                                    </span>
+                                    <p className="text-[14px] font-bold text-[#1D1D1F] truncate">{activeDragItem.data.question}</p>
+                                </div>
+                                <p className="text-[11px] font-mono text-[#86868B] mt-1">{activeDragItem.data.questionKey}</p>
+                            </div>
+                        ) : null
                     ) : null}
                 </DragOverlay>
             </DndContext>
@@ -929,6 +1199,90 @@ export default function QuestionsManagementPage() {
                             <button onClick={handleDeleteSection}
                                 className="px-6 py-3 bg-red-500 text-white rounded-2xl font-bold text-[14px] hover:bg-red-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-200 active:scale-95">
                                 Delete All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Insert Section Modal ── */}
+            {insertSectionModal !== null && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-md overflow-hidden">
+                        {/* Header */}
+                        <div className="p-6 pb-5 border-b border-gray-100 flex items-center justify-between bg-[#0071E3]/5">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl bg-[#0071E3] flex items-center justify-center">
+                                    <Icon icon="lucide:layers" className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-bold text-[#1D1D1F]">Insert New Section</h2>
+                                    <p className="text-[12px] text-[#86868B] mt-0.5">
+                                        {insertSectionModal.afterSectionId
+                                            ? <>After <span className="font-mono font-bold text-[#0071E3]">{insertSectionModal.afterSectionId}</span></>
+                                            : 'At the beginning'}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setInsertSectionModal(null)}
+                                className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all"
+                            >
+                                <Icon icon="lucide:x" className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-[11px] font-bold text-[#86868B] uppercase tracking-wider mb-1.5 ml-1">Section Name (User Visible)</label>
+                                <input
+                                    className={inputCls}
+                                    placeholder="e.g. Business Details"
+                                    value={insertSectionDraft.name}
+                                    autoFocus
+                                    onChange={e => {
+                                        const name = e.target.value;
+                                        const autoId = name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 30);
+                                        setInsertSectionDraft(p => ({ ...p, name, id: p.id || autoId }));
+                                    }}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-[#86868B] uppercase tracking-wider mb-1.5 ml-1">Section ID (Internal Key)</label>
+                                <input
+                                    className={`${inputCls} font-mono`}
+                                    placeholder="e.g. businessdetails"
+                                    value={insertSectionDraft.id}
+                                    onChange={e => setInsertSectionDraft(p => ({ ...p, id: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '') }))}
+                                />
+                                <p className="text-[11px] text-[#86868B] mt-1.5 ml-1">Lowercase letters, numbers and hyphens only</p>
+                            </div>
+                            {/* Info note */}
+                            <div className="flex items-start gap-3 bg-[#F5F5F7] rounded-2xl px-4 py-3 border border-[#E5E5E7]">
+                                <Icon icon="lucide:info" className="w-4 h-4 text-[#0071E3] flex-shrink-0 mt-0.5" />
+                                <p className="text-[12px] text-[#86868B] leading-relaxed">
+                                    After clicking <span className="font-bold text-[#1D1D1F]">Create Section</span>, you'll be prompted to add the first question. Sections become visible once they contain at least one question.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-3">
+                            <button
+                                onClick={() => setInsertSectionModal(null)}
+                                className="px-4 py-2 text-gray-500 hover:text-gray-800 font-medium text-sm transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleInsertSection}
+                                disabled={isInsertingSec || !insertSectionDraft.id.trim() || !insertSectionDraft.name.trim()}
+                                className="px-6 py-2.5 bg-[#0071E3] text-white rounded-2xl font-bold text-sm shadow-lg shadow-[#0071E3]/20 hover:bg-[#0077ED] active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {isInsertingSec && <Icon icon="lucide:loader-2" className="animate-spin w-4 h-4" />}
+                                <Icon icon="lucide:plus" className="w-4 h-4" />
+                                Create Section
                             </button>
                         </div>
                     </div>

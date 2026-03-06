@@ -495,10 +495,10 @@ const AccessesTab = ({ projectId }) => {
 
   if (loading && !formData.hosting.service) {
     return (
-      <div className="w-full px-4 sm:px-6">
+<div className="w-full px-4 sm:px-6">
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-gray-500 mt-2">Loading access information...</p>
+          <p className="text-gray-500 dark:text-gray-400 mt-2">Loading access information...</p>
         </div>
       </div>
     );
@@ -507,20 +507,20 @@ const AccessesTab = ({ projectId }) => {
   if (userRole === 'd.d' && (itStatus === 'pending' || contentStatus !== 'completed')) {
     return (
       <div className="w-full px-4 sm:px-6">
-        <div className="bg-amber-50 border border-amber-200 rounded-[32px] p-12 text-center">
-          <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-600">
+<div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-[32px] p-12 text-center">
+          <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/50 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-600 dark:text-amber-400">
             <Icon icon="lucide:lock" className="w-10 h-10" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">Access Restricted</h2>
-          <p className="text-gray-600 max-w-md mx-auto">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">Access Restricted</h2>
+          <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
             WordPress login credentials will be available once the **IT Setup** and **Content** phases are fully completed and validated.
           </p>
           <div className="mt-8 flex justify-center gap-4">
-            <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 ${itStatus !== 'pending' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
+            <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 ${itStatus !== 'pending' ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400' : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-400'}`}>
               <Icon icon={itStatus !== 'pending' ? "lucide:check-circle" : "lucide:circle"} className="w-4 h-4" />
               IT Setup
             </div>
-            <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 ${contentStatus === 'completed' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-400'}`}>
+            <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 ${contentStatus === 'completed' ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400' : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-400'}`}>
               <Icon icon={contentStatus === 'completed' ? "lucide:check-circle" : "lucide:circle"} className="w-4 h-4" />
               Content Phase
             </div>
@@ -537,15 +537,15 @@ const AccessesTab = ({ projectId }) => {
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-1">IT Access Information</h2>
-              <p className="text-sm text-gray-600">
+<h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">IT Access Information</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 {canEdit
                   ? "Manage essential access details for WordPress site setup"
                   : "View essential access details for WordPress site setup"}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className={`px-3 py-1 text-sm font-medium rounded-full ${canEdit ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+<span className={`px-3 py-1 text-sm font-medium rounded-full ${canEdit ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300'}`}>
                 {canEdit ? 'Edit Mode' : 'View Mode'}
               </span>
               {!canEdit && (
@@ -556,16 +556,16 @@ const AccessesTab = ({ projectId }) => {
             </div>
           </div>
 
-          {/* Phase 1: Setup Banner (Pending) — merged Save + Validate button */}
+{/* Phase 1: Setup Banner (Pending) — merged Save + Validate button */}
           {userRole === 'd.it' && itStatus === 'pending' && (
-            <div className="mt-4 bg-white border border-blue-100 rounded-[32px] p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div className="mt-4 bg-white dark:bg-slate-900 border border-blue-100 dark:border-blue-900/30 rounded-[32px] p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-6">
               <div className="flex items-center gap-5">
-                <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 flex-shrink-0">
+                <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 flex-shrink-0">
                   <Icon icon="lucide:clipboard-list" className="w-7 h-7" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">Phase 1: Technical Setup</h3>
-                  <p className="text-gray-400 text-sm">Fill in the access details above, then click the button to save and validate the setup.</p>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Phase 1: Technical Setup</h3>
+                  <p className="text-gray-400 dark:text-gray-500 text-sm">Fill in the access details above, then click the button to save and validate the setup.</p>
                 </div>
               </div>
               <button
@@ -583,31 +583,31 @@ const AccessesTab = ({ projectId }) => {
             </div>
           )}
 
-          {/* Setup Validated Status (Success mode) */}
+{/* Setup Validated Status (Success mode) */}
           {itStatus === 'setup_validated' && (
-            <div className="mt-4 bg-white border border-green-50 rounded-[32px] p-4 flex items-center gap-3">
-              <div className="h-10 w-10 bg-green-50 rounded-full flex items-center justify-center flex-shrink-0 text-green-600">
+            <div className="mt-4 bg-white dark:bg-slate-900 border border-green-50 dark:border-green-900/30 rounded-[32px] p-4 flex items-center gap-3">
+              <div className="h-10 w-10 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0 text-green-600 dark:text-green-400">
                 <Icon icon="lucide:check" className="h-5 w-5" />
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-gray-900 text-sm">Setup Validated ✅</h3>
-                <p className="text-gray-400 text-xs">
+                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm">Setup Validated ✅</h3>
+                <p className="text-gray-400 dark:text-gray-500 text-xs">
                   IT setup checklist completed and locked. Phase 1 is finished.
                 </p>
               </div>
             </div>
           )}
 
-          {/* Phase 2: Final Integration Banner — only shown when Content is also completed */}
+{/* Phase 2: Final Integration Banner — only shown when Content is also completed */}
           {userRole === 'd.it' && itStatus === 'setup_validated' && contentStatus === 'completed' && (
-            <div className="mt-8 bg-white border border-indigo-50 rounded-[32px] p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div className="mt-8 bg-white dark:bg-slate-900 border border-indigo-50 dark:border-indigo-900/30 rounded-[32px] p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-6">
               <div className="flex items-center gap-5">
-                <div className="w-14 h-14 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 flex-shrink-0">
+                <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 flex-shrink-0">
                   <Icon icon="lucide:check-square" className="w-7 h-7" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">Phase 2: Final Integration</h3>
-                  <p className="text-gray-400 text-sm">Complete the final integration checklist to finish the project.</p>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Phase 2: Final Integration</h3>
+                  <p className="text-gray-400 dark:text-gray-500 text-sm">Complete the final integration checklist to finish the project.</p>
                 </div>
               </div>
               <button
@@ -620,15 +620,15 @@ const AccessesTab = ({ projectId }) => {
             </div>
           )}
 
-          {/* Waiting for Content — shown when IT Setup done but Content not yet completed */}
+{/* Waiting for Content — shown when IT Setup done but Content not yet completed */}
           {userRole === 'd.it' && itStatus === 'setup_validated' && contentStatus !== 'completed' && (
-            <div className="mt-8 bg-white border border-amber-100 rounded-[32px] p-6 flex items-center gap-5">
-              <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center text-amber-500 flex-shrink-0">
+            <div className="mt-8 bg-white dark:bg-slate-900 border border-amber-100 dark:border-amber-800/30 rounded-[32px] p-6 flex items-center gap-5">
+              <div className="w-14 h-14 bg-amber-50 dark:bg-amber-900/30 rounded-full flex items-center justify-center text-amber-500 dark:text-amber-400 flex-shrink-0">
                 <Icon icon="lucide:clock" className="w-7 h-7" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-gray-900">Waiting for Content Department</h3>
-                <p className="text-gray-400 text-sm">Phase 2 — Final Integration will be available once the Content department completes their work.</p>
+                <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">Waiting for Content Department</h3>
+                <p className="text-gray-400 dark:text-gray-500 text-sm">Phase 2 — Final Integration will be available once the Content department completes their work.</p>
               </div>
             </div>
           )}
@@ -659,16 +659,16 @@ const AccessesTab = ({ projectId }) => {
               </div>
             )}
 
-            {/* Quick Access Info (Read Only) */}
+{/* Quick Access Info (Read Only) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-6 bg-white border border-gray-100 rounded-3xl">
-                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Site Domain</h4>
+              <div className="p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 rounded-3xl">
+                <h4 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">Site Domain</h4>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                    <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400">
                       <Icon icon="lucide:globe" className="w-5 h-5" />
                     </div>
-                    <span className="text-xl font-bold text-gray-900">{formData.domain.name || 'N/A'}</span>
+                    <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{formData.domain.name || 'N/A'}</span>
                   </div>
                   {formData.domain.name && (
                     <button
@@ -680,17 +680,17 @@ const AccessesTab = ({ projectId }) => {
                     </button>
                   )}
                 </div>
-              </div>
-              <div className="p-6 bg-white border border-gray-100 rounded-3xl">
-                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">WP Admin Access</h4>
+</div>
+              <div className="p-6 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 rounded-3xl">
+                <h4 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">WP Admin Access</h4>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600">
+                    <div className="w-10 h-10 bg-amber-50 dark:bg-amber-900/30 rounded-xl flex items-center justify-center text-amber-600 dark:text-amber-400">
                       <Icon icon="lucide:user" className="w-5 h-5" />
                     </div>
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold text-gray-900">{formData.wordpress.adminUsername}</span>
+                        <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{formData.wordpress.adminUsername}</span>
                         <button
                           onClick={() => handleCopy(formData.wordpress.adminUsername, "Username")}
                           className="text-gray-400 hover:text-blue-600 transition-colors"
@@ -750,15 +750,15 @@ const AccessesTab = ({ projectId }) => {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Two Column Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Domain Information */}
-              <div className="bg-white border border-gray-200 rounded-lg p-4">
+{/* Domain Information */}
+              <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-base font-semibold text-gray-900">Website Domain</h3>
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Website Domain</h3>
                   <span className="text-xs text-red-500 font-medium">Required</span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Domain Name
                   </label>
                   <div className="relative">
@@ -767,7 +767,7 @@ const AccessesTab = ({ projectId }) => {
                       value={formData.domain.name || ''}
                       onChange={(e) => handleChange(e, 'domain', 'name')}
                       placeholder="example.com"
-                      className={`block w-full px-3 py-1.5 pr-9 text-sm border ${errors.domainName ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                      className={`block w-full px-3 py-1.5 pr-9 text-sm border ${errors.domainName ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary bg-white dark:bg-slate-800 ${!canEdit ? 'bg-gray-50 dark:bg-gray-900 cursor-not-allowed' : ''} text-gray-900 dark:text-gray-100`}
                       readOnly={!canEdit}
                       disabled={!canEdit}
                     />
@@ -786,16 +786,16 @@ const AccessesTab = ({ projectId }) => {
                 </div>
               </div>
 
-              {/* WordPress Information */}
-              <div className="bg-white border border-gray-200 rounded-lg p-4">
+{/* WordPress Information */}
+              <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-base font-semibold text-gray-900">WordPress Admin</h3>
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">WordPress Admin</h3>
                   <span className="text-xs text-red-500 font-medium">Required</span>
                 </div>
 
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Admin Email
                     </label>
                     <div className="relative">
@@ -804,7 +804,7 @@ const AccessesTab = ({ projectId }) => {
                         value={formData.wordpress.adminEmail || ''}
                         onChange={(e) => handleChange(e, 'wordpress', 'adminEmail')}
                         placeholder="admin@example.com"
-                        className={`block w-full px-3 py-1.5 pr-9 text-sm border ${errors.wordpressEmail ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                        className={`block w-full px-3 py-1.5 pr-9 text-sm border ${errors.wordpressEmail ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary bg-white dark:bg-slate-800 ${!canEdit ? 'bg-gray-50 dark:bg-gray-900 cursor-not-allowed' : ''} text-gray-900 dark:text-gray-100`}
                         readOnly={!canEdit}
                         disabled={!canEdit}
                       />
@@ -822,8 +822,8 @@ const AccessesTab = ({ projectId }) => {
                     )}
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+<div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Admin Username
                     </label>
                     <div className="relative">
@@ -832,7 +832,7 @@ const AccessesTab = ({ projectId }) => {
                         value={formData.wordpress.adminUsername || ''}
                         onChange={(e) => handleChange(e, 'wordpress', 'adminUsername')}
                         placeholder="admin"
-                        className={`block w-full px-3 py-1.5 pr-9 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                        className={`block w-full px-3 py-1.5 pr-9 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary bg-white dark:bg-slate-800 ${!canEdit ? 'bg-gray-50 dark:bg-gray-900 cursor-not-allowed' : ''} text-gray-900 dark:text-gray-100`}
                         readOnly={!canEdit}
                         disabled={!canEdit}
                       />
@@ -847,8 +847,8 @@ const AccessesTab = ({ projectId }) => {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+<div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Admin Password
                     </label>
                     <div className="relative">
@@ -857,7 +857,7 @@ const AccessesTab = ({ projectId }) => {
                         value={maskPassword(formData.wordpress.adminPassword)}
                         onChange={(e) => handleChange(e, 'wordpress', 'adminPassword')}
                         placeholder={canEdit ? "WordPress password" : "••••••••"}
-                        className={`block w-full px-3 py-1.5 pr-9 text-sm border ${errors.wordpressPassword ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                        className={`block w-full px-3 py-1.5 pr-9 text-sm border ${errors.wordpressPassword ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary bg-white dark:bg-slate-800 ${!canEdit ? 'bg-gray-50 dark:bg-gray-900 cursor-not-allowed' : ''} text-gray-900 dark:text-gray-100`}
                         readOnly={!canEdit}
                         disabled={!canEdit}
                       />
@@ -896,8 +896,8 @@ const AccessesTab = ({ projectId }) => {
                     )}
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+<div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Login URL
                     </label>
                     <div className="relative">
@@ -906,7 +906,7 @@ const AccessesTab = ({ projectId }) => {
                         value={formData.wordpress.loginUrl || ''}
                         onChange={(e) => handleChange(e, 'wordpress', 'loginUrl')}
                         placeholder="https://example.com/wp-admin"
-                        className={`block w-full px-3 py-1.5 pr-16 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary ${!canEdit ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                        className={`block w-full px-3 py-1.5 pr-16 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary bg-white dark:bg-slate-800 ${!canEdit ? 'bg-gray-50 dark:bg-gray-900 cursor-not-allowed' : ''} text-gray-900 dark:text-gray-100`}
                         readOnly={!canEdit}
                         disabled={!canEdit}
                       />
@@ -941,22 +941,22 @@ const AccessesTab = ({ projectId }) => {
             {/* Form Actions - Only Clear is available; Save+Validate is handled by the Phase 1 banner button */}
             {canEdit ? (
               <div className="flex justify-end gap-2 pt-2">
-                <button
+<button
                   type="button"
                   onClick={handleClear}
-                  className="px-3 py-1.5 text-xs border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors"
+                  className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 >
                   Clear All
                 </button>
               </div>
             ) : (
-              <div className="pt-2">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+<div className="pt-2">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/30 rounded-lg p-3">
                   <div className="flex items-center">
-                    <svg className="h-4 w-4 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-4 w-4 text-blue-500 dark:text-blue-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <p className="text-sm text-blue-700">
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
                       This information is view-only. Only the IT Department (d.it) can edit access details.
                     </p>
                   </div>
@@ -967,32 +967,32 @@ const AccessesTab = ({ projectId }) => {
         )}
 
 
-        {/* Success state for completed integration */}
+{/* Success state for completed integration */}
         {itStatus === 'integration_completed' && (
-          <div className="mt-8 text-center p-8 bg-white border border-gray-100 rounded-[32px]">
-            <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center text-green-600 mx-auto mb-4 border border-green-100">
+          <div className="mt-8 text-center p-8 bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 rounded-[32px]">
+            <div className="w-16 h-16 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-600 dark:text-green-400 mx-auto mb-4 border border-green-100 dark:border-green-900/50">
               <Icon icon="lucide:check-check" className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-1">Integration Done!</h3>
-            <p className="text-gray-400 text-sm">The technical setup and integration have been fully finalized.</p>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Integration Done!</h3>
+            <p className="text-gray-400 dark:text-gray-500 text-sm">The technical setup and integration have been fully finalized.</p>
           </div>
         )}
       </div>
 
       {/* ── IT Setup Checklist Modal ────────────────────────────────── */}
       {isChecklistModalOpen && (
-        <div className="fixed inset-0 bg-black/60 z-[80] flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-blue-100">
+<div className="fixed inset-0 bg-black/60 z-[80] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-blue-100 dark:border-blue-900/30">
 
             {/* Modal Header */}
-            <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-blue-50/40">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-800 bg-blue-50/40 dark:bg-blue-900/20">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-md">
+<div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-md">
                   <Icon icon="lucide:clipboard-check" className="w-6 h-6" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-blue-900">IT Setup Checklist</h2>
-                  <p className="text-sm text-blue-600">Validate all items to confirm Phase 1 setup</p>
+                  <h2 className="text-xl font-bold text-blue-900 dark:text-blue-100">IT Setup Checklist</h2>
+                  <p className="text-sm text-blue-600 dark:text-blue-400">Validate all items to confirm Phase 1 setup</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">

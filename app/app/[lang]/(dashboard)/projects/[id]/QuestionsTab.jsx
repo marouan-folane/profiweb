@@ -1405,20 +1405,20 @@ const QuestionsTab = ({ setFormSubmitted }) => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[400px]">
+<div className="flex justify-center items-center min-h-[400px]">
         <div className="text-center p-6">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading project questionnaire...</p>
+          <p className="text-gray-600 dark:text-gray-400 font-medium">Loading project questionnaire...</p>
         </div>
       </div>
     );
   }
 
   // Error state
-  if (!projectData && !isLoading) {
+if (!projectData && !isLoading) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-xl p-6 md:p-8 text-center max-w-lg mx-auto my-8">
-        <div className="text-red-500 mb-4 flex justify-center">
+      <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl p-6 md:p-8 text-center max-w-lg mx-auto my-8">
+        <div className="text-red-500 dark:text-red-400 mb-4 flex justify-center">
           <Icon icon="lucide:alert-circle" className="w-12 h-12" />
         </div>
         <h3 className="text-lg md:text-xl font-bold text-red-900 mb-2">Error Loading Project</h3>
@@ -1433,126 +1433,94 @@ const QuestionsTab = ({ setFormSubmitted }) => {
     );
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">Project Questionnaire</h2>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-2">
-            {(formData.templateName || projectData?.data?.project?.templateName) && (
-              <div className="text-indigo-600 font-bold italic text-xs md:text-sm flex items-center gap-1.5 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-lg">
-                <Icon icon="lucide:layout" className="w-3.5 h-3.5" />
-                Template: {formData.templateName || projectData.data.project.templateName}
-              </div>
-            )}
-            <p className="text-gray-500 text-xs md:text-sm">
-              {(formData.templateName || projectData?.data?.project?.templateName) ? "Detailed configurations for the selected template" : "Fill out the project questionnaire to get started"}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-
-          {/* Auto-save status pill */}
-          {saveStatus === 'saving' && (
-            <span className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100 select-none">
-              <Icon icon="lucide:loader-2" className="animate-spin h-3.5 w-3.5" />
-              Saving Progress…
-            </span>
-          )}
-          {saveStatus === 'saved' && (
-            <span className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-green-50 text-green-600 border border-green-100 select-none">
-              <Icon icon="lucide:check-circle" className="h-3.5 w-3.5" />
-              Progress Saved
-            </span>
-          )}
-          {saveStatus === 'error' && (
-            <span className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-red-50 text-red-600 border border-red-100 select-none">
-              <Icon icon="lucide:alert-circle" className="h-3.5 w-3.5" />
-              Save failed
-            </span>
-          )}
-
-          <button
-            onClick={handleRefreshQuestions}
-            className="px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95 text-sm font-semibold w-full sm:w-auto"
-            disabled={isLoading}
-          >
-            {isRefreshing ? (
-              <>
-                <Icon icon="lucide:loader-2" className="animate-spin h-4 w-4 text-gray-500" />
-                Refreshing...
-              </>
-            ) : (
-              <>
-                <Icon icon="lucide:refresh-cw" className="w-4 h-4 text-gray-500" />
-                Refresh Questions
-              </>
-            )}
-          </button>
-
-          {/* {questionsResponse?.data?.statistics && (
-            <div className="flex items-center gap-2">
-              <div className="text-sm text-gray-600">
-                {questionsResponse.data.statistics.answered || 0} / {questionsResponse.data.statistics.total || 0} answered
-              </div>
-              <div className="w-32 bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-primary h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${questionsResponse.data.statistics.completionPercentage || 0}%` }}
-                ></div>
-              </div>
-              <span className="text-sm font-medium text-gray-700">
-                {questionsResponse.data.statistics.completionPercentage || 0}%
-              </span>
-            </div>
-          )} */}
-        </div>
+return (
+  <div className="space-y-6">
+    {/* Header */}
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Project Questionnaire</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Complete all required fields to proceed</p>
       </div>
+      <p className="text-gray-500 text-xs md:text-sm">
+        {(formData.templateName || projectData?.data?.project?.templateName)
+          ? "Detailed configurations for the selected template"
+          : "Fill out the project questionnaire to get started"}
+      </p>
 
-      {/* Debug info - remove in production */}
-      {/* <div className="bg-gray-50 p-4 rounded-lg text-sm">
-        <div className="flex flex-wrap gap-4">
-          <div className="flex items-center gap-2">
-            <span className={`h-2 w-2 rounded-full ${hasLoadedQuestions ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
-            <span>Questions Loaded: {hasLoadedQuestions ? 'Yes' : 'No'}</span>
-          </div>
-          <div>Questions Count: {questionsResponse?.data?.questions?.length || 0}</div>
-          <div>Template Selected: {selectedTemplate ? 'Yes' : 'No'}</div>
-          <div>Form Initialized: {isInitialized ? 'Yes' : 'No'}</div>
-        </div>
-      </div> */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        {/* Auto-save status pill */}
+        {saveStatus === 'saving' && (
+          <span className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-100 select-none">
+            <Icon icon="lucide:loader-2" className="animate-spin h-3.5 w-3.5" />
+            Saving Progress…
+          </span>
+        )}
+        {saveStatus === 'saved' && (
+          <span className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-green-50 text-green-600 border border-green-100 select-none">
+            <Icon icon="lucide:check-circle" className="h-3.5 w-3.5" />
+            Progress Saved
+          </span>
+        )}
+        {saveStatus === 'error' && (
+          <span className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-red-50 text-red-600 border border-red-100 select-none">
+            <Icon icon="lucide:alert-circle" className="h-3.5 w-3.5" />
+            Save failed
+          </span>
+        )}
 
-      {/* ── Main Questionnaire Content (Hidden for Sales) ─────────────────────────── */}
-      {isSalesDept ? (
-        <div className="bg-white rounded-2xl border border-blue-100 p-8 md:p-16 text-center shadow-sm">
-          <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-500 shadow-inner">
+        <button
+          onClick={handleRefreshQuestions}
+          className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95 text-sm font-semibold w-full sm:w-auto"
+          disabled={isLoading}
+        >
+          {isRefreshing ? (
+            <>
+              <Icon icon="lucide:loader-2" className="animate-spin h-4 w-4 text-gray-500" />
+              Refreshing...
+            </>
+          ) : (
+            <>
+              <Icon icon="lucide:refresh-cw" className="w-4 h-4 text-gray-500" />
+              Refresh Questions
+            </>
+          )}
+        </button>
+      </div>
+    </div>  {/* ← closes the header flex div */}
+
+    {/* Debug info - remove in production */}
+    {/* <div className="bg-gray-50 p-4 rounded-lg text-sm"> ... </div> */}
+
+    {/* ── Main Questionnaire Content ── */}
+    {isSalesDept ? (
+      // ... rest unchanged
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-blue-100 dark:border-blue-900/30 p-8 md:p-16 text-center shadow-sm">
+          <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-500 dark:text-blue-400 shadow-inner">
             <Icon icon="lucide:user-check" className="w-10 h-10" />
           </div>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-3 tracking-tight">Project Successfully Created</h2>
-          <p className="text-gray-500 max-w-md mx-auto leading-relaxed text-sm md:text-base">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3 tracking-tight">Project Successfully Created</h2>
+          <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto leading-relaxed text-sm md:text-base">
             As a member of the Sales Department, you have successfully created this project.
-            The detailed configuration questionnaire is now managed by the <span className="text-indigo-600 font-bold">Information Department</span>.
+            The detailed configuration questionnaire is now managed by the <span className="text-indigo-600 dark:text-indigo-400 font-bold">Information Department</span>.
           </p>
         </div>
       ) : (
         <>
           {/* ── Client File Upload Link ────── */}
-          <div className="bg-white rounded-xl border border-indigo-100 p-6 shadow-sm mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-indigo-100 dark:border-indigo-900/30 p-6 shadow-sm mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                <Icon icon="carbon:link" className="text-indigo-600 text-lg" />
+              <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Icon icon="carbon:link" className="text-indigo-600 dark:text-indigo-400 text-lg" />
                 Client File Upload Link
               </h3>
-              <p className="text-xs text-gray-500 mt-1">Share this link with the client to securely upload project files.</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Share this link with the client to securely upload project files.</p>
             </div>
             <div className="flex items-center gap-2 w-full md:w-auto">
-              <input
+<input
                 type="text"
                 readOnly
                 value={typeof window !== 'undefined' ? `${window.location.origin}/${params.lang}/upload/${projectId}` : ''}
-                className="w-full md:w-64 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 outline-none"
+                className="w-full md:w-64 text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 outline-none"
                 onClick={(e) => e.target.select()}
               />
               <button
@@ -1690,15 +1658,15 @@ const QuestionsTab = ({ setFormSubmitted }) => {
                 />
               ))}
 
-            {/* ── DragOverlay: floating preview while dragging ── */}
+{/* ── DragOverlay: floating preview while dragging ── */}
             <DragOverlay>
               {activeDragItem ? (
-                <div className="bg-white border-2 border-primary rounded-xl px-4 py-3 shadow-2xl opacity-95 max-w-sm">
+                <div className="bg-white dark:bg-slate-800 border-2 border-primary rounded-xl px-4 py-3 shadow-2xl opacity-95 max-w-sm">
                   <div className="flex items-center gap-2">
                     <Icon icon="lucide:grip-vertical" className="w-4 h-4 text-primary" />
-                    <p className="text-sm font-medium text-gray-800 truncate">{activeDragItem.question}</p>
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{activeDragItem.question}</p>
                   </div>
-                  <p className="text-[10px] font-mono text-gray-400 mt-0.5 ml-6">{activeDragItem.questionKey}</p>
+                  <p className="text-[10px] font-mono text-gray-400 dark:text-gray-500 mt-0.5 ml-6">{activeDragItem.questionKey}</p>
                 </div>
               ) : null}
             </DragOverlay>

@@ -6,7 +6,7 @@ const {
     updateTemplate,
     deleteTemplate
 } = require("../controllers/templateController");
-const { protect } = require("../middlewares/auth");
+const { protect, restrictTo } = require("../middlewares/auth");
 
 const router = express.Router({ mergeParams: true });
 
@@ -20,6 +20,6 @@ router.route("/")
 router.route("/:id")
     .get(getTemplate)
     .patch(updateTemplate)
-    .delete(deleteTemplate);
+    .delete(restrictTo('superadmin', 'admin'), deleteTemplate);
 
 module.exports = router;

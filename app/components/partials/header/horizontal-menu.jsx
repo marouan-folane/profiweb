@@ -14,7 +14,7 @@ import Image from "next/image";
  */
 const MENU_PERMISSIONS = {
   // Define which roles should see the header menu
-  SHOW_MENU_ROLES: ['superadmin', 'admin', 'manager'], // superadmin, admin, manager
+  SHOW_MENU_ROLES: ['superadmin', 'admin', 'manager', 'd.it'], // superadmin, admin, manager, d.it
   HIDE_MENU_FOR_ALL_OTHERS: true // Hide for everyone else
 };
 
@@ -24,8 +24,8 @@ const MENU_PERMISSIONS = {
 const shouldShowMenu = (userRole) => {
   if (!userRole) return false;
 
-  // Only show menu for superadmin
-  return MENU_PERMISSIONS.SHOW_MENU_ROLES.includes(userRole);
+  const normalized = userRole.toLowerCase();
+  return MENU_PERMISSIONS.SHOW_MENU_ROLES.map(r => r.toLowerCase()).includes(normalized);
 };
 
 export default function MainMenu({ trans, userRole }) {
@@ -60,10 +60,19 @@ export default function MainMenu({ trans, userRole }) {
   }
 
   // Filter menus based on user role
-  const menus = useMemo(
-    () => allMenus.filter(item => !item.roles || item.roles.includes(userRole)),
-    [allMenus, userRole]
-  );
+  const menus = useMemo(() => {
+    const normalizedRole = userRole?.toLowerCase();
+    return allMenus
+      .filter(item => !item.roles || item.roles.map(r => r.toLowerCase()).includes(normalizedRole))
+      .map(item => ({
+        ...item,
+        child: item.child?.filter(childItem => !childItem.roles || childItem.roles.map(r => r.toLowerCase()).includes(normalizedRole)),
+        megaMenu: item.megaMenu?.map(tab => ({
+          ...tab,
+          child: tab.child?.filter(childItem => !childItem.roles || childItem.roles.map(r => r.toLowerCase()).includes(normalizedRole))
+        }))
+      }));
+  }, [allMenus, userRole]);
 
   return (
     <div>

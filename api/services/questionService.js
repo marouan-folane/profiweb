@@ -152,7 +152,7 @@ class QuestionService {
     }
 
     /**
-     * Group questions by section
+     * Group questions by section with order
      */
     static groupQuestionsBySection(questions) {
         if (!questions || !Array.isArray(questions)) return [];
@@ -165,6 +165,7 @@ class QuestionService {
                 acc[section] = {
                     sectionName,
                     questions: [],
+                    sectionOrder: question.sectionOrder || 0,
                 };
             }
 
@@ -172,11 +173,82 @@ class QuestionService {
             return acc;
         }, {});
 
-        return Object.keys(grouped).map((section) => ({
-            section,
-            sectionName: grouped[section].sectionName,
-            questions: grouped[section].questions,
-        }));
+        return Object.keys(grouped)
+            .map((section) => ({
+                section,
+                sectionName: grouped[section].sectionName,
+                questions: grouped[section].questions.sort((a, b) => (a.order || 0) - (b.order || 0)),
+                sectionOrder: grouped[section].sectionOrder,
+            }))
+            .sort((a, b) => a.sectionOrder - b.sectionOrder);
+    }
+
+    /**
+     * Update section order for all questions in a section (for templates)
+     */
+    static async updateSectionOrder(sectionId, newOrder) {
+        const Question = require('../models/question.model');
+        const QuestionTemplate = require('../models/questionTemplate.model');
+        
+        await Question.updateMany(
+            { section: sectionId },
+            { sectionOrder: newOrder }
+        );
+        
+        await QuestionTemplate.updateMany(
+            { section: sectionId },
+            { sectionOrder: newOrder }
+        );
+    }
+
+    /**
+     * Reorder sections and update questions accordingly (for templates)
+     */
+    static async reorderSections(sectionIds) {
+        const Question = require('../models/question.model');
+        const QuestionTemplate = require('../models/questionTemplate.model');
+        
+        for (let i = 0; i < sectionIds.length; i++) {
+            await Question.updateMany(
+                { section: sectionIds[i] },
+                { sectionOrder: i }
+            );
+            
+            await QuestionTemplate.updateMany(
+                { section: sectionIds[i] },
+                { sectionOrder: i }
+            );
+        }
+    }
+
+    /**
+     * Create a new section and optionally place it between existing sections (for templates)
+     */
+    static async createSection(sectionId, sectionName, insertAfterSection = null) {
+        const Question = require('../models/question.model');
+        const QuestionTemplate = require('../models/questionTemplate.model');
+        
+        // If inserting after a specific section, get its order
+        let targetOrder = 0;
+        if (insertAfterSection) {
+            const sectionQuestions = await QuestionTemplate.find({ section: insertAfterSection });
+            if (sectionQuestions.length > 0) {
+                targetOrder = (sectionQuestions[0].sectionOrder || 0) + 1;
+            }
+        }
+
+        // Update all sections with order >= targetOrder to shift them down
+        await Question.updateMany(
+            { sectionOrder: { $gte: targetOrder } },
+            { $inc: { sectionOrder: 1 } }
+        );
+        
+        await QuestionTemplate.updateMany(
+            { sectionOrder: { $gte: targetOrder } },
+            { $inc: { sectionOrder: 1 } }
+        );
+
+        return { sectionId, sectionName, sectionOrder: targetOrder };
     }
 
     /**

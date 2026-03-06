@@ -35,6 +35,11 @@ const questionTemplateSchema = new mongoose.Schema({
         required: true,
         default: 'General'
     },
+    sectionOrder: {
+        type: Number,
+        required: true,
+        default: 0
+    },
     order: {
         type: Number,
         required: true,

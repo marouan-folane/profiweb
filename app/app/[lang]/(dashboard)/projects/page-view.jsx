@@ -1275,7 +1275,7 @@ const ProjectsPage = () => {
         <TabsContent value="active" className="mt-6">
           {/* Filters for Active Projects */}
           <Card className="mb-6 border-slate-200 dark:border-slate-700 shadow-sm">
-            <CardContent className="p-6">
+            <CardContent className="p-6 dark:bg-slate-900/40">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <Input
@@ -1294,7 +1294,7 @@ const ProjectsPage = () => {
         <TabsContent value="archived" className="mt-6">
           {/* Filters for Archived Projects */}
           <Card className="mb-6 border-slate-200 dark:border-slate-700 shadow-sm">
-            <CardContent className="p-6">
+            <CardContent className="p-6 dark:bg-slate-900/40">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Input
@@ -1343,7 +1343,7 @@ const ProjectsPage = () => {
 
       {/* Projects Table */}
       <Card className="border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-        <CardContent className="p-0">
+        <CardContent className="p-0 dark:bg-slate-900/40">
 
           {loading ? (
             <div className="flex justify-center items-center py-12">
@@ -1353,12 +1353,12 @@ const ProjectsPage = () => {
             <div className="flex flex-col items-center justify-center py-12">
               <Icon
                 icon={activeTab === 'active' ? "lucide:folder-open" : "lucide:archive"}
-                className="w-16 h-16 text-slate-300 mb-4"
+                className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4"
               />
-              <h3 className="text-lg font-medium text-slate-700 mb-2">
+              <h3 className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
                 {activeTab === 'active' ? 'No active projects found' : 'No archived projects found'}
               </h3>
-              <p className="text-slate-500 mb-4">
+              <p className="text-slate-500 dark:text-slate-400 mb-4">
                 {activeTab === 'active'
                   ? 'Get started by creating your first project'
                   : 'Archived projects will appear here'}
@@ -1366,7 +1366,7 @@ const ProjectsPage = () => {
               {activeTab === 'active' && (["superadmin", "admin", "manager", "d.s"].includes(userRole)) && (
                 <Button
                   onClick={() => router.push('/projects/new')}
-                  className="gap-2 bg-gradient-to-r from-yellow-600 "
+                  className="gap-2 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-white"
                 >
                   <Icon icon="heroicons:plus" className="w-4 h-4" />
                   Create New Project
@@ -1388,15 +1388,6 @@ const ProjectsPage = () => {
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Category</th>
                       {userRole === "d.s" && (
                         <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Status</th>
-                      )}
-                      {userRole === "d.i" && (
-                        <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Information Dept Status</th>
-                      )}
-                      {userRole === "d.c" && (
-                        <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Content Dept Status</th>
-                      )}
-                      {userRole === "d.d" && (
-                        <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Design Dept Status</th>
                       )}
                       <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Priority</th>
                       {['superadmin', 'admin'].includes(userRole) && (
