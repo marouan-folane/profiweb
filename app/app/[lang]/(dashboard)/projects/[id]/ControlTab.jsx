@@ -104,12 +104,12 @@ const ControlTab = ({ projectId, project }) => {
         <div className="space-y-6">
 
             {/* ── Header banner ─────────────────────────────────────────────── */}
-            <div className={`rounded-xl border p-5 flex items-center justify-between ${isConfirmed
+            <div className={`rounded-xl border p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${isConfirmed
                 ? "bg-green-50 border-green-200"
                 : "bg-violet-50 border-violet-100"
                 }`}>
                 <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isConfirmed ? "bg-green-100" : "bg-violet-100"
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isConfirmed ? "bg-green-100" : "bg-violet-100"
                         }`}>
                         <Icon
                             icon={isConfirmed ? "lucide:check-circle-2" : "lucide:clipboard-check"}
@@ -128,7 +128,7 @@ const ControlTab = ({ projectId, project }) => {
 
                 {/* Progress pill */}
                 {!isConfirmed && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 justify-end sm:justify-start">
                         <div className="w-28 h-2 bg-violet-100 rounded-full overflow-hidden">
                             <div
                                 className="h-full bg-violet-500 rounded-full transition-all duration-300"

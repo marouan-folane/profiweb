@@ -526,7 +526,7 @@ const NewProjectPage = () => {
         </div>
       )}
 
-      <div className="flex flex-col md:flex-col justify-between items-center md:items-start mb-10 gap-6 text-center md:text-left">
+      <div className="flex flex-col md:flex-col sm:flex-col justify-between items-center md:items-start mb-10 gap-6 text-center md:text-left">
         <div className="w-full">
           <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">Create New Project</h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base max-w-lg mx-auto md:mx-0 font-medium">Fill in the essence of your next high-performance achievement</p>
@@ -1203,14 +1203,14 @@ const NewProjectPage = () => {
 
       {/* Bottom Action Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-default-200 p-4 shadow-lg">
-        <div className="container mx-auto flex sm:flex-col sm:gap-4 justify-between items-center">
-          <div className="text-sm text-default-600">
+        <div className="container mx-auto flex flex-col sm:flex-row sm:gap-6 justify-between items-center">
+          <div className="text-sm text-default-600 pt-2">
             Creating new project: <span className="font-sm">{formData.title || 'Untitled Project'}</span>
           </div>
           <div className="flex gap-3">
             <Button
               variant="outline"
-              className="h-11 px-4 gap-2 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5"
+              className="h-10 px-4 gap-2 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5"
               onClick={() => setShowClientForm(true)}
               disabled={loading}
             >
@@ -1218,12 +1218,13 @@ const NewProjectPage = () => {
               <span className="hidden sm:inline">New Client</span>
             </Button>
 
-            <Button variant="outline" onClick={handleCancel} className="h-11 px-5 gap-2 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5" disabled={loading}>
+            <Button variant="outline" onClick={handleCancel} 
+            className="h-10 px-5 gap-2 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5" disabled={loading}>
               <span>Cancel</span>
             </Button>
             <Button
               onClick={handleSubmit}
-              className="h-11 px-8 gap-2 bg-[#FCCF3C] text-white font-bold hover:bg-[#ddc165] shadow-lg shadow-yellow-500/10 border-none"
+              className="h-10 px-8 gap-2 bg-[#FCCF3C] text-white font-bold hover:bg-[#ddc165] shadow-lg shadow-yellow-500/10 border-none"
               disabled={loading || clients.length === 0}
             >
               {loading ? (

@@ -120,7 +120,7 @@ const SubmitSection = ({
               <button
                 onClick={onSaveDraft}
                 disabled={updateProjectMutation?.isPending || completeMutationLoading || draftSaveLoading}
-                className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-md font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-md font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
               >
                 {draftSaveLoading ? (
                   <>
@@ -145,7 +145,7 @@ const SubmitSection = ({
                 <button
                   onClick={handleCompleteQuestionnaire}
                   disabled={updateProjectMutation?.isPending || completeMutationLoading || draftSaveLoading}
-                  className="px-6 py-3 bg-primary text-white rounded-md font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-3 bg-primary text-white rounded-md font-medium hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 shadow-sm hover:shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
                 >
                   {updateProjectMutation?.isPending || completeMutationLoading ? (
                     <>

@@ -204,72 +204,74 @@ const DynamicSection = ({
                 : "border-gray-200 shadow-sm"
                 }`}
         >
-            
+
             {/* ── Section Header ─────────────────────────────────────────────── */}
             <div
-                className={`flex items-center justify-between px-6 py-4 ${isSectionVisible ? "bg-primary" : "bg-gray-200"
+                className={`flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:px-6 sm:py-4 gap-4 ${isSectionVisible ? "bg-primary" : "bg-gray-200"
                     }`}
             >
-                <div className="flex items-center gap-3">
-                    <h3 className={`text-base font-semibold ${isSectionVisible ? "text-white" : "text-gray-500"}`}>
+                <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                    <h3 className={`text-sm md:text-base font-bold ${isSectionVisible ? "text-white" : "text-gray-500"} tracking-tight`}>
                         {section.sectionName}
                     </h3>
 
-                    {/* Field count badge */}
-                    <span
-                        className={`text-xs px-2 py-0.5 rounded-full font-medium ${isSectionVisible
-                            ? "bg-white/20 text-white"
-                            : "bg-gray-300 text-gray-600"
-                            }`}
-                    >
-                        {visibleCount} field{visibleCount !== 1 ? "s" : ""}
-                    </span>
+                    <div className="flex items-center gap-2">
+                        {/* Field count badge */}
+                        <span
+                            className={`text-[10px] md:text-xs px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${isSectionVisible
+                                ? "bg-white/20 text-white"
+                                : "bg-gray-300 text-gray-600"
+                                }`}
+                        >
+                            {visibleCount} {visibleCount === 1 ? "Field" : "Fields"}
+                        </span>
 
-                    {/* Section key badge (always visible) */}
-                    <span
-                        className={`font-mono text-[10px] px-1.5 py-0.5 rounded ${isSectionVisible
-                            ? "bg-white/10 text-white/70"
-                            : "bg-gray-100 text-gray-400"
-                            }`}
-                    >
-                        {section.section}
-                    </span>
+                        {/* Section key badge (always visible) */}
+                        <span
+                            className={`font-mono text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-md ${isSectionVisible
+                                ? "bg-white/10 text-white/50"
+                                : "bg-gray-100 text-gray-400"
+                                }`}
+                        >
+                            {section.section}
+                        </span>
+                    </div>
 
                     {/* Hidden badge */}
                     {!isSectionVisible && isAdmin && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-medium flex items-center gap-1">
+                        <span className="text-[10px] md:text-xs px-2 py-0.5 rounded-lg bg-red-100 text-red-600 font-bold flex items-center gap-1 border border-red-200">
                             <Icon icon="lucide:eye-off" className="w-3 h-3" />
-                            Hidden from client
+                            Hidden
                         </span>
                     )}
                 </div>
-                
+
 
                 {/* Admin: section-level visibility toggle */}
                 {isAdmin && onToggleSection && (
                     <button
                         type="button"
                         onClick={() => onToggleSection(section.section, !isSectionVisible)}
-                        className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${isSectionVisible
-                            ? "bg-white/20 text-white hover:bg-white/30"
-                            : "bg-white text-gray-700 hover:bg-gray-100"
+                        className={`flex items-center justify-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl transition-all active:scale-95 w-full sm:w-auto ${isSectionVisible
+                            ? "bg-white/20 text-white hover:bg-white/30 border border-white/20"
+                            : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 shadow-sm"
                             }`}
                         title={isSectionVisible ? "Hide this section from client" : "Show this section"}
                     >
                         <Icon
                             icon={isSectionVisible ? "lucide:eye-off" : "lucide:eye"}
-                            className="w-3.5 h-3.5"
+                            className="w-4 h-4"
                         />
                         {isSectionVisible ? "Hide section" : "Show section"}
                     </button>
                 )}
             </div>
-            
+
 
             {/* ── Fields (droppable + sortable zone) ───────────────────────────── */}
             <div
                 ref={setDropRef}
-                className={`p-6 space-y-5 transition-colors duration-150 min-h-[60px] ${isOver ? "bg-blue-50 ring-2 ring-inset ring-blue-300 rounded-b-xl" : ""}`}
+                className={`p-4 md:p-6 space-y-5 transition-colors duration-150 min-h-[60px] ${isOver ? "bg-blue-50 ring-2 ring-inset ring-blue-300 rounded-b-xl" : ""}`}
             >
                 <SortableContext items={questionKeys} strategy={verticalListSortingStrategy}>
                     {section.questions.map((q) => {
@@ -336,7 +338,7 @@ const DynamicSection = ({
                                 </div>
 
                                 {/* Type + Placeholder */}
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <div>
                                         <label className="block text-xs font-medium text-gray-600 mb-1">
                                             Field type
@@ -395,7 +397,7 @@ const DynamicSection = ({
                                 </label>
 
                                 {/* Multi-language descriptions for ? popup */}
-                                <div className="grid grid-cols-2 gap-3 pt-2">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
                                     <div>
                                         <label className="block text-xs font-medium text-gray-600 mb-1">
                                             Description (EN)
@@ -451,12 +453,13 @@ const DynamicSection = ({
                                 )}
 
                                 {/* Actions */}
-                                <div className="flex items-center gap-2 pt-1">
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
                                     <button
                                         type="button"
                                         onClick={handleSaveNewField}
-                                        className="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                                        className="px-6 py-2.5 bg-primary text-white text-sm rounded-xl hover:bg-primary/90 transition-all font-bold shadow-lg shadow-primary/20 active:scale-95 flex items-center justify-center gap-2"
                                     >
+                                        <Icon icon="lucide:plus" className="w-4 h-4" />
                                         Add field
                                     </button>
                                     <button
@@ -466,7 +469,7 @@ const DynamicSection = ({
                                             setNewField(emptyNewField());
                                             setAddError("");
                                         }}
-                                        className="px-4 py-2 text-gray-600 text-sm rounded-lg hover:bg-gray-100 transition-colors"
+                                        className="px-6 py-2.5 text-gray-600 text-sm rounded-xl hover:bg-gray-200 transition-all font-semibold flex items-center justify-center bg-gray-100"
                                     >
                                         Cancel
                                     </button>

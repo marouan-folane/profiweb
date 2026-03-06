@@ -69,11 +69,11 @@ export default function MainMenu({ trans, userRole }) {
     <div>
       <NavigationMenu.Root
         onValueChange={setValue}
-        className=" flex relative  justify-start group "
+        className=" flex relative  justify-start "
       >
         <NavigationMenu.List
           ref={setList}
-          className="group flex list-none gap-5"
+          className=" flex list-none gap-5"
         >
           {menus?.map((item, index) => {
             const hasChildren = !!(item.child || item.megaMenu);
@@ -100,9 +100,9 @@ export default function MainMenu({ trans, userRole }) {
                   asChild
                   className=" flex items-center"
                 >
-                  <div className=" flex items-center  py-4 cursor-pointer group data-[state=open]:text-primary [&[data-state=open]>span]:text-primary! capitalize group">
+                  <div className=" flex items-center  py-4 cursor-pointer group data-[state=open]:text-primary hover:text-primary [&[data-state=open]>span]:text-primary! capitalize">
                     <item.icon className="h-5 w-5 mr-2" />
-                    <span className="text-sm font-medium text-default-700">
+                    <span className="text-sm font-medium text-default-700 group-hover:text-primary">
                       {translate(item.title, trans)}
                     </span>
                     <ChevronDown

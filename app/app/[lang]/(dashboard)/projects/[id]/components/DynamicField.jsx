@@ -182,7 +182,7 @@ const DynamicField = ({
             case "multiselect":
                 if (resolvedOptions.length === 0) break; // fallback to text below
                 return (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-1">
                         {resolvedOptions.map((o, i) => (
                             <label
                                 key={i}
@@ -278,7 +278,7 @@ const DynamicField = ({
                 Edit field — <code className="font-mono text-amber-700">{questionKey}</code>
             </p>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1">
                     <label className="block text-gray-600 font-semibold uppercase tracking-wider text-[9px]">Label</label>
                     <input
@@ -299,7 +299,7 @@ const DynamicField = ({
 
             <div className="space-y-1">
                 <label className="block text-gray-600 font-semibold uppercase tracking-wider text-[9px] mb-1">Help Descriptions (Translations)</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {['en', 'fr', 'ar', 'de'].map(langKey => (
                         <div key={langKey} className="space-y-0.5">
                             <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{langKey}</span>
@@ -328,14 +328,15 @@ const DynamicField = ({
                 Mark as required
             </label>
 
-            <div className="flex gap-2 pt-2 border-t border-amber-200">
+            <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-amber-200">
                 <button type="button"
                     onClick={() => {
                         onEditSave?.(questionKey, editDraft);
                         setEditMode(false);
                     }}
-                    className="px-4 py-1.5 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary/90 transition-all shadow-sm active:scale-95"
+                    className="flex-1 px-4 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary/90 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
                 >
+                    <Icon icon="lucide:check" className="w-3.5 h-3.5" />
                     Save changes
                 </button>
                 <button type="button"
@@ -343,8 +344,9 @@ const DynamicField = ({
                         setEditMode(false);
                         setEditDraft({ label, placeholder, isRequired, translations: { ...translations } });
                     }}
-                    className="px-4 py-1.5 text-gray-600 bg-white border border-gray-200 rounded-lg text-xs font-semibold hover:bg-gray-50 transition-all active:scale-95"
+                    className="flex-1 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-xl text-xs font-semibold hover:bg-gray-50 transition-all active:scale-95 flex items-center justify-center gap-2"
                 >
+                    <Icon icon="lucide:x" className="w-3.5 h-3.5" />
                     Cancel
                 </button>
             </div>

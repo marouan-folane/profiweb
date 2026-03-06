@@ -281,9 +281,9 @@ const Page = () => {
               <div className="space-y-3">
                 <label
                   htmlFor="title"
-                  className="block text-[12px] sm:text-[14px]  font-bold dark:text-[#ddc165]/80 uppercase"
+                  className="block text-[12px] sm:text-[14px]  font-bold dark:text-[#ddc165]/80 CAPITALIZE"
                 >
-                  Template Title
+                  Template Title *
                 </label>
                 <div className="relative group">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2">
@@ -316,7 +316,7 @@ const Page = () => {
               <div className="space-y-3">
                 <label
                   htmlFor="colors"
-                  className="block text-[12px] sm:text-[14px] font-bold dark:text-[#ddc165]/80 uppercase"
+                  className="block text-[12px] sm:text-[14px] font-bold dark:text-[#ddc165]/80 CAPITALIZE"
                 >
                   Color Palette (Optional)
                 </label>
@@ -351,7 +351,7 @@ const Page = () => {
             <div className="space-y-3">
               <label
                 htmlFor="shortDesc"
-                className="block text-[12px] sm:text-[14px]  font-bold dark:text-[#ddc165]/80 uppercase"
+                className="block text-[12px] sm:text-[14px]  font-bold dark:text-[#ddc165]/80 CAPITALIZE"
               >
                 Short Description *
               </label>
@@ -381,7 +381,7 @@ const Page = () => {
               <div className="flex items-center justify-between">
                 <label
                   htmlFor="structure"
-                  className="text-[12px] sm:text-[14px] font-bold tracking-[0.2em] dark:text-[#ddc165]/80 uppercase"
+                  className="text-[12px] sm:text-[14px] font-bold tracking-[0.2em] dark:text-[#ddc165]/80 CAPITALIZE"
                 >
                   Instructions *
                 </label>
@@ -395,7 +395,7 @@ const Page = () => {
                 <button
                   type="button"
                   onClick={() => insertList('bullet')}
-                  className="flex-1 min-w-[100px] sm:min-w-[120px] h-9 sm:h-10 px-2 sm:px-4 hover:bg-white dark:hover:bg-white/10 hover:shadow-sm rounded-xl transition-all flex items-center justify-center gap-2 text-[10px] sm:text-[12px] md:text-[14px] font-black tracking-widest text-slate-600 dark:text-slate-300 border border-transparent hover:border-slate-200 dark:hover:border-white/10 uppercase"
+                  className="flex-1 min-w-[100px] sm:min-w-[120px] h-9 sm:h-10 px-2 sm:px-4 hover:bg-white dark:hover:bg-white/10 hover:shadow-sm rounded-xl transition-all flex items-center justify-center gap-2 text-[10px] sm:text-[12px] md:text-[14px] font-black tracking-widest text-slate-600 dark:text-slate-300 border border-transparent hover:border-slate-200 dark:hover:border-white/10 CAPITALIZE"
                 >
                   <List className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[#FCCF3C]" />
                   <span>Bullets</span>
@@ -403,7 +403,7 @@ const Page = () => {
                 <button
                   type="button"
                   onClick={() => insertList('dash')}
-                  className="flex-1 min-w-[100px] sm:min-w-[120px] h-9 sm:h-10 px-2 sm:px-4 hover:bg-white dark:hover:bg-white/10 hover:shadow-sm rounded-xl transition-all flex items-center justify-center gap-2 text-[10px] sm:text-[12px] md:text-[14px] font-black tracking-widest text-slate-600 dark:text-slate-300 border border-transparent hover:border-slate-200 dark:hover:border-white/10 uppercase"
+                  className="flex-1 min-w-[100px] sm:min-w-[120px] h-9 sm:h-10 px-2 sm:px-4 hover:bg-white dark:hover:bg-white/10 hover:shadow-sm rounded-xl transition-all flex items-center justify-center gap-2 text-[10px] sm:text-[12px] md:text-[14px] font-black tracking-widest text-slate-600 dark:text-slate-300 border border-transparent hover:border-slate-200 dark:hover:border-white/10 CAPITALIZE"
                 >
                   <Minus className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[#FCCF3C]" />
                   <span>Dashes</span>
@@ -411,10 +411,10 @@ const Page = () => {
                 <button
                   type="button"
                   onClick={() => insertList('number')}
-                  className="flex-1 min-w-[100px] sm:min-w-[120px] h-9 sm:h-10 px-2 sm:px-4 hover:bg-white dark:hover:bg-white/10 hover:shadow-sm rounded-xl transition-all flex items-center justify-center gap-2 text-[10px] sm:text-[12px] md:text-[14px] font-black tracking-widest text-slate-600 dark:text-slate-300 border border-transparent hover:border-slate-200 dark:hover:border-white/10 uppercase"
+                  className="flex-1 min-w-[100px] sm:min-w-[120px] h-9 sm:h-10 px-2 sm:px-4 hover:bg-white dark:hover:bg-white/10 hover:shadow-sm rounded-xl transition-all flex items-center justify-center gap-2 text-[10px] sm:text-[12px] md:text-[14px] font-black tracking-widest text-slate-600 dark:text-slate-300 border border-transparent hover:border-slate-200 dark:hover:border-white/10 CAPITALIZE"
                 >
                   <ListOrdered className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[#FCCF3C]" />
-                  <span>Ordered</span>
+                  <span>Numbred List</span>
                 </button>
               </div>
 
@@ -473,7 +473,7 @@ const Page = () => {
             <div className="p-6 rounded-2xl bg-[#FCCF3C]/5 dark:bg-[#FCCF3C]/5 border border-[#FCCF3C]/10 dark:border-[#FCCF3C]/5">
               <div className="flex items-center gap-2 mb-3">
                 <Settings2 className="h-4 w-4 text-[#ddc165]" />
-                <h3 className="  text-[14px] font-black uppercase tracking-[0.2em] text-[#ddc165]">List Formatting</h3>
+                <h3 className="  text-[14px] font-black CAPITALIZE tracking-[0.2em] text-[#ddc165]">List Formatting</h3>
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
                 Use the toolbar to insert bullet points, dashes, or numbered lists. Each item will be placed on a new line automatically.
@@ -482,7 +482,7 @@ const Page = () => {
             <div className="p-6 rounded-2xl bg-blue-500/5 dark:bg-blue-500/5 border border-blue-500/10 dark:border-blue-500/5">
               <div className="flex items-center gap-2 mb-3">
                 <Palette className="h-4 w-4 text-blue-500" />
-                <h3 className="  text-[14px] font-black uppercase tracking-[0.2em] text-blue-500">Color Format</h3>
+                <h3 className="  text-[14px] font-black CAPITALIZE tracking-[0.2em] text-blue-500">Color Format</h3>
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
                 Use hex codes (#RRGGBB) or valid CSS color functions. Separate multiple colors with commas.

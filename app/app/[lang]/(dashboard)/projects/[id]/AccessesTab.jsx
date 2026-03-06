@@ -558,9 +558,9 @@ const AccessesTab = ({ projectId }) => {
 
           {/* Phase 1: Setup Banner (Pending) — merged Save + Validate button */}
           {userRole === 'd.it' && itStatus === 'pending' && (
-            <div className="mt-4 bg-white border border-blue-100 rounded-[32px] p-6 shadow-sm flex items-center justify-between">
+            <div className="mt-4 bg-white border border-blue-100 rounded-[32px] p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-6">
               <div className="flex items-center gap-5">
-                <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center text-blue-600">
+                <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 flex-shrink-0">
                   <Icon icon="lucide:clipboard-list" className="w-7 h-7" />
                 </div>
                 <div>
@@ -571,7 +571,7 @@ const AccessesTab = ({ projectId }) => {
               <button
                 onClick={handleSaveAndValidate}
                 disabled={saving}
-                className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed w-full md:w-auto"
               >
                 {saving ? (
                   <Icon icon="lucide:loader-2" className="w-4 h-4 animate-spin" />
@@ -600,9 +600,9 @@ const AccessesTab = ({ projectId }) => {
 
           {/* Phase 2: Final Integration Banner — only shown when Content is also completed */}
           {userRole === 'd.it' && itStatus === 'setup_validated' && contentStatus === 'completed' && (
-            <div className="mt-8 bg-white border border-indigo-50 rounded-[32px] p-6 shadow-sm flex items-center justify-between">
+            <div className="mt-8 bg-white border border-indigo-50 rounded-[32px] p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-6">
               <div className="flex items-center gap-5">
-                <div className="w-14 h-14 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600">
+                <div className="w-14 h-14 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 flex-shrink-0">
                   <Icon icon="lucide:check-square" className="w-7 h-7" />
                 </div>
                 <div>
@@ -612,7 +612,7 @@ const AccessesTab = ({ projectId }) => {
               </div>
               <button
                 onClick={() => setIsIntegrationModalOpen(true)}
-                className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all active:scale-95 flex items-center gap-2"
+                className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-2 w-full md:w-auto"
               >
                 <Icon icon="lucide:check-circle" className="w-4 h-4" />
                 Finalize Integration
@@ -638,9 +638,9 @@ const AccessesTab = ({ projectId }) => {
         {itStatus !== 'pending' ? (
           <div className="space-y-6">
             {userRole === 'd.c' && itStatus === 'setup_validated' && contentStatus === 'completed' && (
-              <div className="bg-white border border-green-100 rounded-[32px] p-6 shadow-sm flex items-center justify-between">
+              <div className="bg-white border border-green-100 rounded-[32px] p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                 <div className="flex items-center gap-5">
-                  <div className="w-14 h-14 bg-green-50 rounded-full flex items-center justify-center text-green-600">
+                  <div className="w-14 h-14 bg-green-50 rounded-full flex items-center justify-center text-green-600 flex-shrink-0">
                     <Icon icon="lucide:check" className="w-7 h-7" />
                   </div>
                   <div>
@@ -651,7 +651,7 @@ const AccessesTab = ({ projectId }) => {
 
                 <button
                   onClick={() => setIsIntegrationModalOpen(true)}
-                  className="px-6 py-2.5 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all active:scale-95 flex items-center gap-2 group"
+                  className="px-6 py-2.5 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all active:scale-95 flex items-center justify-center gap-2 group w-full md:w-auto"
                 >
                   <Icon icon="lucide:check-square" className="w-4 h-4" />
                   Complete Integration Checklist

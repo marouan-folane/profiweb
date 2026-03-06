@@ -7,6 +7,8 @@ import { getTemplateById, updateTemplate } from "@/config/functions/template";
 import { toast } from "sonner";
 import { Icon } from "@iconify/react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { ListOrdered,List,Minus } from "lucide-react";
 
 const Page = () => {
     const params = useParams();
@@ -116,9 +118,9 @@ const Page = () => {
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
         const selectedText = formData.structure.substring(start, end);
-        
+
         let listText = "";
-        
+
         if (selectedText) {
             // If text is selected, convert each line to a list item (each on new line)
             const lines = selectedText.split('\n').filter(line => line.trim());
@@ -129,7 +131,7 @@ const Page = () => {
             } else if (type === 'number') {
                 listText = lines.map((line, index) => `${index + 1}. ${line}`).join('\n');
             }
-            
+
             const newText = formData.structure.substring(0, start) + listText + formData.structure.substring(end);
             setFormData(prev => ({ ...prev, structure: newText }));
         } else {
@@ -138,12 +140,12 @@ const Page = () => {
             const cursorPos = start;
             const textBeforeCursor = currentText.substring(0, cursorPos);
             const textAfterCursor = currentText.substring(cursorPos);
-            
+
             // Check if we're at the beginning of a line or need a new line
             const needsNewLine = cursorPos > 0 && currentText.charAt(cursorPos - 1) !== '\n';
-            
+
             let listItems = "";
-            switch(type) {
+            switch (type) {
                 case 'bullet':
                     listItems = "• Item 1\n• Item 2\n• Item 3";
                     break;
@@ -154,20 +156,20 @@ const Page = () => {
                     listItems = "1. Item 1\n2. Item 2\n3. Item 3";
                     break;
             }
-            
+
             // Add newline before list if needed
             if (needsNewLine && cursorPos > 0) {
                 listItems = '\n' + listItems;
             }
-            
+
             // Add newline after list if needed
             if (textAfterCursor.length > 0 && !textAfterCursor.startsWith('\n')) {
                 listItems = listItems + '\n';
             }
-            
+
             const newText = textBeforeCursor + listItems + textAfterCursor;
             setFormData(prev => ({ ...prev, structure: newText }));
-            
+
             // Focus back on textarea and place cursor at end of inserted text
             setTimeout(() => {
                 textarea.focus();
@@ -219,20 +221,20 @@ const Page = () => {
                         </div>
                         <div className="flex items-center space-x-3">
                             {!isEditing ? (
-                                <button
+                                <Button
                                     onClick={() => setIsEditing(true)}
-                                    className="inline-flex items-center px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-sm"
+                                    className="inline-flex items-center px-6 py-2.5 bg-[#fccf3c] text-white font-semibold rounded-xl hover:bg-[#fccf3c] transition-all shadow-sm"
                                 >
                                     <Icon icon="heroicons:pencil-square" className="w-5 h-5 mr-2" />
                                     Edit Template
-                                </button>
+                                </Button>
                             ) : (
-                                <button
+                                <Button
                                     onClick={() => setIsEditing(false)}
                                     className="inline-flex items-center px-6 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all"
                                 >
                                     Cancel
-                                </button>
+                                </Button>
                             )}
                         </div>
                     </div>
@@ -273,38 +275,34 @@ const Page = () => {
                                         Use toolbar for list formatting (each item on new line)
                                     </div>
                                 </div>
-                                
+
                                 {/* Simplified Toolbar - Lists only */}
-                                <div className="mb-3 bg-gray-50 border border-gray-200 rounded-lg p-2 flex flex-wrap gap-2">
+                                <div className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-2 flex flex-wrap gap-2 shadow-inner">
                                     <button
                                         type="button"
                                         onClick={() => insertList('bullet')}
-                                        className="px-3 py-2 hover:bg-gray-200 rounded-md transition-colors flex items-center gap-1 text-sm"
-                                        title="Bullet List (3 items on separate lines)"
+                                        className="flex-1 min-w-[100px] sm:min-w-[120px] h-9 sm:h-10 px-2 sm:px-4 hover:bg-white dark:hover:bg-white/10 hover:shadow-sm rounded-xl transition-all flex items-center justify-center gap-2 text-[10px] sm:text-[12px] md:text-[14px] font-black tracking-widest text-slate-600 dark:text-slate-300 border border-transparent hover:border-slate-200 dark:hover:border-white/10 CAPITALIZE"
                                     >
-                                        <Icon icon="heroicons:list-bullet" className="w-4 h-4" />
-                                        <span>• Bullet List</span>
+                                        <List className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[#FCCF3C]" />
+                                        <span>Bullets</span>
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => insertList('dash')}
-                                        className="px-3 py-2 hover:bg-gray-200 rounded-md transition-colors flex items-center gap-1 text-sm"
-                                        title="Dash List (3 items on separate lines)"
+                                        className="flex-1 min-w-[100px] sm:min-w-[120px] h-9 sm:h-10 px-2 sm:px-4 hover:bg-white dark:hover:bg-white/10 hover:shadow-sm rounded-xl transition-all flex items-center justify-center gap-2 text-[10px] sm:text-[12px] md:text-[14px] font-black tracking-widest text-slate-600 dark:text-slate-300 border border-transparent hover:border-slate-200 dark:hover:border-white/10 CAPITALIZE"
                                     >
-                                        <Icon icon="heroicons:minus" className="w-4 h-4" />
-                                        <span>- Dash List</span>
+                                        <Minus className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[#FCCF3C]" />
+                                        <span>Dashes</span>
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => insertList('number')}
-                                        className="px-3 py-2 hover:bg-gray-200 rounded-md transition-colors flex items-center gap-1 text-sm"
-                                        title="Numbered List (3 items on separate lines)"
+                                        className="flex-1 min-w-[100px] sm:min-w-[120px] h-9 sm:h-10 px-2 sm:px-4 hover:bg-white dark:hover:bg-white/10 hover:shadow-sm rounded-xl transition-all flex items-center justify-center gap-2 text-[10px] sm:text-[12px] md:text-[14px] font-black tracking-widest text-slate-600 dark:text-slate-300 border border-transparent hover:border-slate-200 dark:hover:border-white/10 CAPITALIZE"
                                     >
-                                        <Icon icon="heroicons:list-numbered" className="w-4 h-4" />
-                                        <span>1. Numbered List</span>
+                                        <ListOrdered className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-[#FCCF3C]" />
+                                        <span>Numbred List</span>
                                     </button>
                                 </div>
-
                                 {/* Textarea */}
                                 <textarea
                                     ref={textareaRef}
@@ -318,10 +316,10 @@ const Page = () => {
                             </div>
 
                             <div className="pt-6 border-t border-gray-100 flex justify-end">
-                                <button
+                                <Button
                                     type="submit"
                                     disabled={updateMutation.isPending}
-                                    className="inline-flex items-center px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg"
+                                    className="inline-flex items-center px-8 py-3 bg-[#fccf3c] text-white font-bold rounded-xl hover:bg-[#fccf3c] disabled:opacity-50 transition-all shadow-lg"
                                 >
                                     {updateMutation.isPending ? (
                                         <Icon icon="eos-icons:loading" className="w-5 h-5 mr-2 animate-spin" />
@@ -329,7 +327,7 @@ const Page = () => {
                                         <Icon icon="heroicons:check-circle" className="w-5 h-5 mr-2" />
                                     )}
                                     Save Changes
-                                </button>
+                                </Button>
                             </div>
                         </form>
                     ) : (

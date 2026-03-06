@@ -196,10 +196,10 @@ const Overview = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto px-4 py-8">
+      <div className="mx-auto px-4 py-4 md:py-8">
         {/* Project Header */}
         <div className="mb-0">
-          <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 mb-3">
+          <div className="bg-white rounded-none md:rounded-xl shadow-sm md:shadow-lg border-y md:border border-gray-200 p-4 md:p-6 mb-3 -mx-4 md:mx-0">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
@@ -210,14 +210,14 @@ const Overview = () => {
                   </div>
                   <div>
                     <h1 className="text-2xl font-bold text-gray-900">{projectTitle}</h1>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600">Client:</span>
                         <span className="text-sm font-medium text-gray-800">{clientName}</span>
                       </div>
                       {(project.templateName || project.selectedTemplate) && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-600 border-l border-gray-300 pl-4">Template:</span>
+                        <div className="flex items-center gap-2 md:border-l md:border-gray-300 md:pl-4">
+                          <span className="text-sm text-gray-600">Template:</span>
                           <span className="text-sm font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 italic">
                             {(project.templateName && !project.templateName.match(/^[0-9a-fA-F]{24}$/)) ? project.templateName : project.selectedTemplate}
                           </span>
@@ -299,14 +299,14 @@ const Overview = () => {
                     queryClient.invalidateQueries(['project', projectId]);
                     refetchProject();
                   }}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-2 transition-colors"
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center justify-center md:justify-start gap-2 transition-colors w-full md:w-auto"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                   Refresh
                 </button>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-gray-500 text-center md:text-left">
                   Last updated: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </div>
@@ -315,17 +315,17 @@ const Overview = () => {
         </div>
 
         {/* Main Card with Tabs */}
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 mb-8">
+        <div className="bg-white rounded-lg md:rounded-xl shadow-sm md:shadow-lg border-y md:border border-gray-200 -mx-4 md:mx-0 mb-8">
 
           {/* Tabs Navigation */}
           <div className="border-b border-gray-200">
-            <nav className="flex">
+            <nav className="flex overflow-x-auto no-scrollbar scroll-smooth px-2 md:px-0">
 
               {/* Questionnaire tab — d.s, d.i, d.inf, admin/superadmin */}
               {["superadmin", "admin", "manager", "d.s", "d.i", "d.inf"].includes(userRole) && (
                 <button
                   onClick={() => handleTabChange("questions")}
-                  className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${activeTab === "questions"
+                  className={`px-4 md:px-6 py-3 md:py-4 font-medium text-xs md:text-sm border-b-2 transition-colors flex items-center gap-2 flex-shrink-0 whitespace-nowrap ${activeTab === "questions"
                     ? "border-primary text-primary"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }`}
@@ -344,7 +344,7 @@ const Overview = () => {
               {["superadmin", "admin", "manager", "d.d", "d.c", "d.it"].includes(userRole) && (
                 <button
                   onClick={() => handleTabChange("folders")}
-                  className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${activeTab === "folders"
+                  className={`px-4 md:px-6 py-3 md:py-4 font-medium text-xs md:text-sm border-b-2 transition-colors flex items-center gap-2 flex-shrink-0 whitespace-nowrap ${activeTab === "folders"
                     ? "border-primary text-primary"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }`}
@@ -359,18 +359,11 @@ const Overview = () => {
                 </button>
               )}
 
-              {/* Accesses/Integration/Product tab
-                  d.i       → HIDDEN (user requested)
-                  d.it      → "Accesses" | "Integration" | "Product" (depends on project status)
-                  d.in      → "Integration"  (untouched, keep as-is)
-                  d.d       → "WordPress Login" (GATED: visible only after IT and Content are done)
-                  d.c       → HIDDEN (content sees only Folders)
-                  d.inf     → HIDDEN
-              */}
+              {/* Accesses/Integration/Product tab */}
               {(["superadmin", "admin", "manager", "d.it", "d.in"].includes(userRole) || (userRole === "d.d" && project.itStatus !== 'pending' && project.contentStatus === 'completed')) && (
                 <button
                   onClick={() => handleTabChange("accesses")}
-                  className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${activeTab === "accesses"
+                  className={`px-4 md:px-6 py-3 md:py-4 font-medium text-xs md:text-sm border-b-2 transition-colors flex items-center gap-2 flex-shrink-0 whitespace-nowrap ${activeTab === "accesses"
                     ? "border-primary text-primary"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }`}
@@ -395,7 +388,7 @@ const Overview = () => {
               {(["superadmin", "admin", "manager"].includes(userRole) || (userRole === "c.m" && project.designStatus === 'completed')) && (
                 <button
                   onClick={() => handleTabChange("control")}
-                  className={`px-6 py-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${activeTab === "control"
+                  className={`px-4 md:px-6 py-3 md:py-4 font-medium text-xs md:text-sm border-b-2 transition-colors flex items-center gap-2 flex-shrink-0 whitespace-nowrap ${activeTab === "control"
                     ? "border-violet-600 text-violet-600"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }`}
@@ -413,7 +406,7 @@ const Overview = () => {
           </div>
 
           {/* Tab Content */}
-          <div className="p-6">
+          <div className="p-4 md:p-8">
             {activeTab === "questions" && (
               <QuestionsTab setFormSubmitted={setFormSubmitted} projectId={projectId} />
             )}
