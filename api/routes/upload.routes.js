@@ -13,12 +13,13 @@ router.get("/generate-link/:projectId", protect, generateTemporaryUploadLink);
 
 const Project = require("../models/project.model");
 // Public static client upload route
-router.post("/client/:projectId", async (req, res, next) => {
+router.post("/client/:projectId", uploadMiddleware, async (req, res, next) => {
     try {
         const project = await Project.findById(req.params.projectId);
         if (!project) return res.status(404).json({ message: "Project not found" });
-
+        if (!req.body) req.body = {};
         req.body.projectId = req.params.projectId;
+        req.projectId = req.params.projectId;
         req.isTempUpload = true;
         req.user = {
             id: project.projectManager || project._id, // Assign to project manager
@@ -28,7 +29,7 @@ router.post("/client/:projectId", async (req, res, next) => {
     } catch (err) {
         next(err);
     }
-}, uploadMiddleware, uploadFiles);
+}, uploadFiles);
 
 // Temporary upload route (Public but token-validated)
 router.route("/temp")

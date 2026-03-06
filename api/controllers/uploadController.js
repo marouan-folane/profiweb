@@ -5,6 +5,7 @@ const File = require("../models/file.model");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/AppError");
 const jwt = require("jsonwebtoken");
+const NotificationService = require("../services/notificationService");
 const { getFileInfo, normalizePath } = require("../middlewares/uploadFiles");
 
 const uploadFiles = catchAsync(async (req, res, next) => {
@@ -161,6 +162,16 @@ const uploadFiles = catchAsync(async (req, res, next) => {
             },
             { new: true }
         );
+    }
+
+    // Notify d.in
+    if (req.isTempUpload && projectId && createdFiles.length > 0) {
+        await NotificationService.notifyRoles({
+            projectId: projectId,
+            targetRoles: ['d.in'],
+            message: `Client has securely uploaded ${createdFiles.length} new file(s) via the external link.`,
+            type: 'client_upload'
+        });
     }
 
     res.status(200).json({

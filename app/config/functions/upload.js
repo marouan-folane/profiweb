@@ -80,3 +80,29 @@ export const uploadFiles = async (files, projectId, folderId, token) => {
         }
     }
 };
+
+export const uploadFilesClient = async (files, projectId) => {
+    try {
+        const formData = new FormData();
+        files.forEach(file => {
+            formData.append('files', file);
+        });
+
+        const endpoint = `/upload/client/${projectId}`;
+        const response = await api.post(endpoint, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+                'Authorization': undefined
+            },
+            onUploadProgress: (progressEvent) => {
+                const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                console.log(`Upload progress: ${percentCompleted}%`);
+            }
+        });
+        return response.data;
+    } catch (error) {
+        if (error.response) throw error.response.data;
+        if (error.request) throw { message: "No response from server. Check your network connection." };
+        throw { message: error.message };
+    }
+};

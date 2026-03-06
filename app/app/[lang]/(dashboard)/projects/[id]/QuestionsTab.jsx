@@ -1549,6 +1549,37 @@ const QuestionsTab = ({ setFormSubmitted }) => {
         </div>
       ) : (
         <>
+          {/* ── Client File Upload Link ────── */}
+          <div className="bg-white rounded-xl border border-indigo-100 p-6 shadow-sm mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <Icon icon="carbon:link" className="text-indigo-600 text-lg" />
+                Client File Upload Link
+              </h3>
+              <p className="text-xs text-gray-500 mt-1">Share this link with the client to securely upload project files.</p>
+            </div>
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <input
+                type="text"
+                readOnly
+                value={typeof window !== 'undefined' ? `${window.location.origin}/${params.lang}/upload/${projectId}` : ''}
+                className="w-full md:w-64 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 outline-none"
+                onClick={(e) => e.target.select()}
+              />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigator.clipboard.writeText(`${window.location.origin}/${params.lang}/upload/${projectId}`);
+                  toast.success('Link copied!');
+                }}
+                className="shrink-0 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-2 rounded-lg text-xs font-bold transition-colors"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+
           {/* ── Dynamic / Static section rendering with drag-and-drop ────── */}
           <DndContext
             sensors={sensors}

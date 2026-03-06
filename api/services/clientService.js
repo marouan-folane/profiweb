@@ -24,7 +24,7 @@ class ClientService {
         const orConditions = [{ email: email.trim().toLowerCase() }];
         if (normalizedPhone) orConditions.push({ phone: normalizedPhone });
 
-        const existingClient = await Client.findOne({ $isActive: true, $or: orConditions });
+        const existingClient = await Client.findOne({ isActive: true, $or: orConditions });
         if (existingClient) throw new AppError("A client with this email or phone already exists", 409);
 
         const clientAddress = address || { street: "", city: "", state: "", country: "Morocco", postalCode: "" };
