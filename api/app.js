@@ -2,7 +2,6 @@ const express = require("express");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const bodyParser = require("body-parser");
-const expressListEndpoints = require('express-list-endpoints');
 const path = require('path');
 
 const authRouter = require("./routes/auth.routes");
@@ -29,17 +28,15 @@ const cors = require("cors");
 
 const dns = require('dns');
 dns.setServers(['8.8.8.8', '8.8.4.4']);
+
+dotenv.config({ path: "./config/config.env" });
+
 const app = express();
-dotenv.config({
-  path: "./config/config.env",
-});
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
 app.use(bodyParser.json());
 
-// Middleware
 app.use(cors({
   origin: process.env.FRONTEND_URL || "*",
   credentials: true,
@@ -47,24 +44,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(express.urlencoded({
-  limit: '10mb',
-  extended: true
-}));
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(bodyParser.json());
-
-// ===== ADD THIS: Serve static files from uploads directory =====
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-// console.log('📁 Static files served from:', path.join(__dirname, 'uploads'));
-// ===== END OF ADDITION =====
 
-// Connect to database
 connectDB();
 
-// Routes
 app.get("/", (req, res) => {
   res.send("Server Started Successfully :)");
 });
@@ -88,17 +71,10 @@ app.use('/api/v1/question-templates', questionTemplateRouter);
 app.use('/api/v1/notifications', notificationRouter);
 app.use('/api/v1/users', userRouter);
 
-// Error handling
 app.use(handleErrors);
 
-// Error handling - TEMPORARY DEBUG VERSION
 app.use((err, req, res, next) => {
-  console.error("❌ UNHANDLED ERROR:", {
-    message: err.message,
-    stack: err.stack,
-    fullError: JSON.stringify(err, null, 2)
-  });
-
+  console.error("❌ UNHANDLED ERROR:", err.message);
   res.status(err.statusCode || 500).json({
     status: "error",
     message: err.message || "Server error. Please try again later.",
@@ -106,16 +82,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = 2030;
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.table(expressListEndpoints(app));
-});
-
-// app.listen(PORT, () => {
-//   console.log(`Server running on http://localhost:${PORT}`);
-//   console.log('✅ Available routes:');
-//   console.table(expressListEndpoints(app));
-// });
+// ✅ Only listen locally — Vercel handles this in production
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 2030;
+  app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+}
 
 module.exports = app;
