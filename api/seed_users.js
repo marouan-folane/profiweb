@@ -7,6 +7,10 @@
 require('dotenv').config({ path: './config/config.env' });
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const dns = require('dns');
+
+// Fix for ECONNREFUSED on some networks when using SRV
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 // Must require role.model first so User model can populate it
 const Role = require('./models/role.model');
@@ -124,7 +128,10 @@ const USERS_TO_CREATE = [
 
 async function seed() {
     try {
-        await mongoose.connect(process.env.MONGO_URI);
+        await mongoose.connect(process.env.MONGO_URI, {
+            family: 4,  // Force IPv4
+            serverSelectionTimeoutMS: 10000,
+        });
         console.log('✅ Connected to MongoDB');
 
         // Find superadmin to use as createdBy

@@ -22,11 +22,13 @@ const profileRouter = require("./routes/profile.routes");
 const statsRouter = require("./routes/stats.routes");
 const questionTemplateRouter = require('./routes/questionTemplate.routes');
 const notificationRouter = require('./routes/notification.routes');
+const userRouter = require('./routes/user.routes');
 
 const handleErrors = require("./middlewares/handleErrors");
 const cors = require("cors");
 
-
+const dns = require('dns');
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 const app = express();
 dotenv.config({
   path: "./config/config.env",
@@ -39,7 +41,7 @@ app.use(bodyParser.json());
 
 // Middleware
 app.use(cors({
-  origin: "*",
+  origin: process.env.FRONTEND_URL || "*",
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -84,6 +86,7 @@ app.use("/api/v1/profile", profileRouter);
 app.use("/api/v1/stats", statsRouter);
 app.use('/api/v1/question-templates', questionTemplateRouter);
 app.use('/api/v1/notifications', notificationRouter);
+app.use('/api/v1/users', userRouter);
 
 // Error handling
 app.use(handleErrors);

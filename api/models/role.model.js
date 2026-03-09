@@ -25,7 +25,7 @@ const roleSchema = new mongoose.Schema({
   // Department association - OPTIONAL for now
   department: {
     type: String,
-    enum: ['integration', 'design', 'it', 'informations', null],
+    enum: ['integration', 'design', 'it', 'informations', 'content', 'sales', null],
     default: null
   },
 
