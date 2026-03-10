@@ -1,4 +1,4 @@
-const Notification = require('../models/notification.model');
+ const Notification = require('../models/notification.model');
 const User = require('../models/user.model');
 const Role = require('../models/role.model');
 
